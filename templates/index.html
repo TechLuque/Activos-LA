@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ActivosEQ — Gestión de Activos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Dark Premium Industrial
+════════════════════════════════════════════════════════════ */
+:root {
+  --bg:       #0d0f14;
+  --bg2:      #111318;
+  --bg3:      #161920;
+  --surface:  #1a1d27;
+  --surface2: #1f2330;
+  --surface3: #252836;
+  --border:   rgba(255,255,255,.07);
+  --border2:  rgba(255,255,255,.12);
+  --glow:     rgba(99,179,237,.08);
+
+  --text:     #f0f2ff;
+  --text2:    #8b92a8;
+  --text3:    #555d72;
+
+  --blue:     #4f8ef7;
+  --blue-d:   #3b7de8;
+  --blue-glow:rgba(79,142,247,.25);
+  --blue-soft:rgba(79,142,247,.12);
+
+  --teal:     #2dd4bf;
+  --teal-soft:rgba(45,212,191,.12);
+  --violet:   #a78bfa;
+  --violet-soft:rgba(167,139,250,.12);
+  --amber:    #fbbf24;
+  --amber-soft:rgba(251,191,36,.12);
+  --red:      #f87171;
+  --red-soft: rgba(248,113,113,.12);
+  --green:    #34d399;
+  --green-soft:rgba(52,211,153,.12);
+  --orange:   #fb923c;
+  --orange-soft:rgba(251,146,60,.12);
+
+  --radius:   16px;
+  --radius-sm:10px;
+  --radius-xs:6px;
+  --sidebar-w:256px;
+  --font:     'Inter', sans-serif;
+  --font-d:   'Inter', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --shadow:   0 4px 24px rgba(0,0,0,.4);
+  --shadow-lg:0 12px 48px rgba(0,0,0,.6);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden;-webkit-font-smoothing:antialiased;font-stretch:normal}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--border2)}
+
+/* ═══════════════ SIDEBAR ════════════════ */
+.sidebar{
+  width:var(--sidebar-w);min-height:100vh;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:fixed;left:0;top:0;bottom:0;z-index:100;
+}
+.sidebar::after{
+  content:'';position:absolute;top:0;right:0;bottom:0;width:1px;
+  background:linear-gradient(180deg,transparent,var(--blue) 40%,var(--teal) 70%,transparent);
+  opacity:.2;
+}
+.sb-brand{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.sb-logo{display:flex;align-items:center;gap:12px}
+.sb-icon{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--teal));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 0 20px var(--blue-glow);
+}
+.sb-name{font-family:var(--font-d);font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.sb-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+.sb-nav{flex:1;padding:16px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.nav-section{margin-bottom:6px}
+.nav-section-label{
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);padding:8px 10px 4px;
+}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:var(--radius-sm);
+  cursor:pointer;border:none;background:none;width:100%;text-align:left;
+  font-family:var(--font);font-size:13.5px;font-weight:500;color:var(--text2);
+  transition:all .18s;position:relative;
+}
+.nav-btn:hover{background:var(--surface);color:var(--text)}
+.nav-btn.active{background:var(--blue-soft);color:var(--blue)}
+.nav-btn.active::before{
+  content:'';position:absolute;left:0;top:20%;bottom:20%;
+  width:3px;border-radius:2px;background:var(--blue);
+  box-shadow:0 0 8px var(--blue);
+}
+.nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:var(--surface3);transition:all .18s}
+.nav-btn.active .nav-icon{background:var(--blue-soft)}
+.nav-badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--red-soft);color:var(--red);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+.sb-footer{padding:14px 12px;border-top:1px solid var(--border)}
+
+/* ═══════════════ MAIN ═══════════════════ */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+
+.topbar{
+  background:rgba(13,15,20,.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:50;
+}
+.topbar-left h1{font-family:var(--font-d);font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.4px}
+.topbar-left p{font-size:11.5px;color:var(--text3);margin-top:1px}
+.search-wrap{flex:1;max-width:320px;position:relative;margin-left:auto}
+.search-wrap input{
+  width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 14px 9px 36px;font-size:13px;font-family:var(--font);color:var(--text);outline:none;
+  transition:all .2s;
+}
+.search-wrap input::placeholder{color:var(--text3)}
+.search-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.user-pill{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--surface);border:1px solid var(--border);border-radius:30px;cursor:pointer}
+.user-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white}
+.user-name{font-size:13px;font-weight:600;color:var(--text)}
+.user-role{font-size:10px;color:var(--text3)}
+
+.page-content{flex:1;overflow-y:auto;padding:28px}
+
+/* ═══════════════ PAGES ══════════════════ */
+.page{display:none;animation:fadeUp .3s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════ CARD ═══════════════════ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.card-header{padding:18px 20px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.card-title{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--text)}
+.card-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
+.card-body{padding:16px 20px 20px}
+
+/* ═══════════════ STAT CARDS ════════════ */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;position:relative;overflow:hidden;cursor:default;
+  transition:border-color .2s, transform .2s;
+}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-color,var(--blue));opacity:.6}
+.stat-card .glow-dot{
+  position:absolute;top:20px;right:20px;width:36px;height:36px;border-radius:50%;
+  background:var(--accent-color,var(--blue));opacity:.15;filter:blur(10px);
+}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.stat-value{font-family:var(--font-d);font-size:34px;font-weight:800;letter-spacing:-2px;line-height:1}
+.stat-sub{font-size:11.5px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:4px}
+.stat-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+
+/* ═══════════════ DASHBOARD GRID ════════ */
+.dash-grid{display:grid;grid-template-columns:1fr 380px;gap:18px}
+.dash-left{display:flex;flex-direction:column;gap:18px}
+.dash-right{display:flex;flex-direction:column;gap:14px}
+
+/* ═══════════════ ALERTS STRIP ══════════ */
+.alert-strip{background:linear-gradient(135deg,rgba(248,113,113,.08),rgba(251,146,60,.08));border:1px solid rgba(248,113,113,.2);border-radius:var(--radius);padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.alert-strip-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.alert-strip-header h3{font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--red)}
+.alert-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,0,0,.25);border-radius:var(--radius-sm);cursor:pointer;transition:background .18s}
+.alert-item:hover{background:rgba(248,113,113,.1)}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-item-info{flex:1;min-width:0}
+.alert-item-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert-item-sub{font-size:11px;color:var(--text3)}
+.alert-item-date{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.alert-vencido .alert-dot{background:var(--red)}
+.alert-vencido .alert-item-date{background:var(--red-soft);color:var(--red)}
+.alert-proximo .alert-dot{background:var(--amber)}
+.alert-proximo .alert-item-date{background:var(--amber-soft);color:var(--amber)}
+
+/* ═══════════════ BAR CHART ════════════ */
+.bar-wrap{display:flex;align-items:flex-end;gap:8px;height:140px;padding-top:8px}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end;gap:6px}
+.bar{width:100%;border-radius:6px 6px 0 0;min-height:6px;position:relative;overflow:hidden}
+.bar::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent)}
+.bar-lbl{font-size:10px;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-weight:500}
+
+/* ═══════════════ DONUT ════════════════ */
+.donut-row{display:flex;align-items:center;gap:16px}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1}
+.legend-item{display:flex;align-items:center;justify-content:space-between}
+.legend-left{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text2)}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-right{font-size:12px;font-weight:700;color:var(--text)}
+.legend-pct{font-size:10px;color:var(--text3);margin-left:4px}
+
+/* ═══════════════ MINI LIST ════════════ */
+.mini-list-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.mini-list-item:last-child{border-bottom:none}
+.mli-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.mli-body{flex:1;min-width:0}
+.mli-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mli-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.mli-right{font-family:var(--font-d);font-size:18px;font-weight:800}
+
+/* ═══════════════ TABLE ════════════════ */
+.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse;background:var(--surface)}
+thead tr{background:var(--surface2)}
+th{padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text2)}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s}
+tbody tr:hover td{background:var(--surface2);color:var(--text)}
+.tbl-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.pg-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;gap:12px}
+.pg-heading h2{font-family:var(--font-d);font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.pg-heading p{font-size:13px;color:var(--text3);margin-top:3px}
+
+/* ═══════════════ STATUS BADGES ════════ */
+.bs{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.bs::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.bs-bueno{background:var(--green-soft);color:var(--green)}.bs-bueno::before{background:var(--green)}
+.bs-regular{background:var(--teal-soft);color:var(--teal)}.bs-regular::before{background:var(--teal)}
+.bs-dañado,.bs-danado{background:var(--red-soft);color:var(--red)}.bs-dañado::before,.bs-danado::before{background:var(--red)}
+.bs-en_reparacion{background:var(--amber-soft);color:var(--amber)}.bs-en_reparacion::before{background:var(--amber)}
+.bs-activo{background:var(--green-soft);color:var(--green)}.bs-activo::before{background:var(--green)}
+.bs-inactivo{background:var(--surface3);color:var(--text3)}.bs-inactivo::before{background:var(--text3)}
+.bs-devuelto{background:var(--surface3);color:var(--text3)}.bs-devuelto::before{background:var(--text3)}
+.bs-completado{background:var(--green-soft);color:var(--green)}.bs-completado::before{background:var(--green)}
+.bs-en_proceso{background:var(--amber-soft);color:var(--amber)}.bs-en_proceso::before{background:var(--amber)}
+.bs-pendiente{background:var(--blue-soft);color:var(--blue)}.bs-pendiente::before{background:var(--blue)}
+.bs-preventivo{background:var(--blue-soft);color:var(--blue)}.bs-preventivo::before{background:var(--blue)}
+.bs-correctivo{background:var(--orange-soft);color:var(--orange)}.bs-correctivo::before{background:var(--orange)}
+.bs-vencido{background:var(--red-soft);color:var(--red)}.bs-vencido::before{background:var(--red)}
+
+/* ═══════════════ BUTTONS ══════════════ */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:var(--font);white-space:nowrap}
+.btn-primary{background:var(--blue);color:white}
+.btn-primary:hover{background:var(--blue-d);box-shadow:0 4px 16px var(--blue-glow)}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface3);color:var(--text)}
+.btn-danger{background:var(--red-soft);color:var(--red);border:none}
+.btn-danger:hover{background:rgba(248,113,113,.2)}
+.btn-teal{background:var(--teal-soft);color:var(--teal);border:none}
+.btn-teal:hover{background:rgba(45,212,191,.2)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-xs{padding:4px 9px;font-size:11px;border-radius:var(--radius-xs)}
+.btn-icon{padding:7px;border-radius:var(--radius-xs);font-size:14px}
+.act-cell{display:flex;gap:5px;align-items:center}
+
+/* ═══════════════ FILTERS ══════════════ */
+.filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.filter-row input,.filter-row select{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .2s;
+}
+.filter-row input::placeholder{color:var(--text3)}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--blue)}
+.filter-row input{width:220px}
+.filter-row select{width:160px}
+select option{background:var(--surface2);color:var(--text)}
+.count-badge{font-size:11.5px;color:var(--text3);margin-left:auto}
+
+/* ═══════════════ MODAL ════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:20px}
+.overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp .25s ease}
+.modal-lg{max-width:720px}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.modal-head h3{font-family:var(--font-d);font-size:17px;font-weight:800;color:var(--text)}
+.modal-head p{font-size:12px;color:var(--text3);margin-top:3px}
+.m-close{background:var(--surface2);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);font-size:15px;flex-shrink:0;transition:all .15s}
+.m-close:hover{background:var(--red-soft);color:var(--red);border-color:transparent}
+.modal-body{padding:20px 24px 24px}
+
+/* ═══════════════ FORMS ════════════════ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.c1{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.s2{grid-column:span 2}
+label{font-size:11.5px;font-weight:600;color:var(--text3);letter-spacing:.3px}
+input,select,textarea{
+  font-family:var(--font);font-size:13px;color:var(--text);
+  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 12px;outline:none;transition:all .2s;width:100%;
+}
+input::placeholder{color:var(--text3)}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);background:var(--surface3)}
+textarea{resize:vertical;min-height:70px}
+select option{background:var(--surface2)}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* ═══════════════ AVATAR ═══════════════ */
+.av{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0}
+.av-cell{display:flex;align-items:center;gap:10px}
+.av-cell .name{font-weight:600;font-size:13px;color:var(--text)}
+.av-cell .sub{font-size:11px;color:var(--text3)}
+.tipo-av{width:32px;height:32px;border-radius:9px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+/* ═══════════════ HOJA DE VIDA ══════════ */
+.hv-tl{padding-left:20px;position:relative}
+.hv-tl::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--blue),var(--teal),transparent);opacity:.3;border-radius:2px}
+.hv-item{position:relative;margin-bottom:14px}
+.hv-item::before{content:'';position:absolute;left:-17px;top:10px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg2)}
+.hv-adquisicion::before{background:var(--green)}
+.hv-mantenimiento::before{background:var(--amber)}
+.hv-reparacion::before{background:var(--red)}
+.hv-proceso::before{background:var(--teal)}
+.hv-otro::before{background:var(--violet)}
+.hv-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.hv-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hv-card h4{font-size:13px;font-weight:600;color:var(--text)}
+.hv-card p{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5}
+.hv-meta{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.hv-meta span{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px}
+
+/* ═══════════════ CALENDAR ═════════════ */
+.cal-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cal-event{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all .18s}
+.cal-event:hover{border-color:var(--border2);background:var(--surface3)}
+.cal-event-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cal-event-body{flex:1;min-width:0}
+.cal-event-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-event-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.cal-event-date{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.cal-mant .cal-event-dot{background:var(--blue)}
+.cal-mant .cal-event-date{background:var(--blue-soft);color:var(--blue)}
+.cal-prestamo .cal-event-dot{background:var(--amber)}
+.cal-prestamo .cal-event-date{background:var(--amber-soft);color:var(--amber)}
+.cal-vencido .cal-event-dot{background:var(--red)}
+.cal-vencido .cal-event-date{background:var(--red-soft);color:var(--red)}
+.cal-month{font-family:var(--font-d);font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:6px 0;margin-top:10px;border-bottom:1px solid var(--border);margin-bottom:6px}
+
+/* ═══════════════ MANT PAGE ════════════ */
+.mant-equipo-header{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.mant-info-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.mant-info-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px}
+.mic-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.mic-val{font-size:13px;font-weight:700;color:var(--text)}
+
+/* ═══════════════ EMPTY ════════════════ */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-icon{font-size:44px;margin-bottom:12px;opacity:.5}
+.empty h3{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:4px}
+.empty p{font-size:13px}
+
+/* ═══════════════ TOAST ════════════════ */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{
+  background:var(--surface3);border:1px solid var(--border2);
+  color:var(--text);border-radius:var(--radius-sm);padding:12px 18px;
+  font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:9px;
+  animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:all;min-width:240px;max-width:360px;
+}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--blue)}
+@keyframes toastIn{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.chip{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer}
+.chip-blue{background:var(--blue-soft);color:var(--blue)}
+.chip-teal{background:var(--teal-soft);color:var(--teal)}
+.mono{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.section-sep{margin:18px 0;border:none;border-top:1px solid var(--border)}
+.row-flex{display:flex;align-items:center;gap:10px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <div class="sb-icon">📦</div>
+      <div>
+        <div class="sb-name">ActivosEQ</div>
+        <div class="sb-sub">Panel de control</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-section">
+      <div class="nav-section-label">General</div>
+      <button class="nav-btn active" onclick="nav('dashboard')">
+        <div class="nav-icon">🏠</div> Inicio
+      </button>
+      <button class="nav-btn" onclick="nav('reportes')">
+        <div class="nav-icon">📊</div> Reportes
+      </button>
+      <button class="nav-btn" onclick="nav('calendario')">
+        <div class="nav-icon">📅</div> Calendario
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Inventario</div>
+      <button class="nav-btn" onclick="nav('equipos')">
+        <div class="nav-icon">💻</div> Equipos
+      </button>
+      <button class="nav-btn" onclick="nav('mantenimientos')">
+        <div class="nav-icon">🔧</div> Mantenimientos <span class="nav-badge" id="nb-mant" style="display:none">0</span>
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Operaciones</div>
+      <button class="nav-btn" onclick="nav('prestamos')">
+        <div class="nav-icon">🔁</div> Préstamos <span class="nav-badge" id="nb-loan" style="display:none">0</span>
+      </button>
+      <button class="nav-btn" onclick="nav('usuarios')">
+        <div class="nav-icon">👥</div> Responsables
+      </button>
+    </div>
+  </nav>
+</aside>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 id="pgTitle">Panel de control</h1>
+      <p id="pgDate"></p>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="gSearch" type="text" placeholder="Buscar equipos, usuarios…" oninput="gSearchFn(this.value)">
+    </div>
+    <div class="user-pill">
+      <div class="user-av">A</div>
+      <div>
+        <div class="user-name">Administrador</div>
+        <div class="user-role">Admin</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-content">
+
+    <!-- ════ DASHBOARD ════ -->
+    <section class="page active" id="page-dashboard">
+      <div class="stats-row" id="statsRow"></div>
+      <!-- Alerts strip: loans expiring -->
+      <div id="alertsStrip"></div>
+      <div class="dash-grid" style="margin-top:18px">
+        <div class="dash-left">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Equipos por tipo</div><div class="card-sub">Distribución top 7</div></div>
+              <span class="chip chip-blue">Resumen</span>
+            </div>
+            <div class="card-body"><div class="bar-wrap" id="barChart"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Actividad reciente</div><div class="card-sub">Últimos eventos del sistema</div></div>
+              <button class="chip chip-teal" onclick="nav('mantenimientos')">Ver mantenimientos</button>
+            </div>
+            <div class="card-body" id="recentActivity"></div>
+          </div>
+        </div>
+        <div class="dash-right">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Estado de equipos</div><div class="card-sub">Distribución general</div></div>
+              <span class="chip chip-blue">Hoy</span>
+            </div>
+            <div class="card-body">
+              <div class="donut-row">
+                <svg width="110" height="110" viewBox="0 0 110 110" id="donutSvg" style="flex-shrink:0"></svg>
+                <div class="legend" id="donutLegend"></div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:14px" onclick="nav('equipos')">Ver todos los equipos →</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Indicadores clave</div><div class="card-sub">Estado operativo</div></div>
+            </div>
+            <div class="card-body" id="kpiList"></div>
+            <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px">
+              <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="nav('prestamos')">Gestionar préstamos →</button>
+              <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="nav('mantenimientos')">Gestionar mantenimientos →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ EQUIPOS ════ -->
+    <section class="page" id="page-equipos">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Equipos</h2><p>Gestiona todos los activos de la empresa</p></div>
+        <button class="btn btn-primary" onclick="openEqModal()">+ Nuevo equipo</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchEq" type="text" placeholder="Buscar nombre, serial…" oninput="renderEq()">
+          <select id="ftTipo" onchange="renderEq()"><option value="">Todos los tipos</option></select>
+          <select id="ftEst" onchange="renderEq()">
+            <option value="">Todos los estados</option>
+            <option value="bueno">Bueno</option><option value="regular">Regular</option>
+            <option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option>
+          </select>
+        </div>
+        <span class="count-badge" id="eqCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Equipo</th><th>Tipo</th><th>Serial</th><th>Ubicación</th><th>Estado</th><th>Valor</th><th>Acciones</th>
+        </tr></thead><tbody id="eqTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ MANTENIMIENTOS ════ -->
+    <section class="page" id="page-mantenimientos">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Mantenimientos</h2><p>Preventivos y correctivos vinculados a cada equipo</p></div>
+        <button class="btn btn-primary" onclick="openMantModal()">+ Nuevo mantenimiento</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico…" oninput="renderMant()">
+          <select id="ftMantTipo" onchange="renderMant()">
+            <option value="">Todos los tipos</option>
+            <option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option>
+          </select>
+          <select id="ftMantEst" onchange="renderMant()">
+            <option value="">Todos los estados</option>
+            <option value="completado">Completado</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="pendiente">Pendiente</option>
+          </select>
+        </div>
+        <span class="count-badge" id="mantCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Equipo</th><th>Tipo</th><th>Descripción</th><th>Fecha</th><th>Técnico</th><th>Costo</th><th>Estado</th><th>Próx. revisión</th><th>Acciones</th>
+        </tr></thead><tbody id="mantTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ USUARIOS ════ -->
+    <section class="page" id="page-usuarios">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Responsables</h2><p>Usuarios que pueden recibir equipos</p></div>
+        <button class="btn btn-primary" onclick="openUsrModal()">+ Nuevo responsable</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="renderUsr()">
+          <select id="ftUsrEst" onchange="renderUsr()">
+            <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        <span class="count-badge" id="usrCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Email</th><th>Cargo</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
+        </tr></thead><tbody id="usrTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ PRÉSTAMOS ════ -->
+    <section class="page" id="page-prestamos">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Préstamos</h2><p>Control de equipos asignados y en uso</p></div>
+        <button class="btn btn-primary" onclick="openLoanModal()">+ Nuevo préstamo</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable…" oninput="renderLoan()">
+          <select id="ftLoanEst" onchange="renderLoan()">
+            <option value="">Todos</option><option value="activo">Activo</option><option value="devuelto">Devuelto</option>
+          </select>
+        </div>
+        <span class="count-badge" id="loanCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Equipo</th><th>Responsable</th><th>Fecha préstamo</th><th>Devolución esperada</th><th>Devolución real</th><th>Estado</th><th>Notas</th><th>Acciones</th>
+        </tr></thead><tbody id="loanTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ CALENDARIO ════ -->
+    <section class="page" id="page-calendario">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Calendario</h2><p>Préstamos y mantenimientos programados</p></div>
+        <div class="row-flex">
+          <span class="chip chip-blue" style="gap:5px">🔵 Mant.</span>
+          <span class="chip" style="background:var(--amber-soft);color:var(--amber);gap:5px">🟡 Préstamo</span>
+          <span class="chip" style="background:var(--red-soft);color:var(--red);gap:5px">🔴 Vencido</span>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div>
+          <div class="card-title" style="margin-bottom:14px">📋 Próximos eventos</div>
+          <div id="calUpcoming"></div>
+        </div>
+        <div>
+          <div class="card-title" style="margin-bottom:14px">⚠️ Vencidos / En proceso</div>
+          <div id="calOverdue"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ REPORTES ════ -->
+    <section class="page" id="page-reportes">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Reportes</h2><p>Resumen ejecutivo del inventario</p></div>
+      </div>
+      <div id="reportesContent"></div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ═════════════════ TOAST ═════════════════ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ═════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════ -->
+
+<!-- EQUIPO -->
+<div class="overlay" id="ovEq">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="eqModalTitle">Nuevo equipo</h3><p>Completa los datos del activo</p></div>
+      <button class="m-close" onclick="close('ovEq')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Nombre *</label><input id="eNom" placeholder="ej: MacBook Pro 14"></div>
+        <div class="fg"><label>Tipo *</label>
+          <select id="eTipo">
+            <option value="">Seleccionar…</option>
+            <option>Computador</option><option>Teclado</option><option>Mouse</option><option>Monitor</option>
+            <option>UPS</option><option>Impresora</option><option>Tablet</option><option>Teléfono</option>
+            <option>Tripode</option><option>Silla</option><option>Pantalla led</option><option>Servidor</option>
+            <option>Router</option><option>Switch</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="fg"><label>Estado</label>
+          <select id="eEst"><option value="bueno">Bueno</option><option value="regular">Regular</option><option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option></select>
+        </div>
+        <div class="fg"><label>Marca</label><input id="eMarca" placeholder="ej: Apple"></div>
+        <div class="fg"><label>Modelo</label><input id="eModelo" placeholder="ej: MBP M3"></div>
+        <div class="fg"><label>Serial</label><input id="eSerial" placeholder="Número de serie"></div>
+        <div class="fg"><label>Ubicación</label><input id="eUbic" placeholder="ej: Oficina TI"></div>
+        <div class="fg"><label>Fecha adquisición</label><input type="date" id="eFecha"></div>
+        <div class="fg"><label>Valor (COP)</label><input type="number" id="eValor" placeholder="0"></div>
+        <div class="fg s2"><label>Descripción / Observaciones</label><textarea id="eDesc" placeholder="Notas…"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovEq')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEq()">Guardar equipo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANTENIMIENTO -->
+<div class="overlay" id="ovMant">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="mantModalTitle">Nuevo mantenimiento</h3><p id="mantModalSub">Registrar mantenimiento</p></div>
+      <button class="m-close" onclick="close('ovMant')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Equipo *</label><select id="mEquipo"><option value="">Seleccionar equipo…</option></select></div>
+        <div class="fg"><label>Tipo *</label>
+          <select id="mTipo"><option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option></select>
+        </div>
+        <div class="fg"><label>Estado</label>
+          <select id="mEst"><option value="completado">Completado</option><option value="en_proceso">En proceso</option><option value="pendiente">Pendiente</option></select>
+        </div>
+        <div class="fg s2"><label>Descripción *</label><textarea id="mDesc" placeholder="Detalla el trabajo realizado…"></textarea></div>
+        <div class="fg"><label>Fecha *</label><input type="date" id="mFecha"></div>
+        <div class="fg"><label>Técnico responsable</label><input id="mTec" placeholder="Nombre del técnico"></div>
+        <div class="fg"><label>Costo (COP)</label><input type="number" id="mCosto" placeholder="0"></div>
+        <div class="fg"><label>Próxima revisión</label><input type="date" id="mProx"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovMant')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveMant()">Registrar mantenimiento</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- USUARIO -->
+<div class="overlay" id="ovUsr">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="usrModalTitle">Nuevo responsable</h3><p>Datos del usuario</p></div>
+      <button class="m-close" onclick="close('ovUsr')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Nombre completo *</label><input id="uNom" placeholder="Nombre y apellidos"></div>
+        <div class="fg s2"><label>Email *</label><input type="email" id="uEmail" placeholder="correo@empresa.com"></div>
+        <div class="fg"><label>Cargo</label><input id="uCargo" placeholder="ej: Analista TI"></div>
+        <div class="fg"><label>Departamento</label><input id="uDpto" placeholder="ej: Tecnología"></div>
+        <div class="fg"><label>Teléfono</label><input id="uTel" placeholder="300 123 4567"></div>
+        <div class="fg"><label>Estado</label><select id="uEst"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovUsr')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveUsr()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRÉSTAMO -->
+<div class="overlay" id="ovLoan">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Nuevo préstamo</h3><p>Asigna un equipo a un responsable</p></div>
+      <button class="m-close" onclick="close('ovLoan')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid c1">
+        <div class="fg"><label>Equipo *</label><select id="lEq"><option value="">Seleccionar equipo disponible…</option></select></div>
+        <div class="fg"><label>Responsable *</label><select id="lUsr"><option value="">Seleccionar responsable…</option></select></div>
+        <div class="fg"><label>Fecha de préstamo *</label><input type="date" id="lFecha"></div>
+        <div class="fg"><label>Devolución esperada</label><input type="date" id="lDevol"></div>
+        <div class="fg"><label>Notas</label><textarea id="lNotas" placeholder="Motivo o condiciones del préstamo…"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovLoan')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveLoan()">Registrar préstamo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOJA DE VIDA -->
+<div class="overlay" id="ovHV">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3 id="hvTitle">Hoja de vida</h3><p id="hvSub">Historial completo del equipo</p></div>
+      <button class="m-close" onclick="close('ovHV')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="hvEquipoMeta"></div>
+      <hr class="section-sep">
+      <!-- Mantenimientos section -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title">🔧 Mantenimientos del equipo</div>
+        <button class="btn btn-teal btn-sm" onclick="openMantFromHV()">+ Agregar mantenimiento</button>
+      </div>
+      <div id="hvMants" style="margin-bottom:18px"></div>
+      <hr class="section-sep">
+      <!-- Events / Hoja de vida -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title">📋 Historial de eventos</div>
+        <button class="btn btn-ghost btn-sm" onclick="open('ovAddHV')">+ Agregar evento</button>
+      </div>
+      <div id="hvTimeline"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD HV EVENT -->
+<div class="overlay" id="ovAddHV">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Agregar evento</h3><p>Registro en hoja de vida</p></div>
+      <button class="m-close" onclick="close('ovAddHV')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid c1">
+        <div class="fg"><label>Tipo de evento *</label>
+          <select id="hvTipo">
+            <option value="mantenimiento">Mantenimiento</option><option value="reparacion">Reparación</option>
+            <option value="proceso">Proceso / Trámite</option><option value="adquisicion">Adquisición</option><option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="fg"><label>Título *</label><input id="hvTit" placeholder="Resumen del evento"></div>
+        <div class="fg"><label>Descripción</label><textarea id="hvDescEv" placeholder="Detalle del proceso…"></textarea></div>
+        <div class="fg"><label>Fecha *</label><input type="date" id="hvFechaEv"></div>
+        <div class="fg"><label>Responsable</label><input id="hvResp" placeholder="Nombre del responsable"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovAddHV')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveHVEvent()">Registrar evento</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   STATE & HELPERS
+════════════════════════════════════════════════════ */
+let EQ=[],USR=[],LOANS=[],MANTS=[],DASH={};
+let editEqId=null, editUsrId=null, editMantId=null, curHVId=null;
+const TODAY=new Date().toISOString().split('T')[0];
+
+const api=async(url,m='GET',b=null)=>{
+  const r=await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null});
+  return r.json();
+};
+
+const open=id=>document.getElementById(id).classList.add('open');
+const close=id=>document.getElementById(id).classList.remove('open');
+const $=id=>document.getElementById(id);
+
+function toast(msg,type='info'){
+  const icons={ok:'✅',err:'❌',info:'ℹ️'};
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.textContent=`${icons[type]||'ℹ️'} ${msg}`;
+  $('toastWrap').appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+const fmt=n=>n?'$'+Number(n).toLocaleString('es-CO'):'—';
+const fmtDate=d=>{if(!d)return'—';const[y,mo,dd]=d.split('-');return`${dd}/${mo}/${y}`};
+const daysLeft=d=>{if(!d)return null;const diff=Math.ceil((new Date(d)-new Date(TODAY))/(1000*60*60*24));return diff};
+
+const TIPO_ICON={Computador:'💻',Teclado:'⌨️',Mouse:'🖱️',Monitor:'🖥️',UPS:'🔋',Impresora:'🖨️',Tablet:'📱','Teléfono':'☎️',Tripode:'📷',Silla:'🪑','Pantalla led':'📺',Servidor:'🗄️',Router:'📡',Switch:'🔀',Otro:'📦'};
+const AV_COLORS=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#fb923c'];
+
+function bsClass(s){
+  const m={bueno:'bs-bueno',regular:'bs-regular','dañado':'bs-dañado',en_reparacion:'bs-en_reparacion',
+    activo:'bs-activo',inactivo:'bs-inactivo',devuelto:'bs-devuelto',
+    completado:'bs-completado',en_proceso:'bs-en_proceso',pendiente:'bs-pendiente',
+    preventivo:'bs-preventivo',correctivo:'bs-correctivo'};
+  return m[s]||'';
+}
+function bsLabel(s){
+  const m={bueno:'Bueno',regular:'Regular','dañado':'Dañado',en_reparacion:'En reparación',
+    activo:'Activo',inactivo:'Inactivo',devuelto:'Devuelto',
+    completado:'Completado',en_proceso:'En proceso',pendiente:'Pendiente',
+    preventivo:'Preventivo',correctivo:'Correctivo'};
+  return m[s]||s;
+}
+
+/* ════════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════════ */
+const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
+  usuarios:'Responsables',prestamos:'Préstamos',calendario:'Calendario',reportes:'Reportes'};
+
+function nav(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  $('page-'+page).classList.add('active');
+  $('pgTitle').textContent=PAGE_TITLES[page]||page;
+  document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${page}'`))b.classList.add('active')});
+  if(page==='equipos')renderEq();
+  if(page==='mantenimientos')renderMant();
+  if(page==='usuarios')renderUsr();
+  if(page==='prestamos')renderLoan();
+  if(page==='calendario')renderCal();
+  if(page==='reportes')renderReportes();
+}
+
+/* ════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════ */
+async function init(){
+  $('pgDate').textContent=`Hola, Administrador · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
+  await loadAll();
+  renderDashboard();
+}
+
+async function loadAll(){
+  [EQ,USR,LOANS,MANTS]=await Promise.all([api('/api/equipos'),api('/api/usuarios'),api('/api/prestamos'),api('/api/mantenimientos')]);
+  DASH=await api('/api/dashboard');
+  updateNavBadges();
+}
+
+function updateNavBadges(){
+  const nbMant=$('nb-mant'), nbLoan=$('nb-loan');
+  const enProceso=MANTS.filter(m=>m.estado==='en_proceso').length;
+  const alertLoans=(DASH.prestamos_vencidos||[]).length+(DASH.proximos_vencer||[]).length;
+  nbMant.style.display=enProceso>0?'flex':'none'; nbMant.textContent=enProceso;
+  nbLoan.style.display=alertLoans>0?'flex':'none'; nbLoan.textContent=alertLoans;
+}
+
+/* ════════════════════════════════════════════════════
+   DASHBOARD
+════════════════════════════════════════════════════ */
+function renderDashboard(){
+  const d=DASH;
+  // Stats
+  const valorM=d.valor_total?(d.valor_total/1000000).toFixed(1):'0';
+  $('statsRow').innerHTML=`
+    <div class="stat-card" style="--accent-color:var(--blue)"><div class="glow-dot"></div>
+      <div class="stat-label">Total equipos</div>
+      <div class="stat-value" style="color:var(--blue)">${d.total_equipos||0}</div>
+      <div class="stat-sub">Valor inventario: <strong style="color:var(--text)">$${valorM}M</strong></div>
+    </div>
+    <div class="stat-card" style="--accent-color:var(--teal)"><div class="glow-dot" style="background:var(--teal)"></div>
+      <div class="stat-label">Responsables activos</div>
+      <div class="stat-value" style="color:var(--teal)">${d.total_usuarios||0}</div>
+      <div class="stat-sub">Usuarios en el sistema</div>
+    </div>
+    <div class="stat-card" style="--accent-color:var(--amber)"><div class="glow-dot" style="background:var(--amber)"></div>
+      <div class="stat-label">Préstamos activos</div>
+      <div class="stat-value" style="color:var(--amber)">${d.prestamos_activos||0}</div>
+      <div class="stat-sub">${(d.prestamos_vencidos||[]).length} vencido(s) sin devolver</div>
+    </div>
+    <div class="stat-card" style="--accent-color:var(--${d.mant_en_proceso>0?'red':'green'})">
+      <div class="glow-dot" style="background:var(--${d.mant_en_proceso>0?'red':'green'})"></div>
+      <div class="stat-label">Mantenimientos</div>
+      <div class="stat-value" style="color:var(--${d.mant_en_proceso>0?'red':'green'})">${d.mant_en_proceso||0}</div>
+      <div class="stat-sub">En proceso · ${d.preventivos_vencidos||0} revisión(es) vencida(s)</div>
+    </div>
+  `;
+
+  // Alerts
+  const venc=d.prestamos_vencidos||[], prox=d.proximos_vencer||[];
+  let alertHTML='';
+  if(venc.length||prox.length){
+    alertHTML=`<div class="alert-strip">
+      <div class="alert-strip-header">
+        <span style="font-size:18px">🚨</span>
+        <h3>Alertas de préstamos — ${venc.length} vencido(s), ${prox.length} por vencer</h3>
+      </div>`;
+    venc.forEach(p=>{
+      const dl=daysLeft(p.fecha_devolucion_esperada);
+      alertHTML+=`<div class="alert-item alert-vencido" onclick="nav('prestamos')">
+        <div class="alert-dot"></div>
+        <div class="alert-item-info">
+          <div class="alert-item-title">🔴 ${p.equipo_nombre}</div>
+          <div class="alert-item-sub">Responsable: ${p.usuario_nombre} · Notas: ${p.notas||'—'}</div>
+        </div>
+        <div class="alert-item-date">Venció ${Math.abs(dl)} día(s)</div>
+      </div>`;
+    });
+    prox.forEach(p=>{
+      const dl=daysLeft(p.fecha_devolucion_esperada);
+      alertHTML+=`<div class="alert-item alert-proximo" onclick="nav('prestamos')">
+        <div class="alert-dot"></div>
+        <div class="alert-item-info">
+          <div class="alert-item-title">🟡 ${p.equipo_nombre}</div>
+          <div class="alert-item-sub">Responsable: ${p.usuario_nombre} · Devolver: ${fmtDate(p.fecha_devolucion_esperada)}</div>
+        </div>
+        <div class="alert-item-date">En ${dl} día(s)</div>
+      </div>`;
+    });
+    alertHTML+='</div>';
+  }
+  $('alertsStrip').innerHTML=alertHTML;
+
+  // Bar chart
+  const tipos=d.tipos_equipos||[];
+  const maxC=Math.max(...tipos.map(t=>t.count),1);
+  const barColors=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#fb923c'];
+  $('barChart').innerHTML=tipos.map((t,i)=>`
+    <div class="bar-col">
+      <div class="bar" style="height:${Math.max(t.count/maxC*100,6)}%;background:${barColors[i%barColors.length]}" title="${t.tipo}: ${t.count}"></div>
+      <div class="bar-lbl">${t.tipo}</div>
+    </div>`).join('');
+
+  // Donut
+  const estados=[
+    {k:'bueno',label:'Bueno',c:'#34d399'},{k:'regular',label:'Regular',c:'#2dd4bf'},
+    {k:'dañado',label:'Dañado',c:'#f87171'},{k:'en_reparacion',label:'En reparación',c:'#fbbf24'}
+  ];
+  const total=d.total_equipos||1, ests=d.estados||{};
+  const cx=55,cy=55,r=38,stroke=14,circ=2*Math.PI*r;
+  let offset=0, circles='';
+  estados.forEach(e=>{
+    const val=ests[e.k]||0;
+    const len=(val/total)*circ;
+    if(len>0){
+      circles+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${e.c}" stroke-width="${stroke}" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>`;
+      offset+=len;
+    }
+  });
+  $('donutSvg').innerHTML=circles+`
+    <text x="${cx}" y="${cy-4}" text-anchor="middle" dominant-baseline="middle" style="font-family:var(--font-d);font-size:18px;font-weight:800;fill:var(--text)">${d.total_equipos}</text>
+    <text x="${cx}" y="${cy+12}" text-anchor="middle" dominant-baseline="middle" style="font-size:8px;fill:var(--text3)">equipos</text>`;
+  $('donutLegend').innerHTML=estados.map(e=>{
+    const val=ests[e.k]||0;
+    return`<div class="legend-item">
+      <div class="legend-left"><span class="ldot" style="background:${e.c}"></span>${e.label}</div>
+      <div class="legend-right">${val}<span class="legend-pct">(${total?Math.round(val/total*100):0}%)</span></div>
+    </div>`;}).join('');
+
+  // KPIs
+  $('kpiList').innerHTML=`
+    <div class="mini-list-item">
+      <div class="mli-icon" style="background:var(--red-soft)">⚠️</div>
+      <div class="mli-body"><div class="mli-title">Préstamos vencidos</div><div class="mli-sub">Sin devolver</div></div>
+      <div class="mli-right" style="color:var(--${venc.length>0?'red':'green'})">${venc.length}</div>
+    </div>
+    <div class="mini-list-item">
+      <div class="mli-icon" style="background:var(--amber-soft)">🔧</div>
+      <div class="mli-body"><div class="mli-title">Reparaciones activas</div><div class="mli-sub">En proceso</div></div>
+      <div class="mli-right" style="color:var(--amber)">${d.mant_en_proceso||0}</div>
+    </div>
+    <div class="mini-list-item">
+      <div class="mli-icon" style="background:var(--violet-soft)">🔄</div>
+      <div class="mli-body"><div class="mli-title">Revisiones vencidas</div><div class="mli-sub">Requieren atención</div></div>
+      <div class="mli-right" style="color:var(--${d.preventivos_vencidos>0?'red':'green'})">${d.preventivos_vencidos||0}</div>
+    </div>
+    <div class="mini-list-item">
+      <div class="mli-icon" style="background:var(--blue-soft)">🔁</div>
+      <div class="mli-body"><div class="mli-title">Equipos prestados</div><div class="mli-sub">Actualmente en uso</div></div>
+      <div class="mli-right" style="color:var(--blue)">${d.prestamos_activos||0}</div>
+    </div>`;
+
+  // Recent activity (last 5 maintenances)
+  const recent=MANTS.slice(0,5);
+  $('recentActivity').innerHTML=recent.length?recent.map(m=>`
+    <div class="mini-list-item">
+      <div class="mli-icon" style="background:${m.tipo==='preventivo'?'var(--blue-soft)':'var(--orange-soft)'}">${m.tipo==='preventivo'?'🛡️':'🔧'}</div>
+      <div class="mli-body">
+        <div class="mli-title">${m.equipo_nombre}</div>
+        <div class="mli-sub">${m.descripcion.slice(0,55)}${m.descripcion.length>55?'…':''}</div>
+      </div>
+      <span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span>
+    </div>`).join(''):'<div class="empty"><div class="empty-icon">📋</div><h3>Sin actividad reciente</h3></div>';
+}
+
+/* ════════════════════════════════════════════════════
+   EQUIPOS
+════════════════════════════════════════════════════ */
+function renderEq(){
+  const q=($('srchEq')?.value||'').toLowerCase();
+  const tipo=$('ftTipo')?.value||'';
+  const est=$('ftEst')?.value||'';
+  // Populate tipo filter
+  const ft=$('ftTipo');
+  if(ft&&ft.options.length<=1){
+    [...new Set(EQ.map(e=>e.tipo))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o)});
+  }
+  const rows=EQ.filter(e=>
+    (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
+    (!tipo||e.tipo===tipo)&&(!est||e.estado===est));
+  $('eqCount').textContent=`${rows.length} equipo(s)`;
+  const tb=$('eqTbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
+  tb.innerHTML=rows.map(e=>`
+    <tr>
+      <td><div class="av-cell">
+        <div class="tipo-av">${TIPO_ICON[e.tipo]||'📦'}</div>
+        <div><div class="name">${e.nombre}</div><div class="sub">${[e.marca,e.modelo].filter(Boolean).join(' ')}</div></div>
+      </div></td>
+      <td><span style="font-size:12px;color:var(--text3)">${e.tipo}</span></td>
+      <td><span class="mono">${e.serial||'—'}</span></td>
+      <td style="color:var(--text3)">${e.ubicacion||'—'}</td>
+      <td><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
+      <td><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
+      <td><div class="act-cell">
+        <button class="btn btn-ghost btn-icon btn-sm" title="Hoja de vida" onclick="openHV(${e.id})">📋</button>
+        <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editEq(${e.id})">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delEq(${e.id})">🗑️</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+function openEqModal(reset=true){
+  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eUbic','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno'}
+  open('ovEq');
+}
+function editEq(id){
+  const e=EQ.find(x=>x.id===id);if(!e)return;
+  editEqId=id;$('eqModalTitle').textContent='Editar equipo';
+  $('eNom').value=e.nombre;$('eTipo').value=e.tipo;$('eEst').value=e.estado;
+  $('eMarca').value=e.marca||'';$('eModelo').value=e.modelo||'';$('eSerial').value=e.serial||'';
+  $('eUbic').value=e.ubicacion||'';$('eFecha').value=e.fecha_adquisicion||'';
+  $('eValor').value=e.valor||'';$('eDesc').value=e.descripcion||'';
+  open('ovEq');
+}
+async function saveEq(){
+  const data={nombre:$('eNom').value.trim(),tipo:$('eTipo').value,estado:$('eEst').value,
+    marca:$('eMarca').value,modelo:$('eModelo').value,serial:$('eSerial').value,
+    ubicacion:$('eUbic').value,fecha_adquisicion:$('eFecha').value,
+    valor:parseFloat($('eValor').value)||0,descripcion:$('eDesc').value};
+  if(!data.nombre||!data.tipo){toast('Nombre y tipo son requeridos','err');return}
+  const res=editEqId?await api('/api/equipos/'+editEqId,'PUT',data):await api('/api/equipos','POST',data);
+  if(res.error){toast(res.error,'err');return}
+  close('ovEq');await loadAll();renderEq();renderDashboard();
+  toast(editEqId?'Equipo actualizado':'Equipo registrado correctamente','ok');editEqId=null;
+}
+async function delEq(id){
+  if(!confirm('¿Eliminar este equipo? Esta acción no se puede deshacer.'))return;
+  await api('/api/equipos/'+id,'DELETE');await loadAll();renderEq();renderDashboard();toast('Equipo eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   MANTENIMIENTOS
+════════════════════════════════════════════════════ */
+function renderMant(){
+  const q=($('srchMant')?.value||'').toLowerCase();
+  const tipo=$('ftMantTipo')?.value||'';
+  const est=$('ftMantEst')?.value||'';
+  const rows=MANTS.filter(m=>
+    (!q||(m.equipo_nombre||'').toLowerCase().includes(q)||(m.tecnico||'').toLowerCase().includes(q)||(m.descripcion||'').toLowerCase().includes(q))&&
+    (!tipo||m.tipo===tipo)&&(!est||m.estado===est));
+  $('mantCount').textContent=`${rows.length} registro(s)`;
+  const tb=$('mantTbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔧</div><h3>Sin registros</h3><p>Agrega mantenimientos desde aquí o desde la hoja de vida</p></div></td></tr>`;return}
+  tb.innerHTML=rows.map(m=>{
+    const overdue=m.proxima_revision&&m.proxima_revision<TODAY&&m.estado==='completado';
+    return`<tr>
+      <td><div class="av-cell">
+        <div class="tipo-av">${TIPO_ICON[m.equipo_tipo]||'📦'}</div>
+        <div class="name">${m.equipo_nombre}</div>
+      </div></td>
+      <td><span class="bs ${bsClass(m.tipo)}">${bsLabel(m.tipo)}</span></td>
+      <td style="max-width:180px;font-size:12px;color:var(--text2)">${m.descripcion.slice(0,70)}${m.descripcion.length>70?'…':''}</td>
+      <td class="mono">${fmtDate(m.fecha)}</td>
+      <td style="color:var(--text3)">${m.tecnico||'—'}</td>
+      <td class="mono">${m.costo?fmt(m.costo):'—'}</td>
+      <td><span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span></td>
+      <td class="mono" style="color:${overdue?'var(--red)':'var(--text3)'}">${fmtDate(m.proxima_revision)}${overdue?' ⚠':''}</td>
+      <td><div class="act-cell">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="editMant(${m.id})">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delMant(${m.id})">🗑️</button>
+      </div></td>
+    </tr>`;}).join('');
+}
+
+function openMantModal(equipoId=null){
+  editMantId=null;
+  $('mantModalTitle').textContent='Nuevo mantenimiento';
+  $('mantModalSub').textContent='Registrar mantenimiento vinculado al equipo';
+  ['mDesc','mTec','mCosto','mProx'].forEach(id=>$(id).value='');
+  $('mTipo').value='preventivo';$('mEst').value='completado';$('mFecha').value=TODAY;
+  // Populate equipo select
+  const sel=$('mEquipo');
+  sel.innerHTML='<option value="">Seleccionar equipo…</option>'+EQ.map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo})</option>`).join('');
+  if(equipoId)sel.value=equipoId;
+  open('ovMant');
+}
+function editMant(id){
+  const m=MANTS.find(x=>x.id===id);if(!m)return;
+  editMantId=id;$('mantModalTitle').textContent='Editar mantenimiento';$('mantModalSub').textContent=m.equipo_nombre;
+  const sel=$('mEquipo');
+  sel.innerHTML='<option value="">Seleccionar equipo…</option>'+EQ.map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo})</option>`).join('');
+  sel.value=m.equipo_id;$('mTipo').value=m.tipo;$('mEst').value=m.estado;
+  $('mDesc').value=m.descripcion;$('mFecha').value=m.fecha;$('mTec').value=m.tecnico||'';
+  $('mCosto').value=m.costo||'';$('mProx').value=m.proxima_revision||'';
+  open('ovMant');
+}
+async function saveMant(){
+  const data={equipo_id:parseInt($('mEquipo').value),tipo:$('mTipo').value,descripcion:$('mDesc').value.trim(),
+    fecha:$('mFecha').value,tecnico:$('mTec').value,costo:parseFloat($('mCosto').value)||0,
+    estado:$('mEst').value,proxima_revision:$('mProx').value||null};
+  if(!data.equipo_id||!data.descripcion||!data.fecha){toast('Equipo, descripción y fecha son requeridos','err');return}
+  const res=editMantId?await api('/api/mantenimientos/'+editMantId,'PUT',data):await api('/api/mantenimientos','POST',data);
+  if(res.error){toast(res.error,'err');return}
+  close('ovMant');await loadAll();renderMant();renderDashboard();
+  toast(editMantId?'Mantenimiento actualizado':'Mantenimiento registrado','ok');editMantId=null;
+}
+async function delMant(id){
+  if(!confirm('¿Eliminar este mantenimiento?'))return;
+  await api('/api/mantenimientos/'+id,'DELETE');await loadAll();renderMant();renderDashboard();toast('Mantenimiento eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   HOJA DE VIDA
+════════════════════════════════════════════════════ */
+async function openHV(equipoId){
+  curHVId=equipoId;
+  const e=EQ.find(x=>x.id===equipoId);
+  $('hvTitle').textContent=e.nombre;
+  $('hvSub').textContent=`${e.tipo} · ${[e.marca,e.modelo].filter(Boolean).join(' ')} · Serial: ${e.serial||'—'}`;
+  $('hvEquipoMeta').innerHTML=`<div class="mant-info-cards">
+    <div class="mant-info-card"><div class="mic-label">Estado</div><div class="mic-val"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></div></div>
+    <div class="mant-info-card"><div class="mic-label">Valor</div><div class="mic-val mono">${fmt(e.valor)}</div></div>
+    <div class="mant-info-card"><div class="mic-label">Adquisición</div><div class="mic-val">${fmtDate(e.fecha_adquisicion)}</div></div>
+    <div class="mant-info-card"><div class="mic-label">Ubicación</div><div class="mic-val">${e.ubicacion||'—'}</div></div>
+  </div>`;
+  await refreshHV();
+  open('ovHV');
+}
+async function refreshHV(){
+  const [hvs,mants]=await Promise.all([api('/api/equipos/'+curHVId+'/hoja_vida'),api('/api/equipos/'+curHVId+'/mantenimientos')]);
+  // Mants section
+  const hmDiv=$('hvMants');
+  if(!mants.length){hmDiv.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">🔧</div><h3>Sin mantenimientos registrados</h3></div>'}
+  else{hmDiv.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+mants.map(m=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:flex-start;gap:12px">
+      <div style="font-size:20px">${m.tipo==='preventivo'?'🛡️':'🔧'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span class="bs ${bsClass(m.tipo)}">${bsLabel(m.tipo)}</span>
+          <span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${m.descripcion}</div>
+        <div class="hv-meta">
+          <span>📅 ${fmtDate(m.fecha)}</span>
+          ${m.tecnico?`<span>👤 ${m.tecnico}</span>`:''}
+          ${m.costo?`<span>💰 ${fmt(m.costo)}</span>`:''}
+          ${m.proxima_revision?`<span style="color:${m.proxima_revision<TODAY?'var(--red)':'var(--teal)'}">🔄 Próx: ${fmtDate(m.proxima_revision)}</span>`:''}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-icon btn-sm" onclick="delMantFromHV(${m.id})">🗑️</button>
+    </div>`).join('')+'</div>'}
+  // Timeline
+  const tlDiv=$('hvTimeline');
+  const hvIcons={adquisicion:'🟢',mantenimiento:'🟡',reparacion:'🔴',proceso:'🔵',otro:'⚪'};
+  if(!hvs.length){tlDiv.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">📋</div><h3>Sin eventos registrados</h3></div>'}
+  else{tlDiv.innerHTML='<div class="hv-tl">'+hvs.map(h=>`
+    <div class="hv-item hv-${h.tipo}">
+      <div class="hv-card">
+        <div class="hv-card-top">
+          <div>
+            <h4>${hvIcons[h.tipo]||'⚪'} ${h.titulo}</h4>
+            ${h.descripcion?`<p>${h.descripcion}</p>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <span class="bs ${bsClass(h.tipo)} bs-xs">${bsLabel(h.tipo)}</span>
+            <button class="btn btn-danger btn-icon btn-sm" onclick="delHV(${h.id})">🗑️</button>
+          </div>
+        </div>
+        <div class="hv-meta">
+          <span>📅 ${fmtDate(h.fecha)}</span>
+          ${h.responsable?`<span>👤 ${h.responsable}</span>`:''}
+        </div>
+      </div>
+    </div>`).join('')+'</div>'}
+}
+function openMantFromHV(){
+  close('ovHV');
+  openMantModal(curHVId);
+  // Hook: on save, also refresh HV
+  const origSave=window._mantSaveHook;
+  window._mantSaveHook=async()=>{await refreshHV();open('ovHV')};
+}
+async function delMantFromHV(id){
+  if(!confirm('¿Eliminar este mantenimiento?'))return;
+  await api('/api/mantenimientos/'+id,'DELETE');await loadAll();await refreshHV();renderDashboard();toast('Mantenimiento eliminado','info');
+}
+async function delHV(id){
+  if(!confirm('¿Eliminar este evento?'))return;
+  await api('/api/hoja_vida/'+id,'DELETE');await refreshHV();toast('Evento eliminado','info');
+}
+function open_ovAddHV(){$('hvFechaEv').value=TODAY;open('ovAddHV')}
+async function saveHVEvent(){
+  const data={tipo:$('hvTipo').value,titulo:$('hvTit').value.trim(),descripcion:$('hvDescEv').value,fecha:$('hvFechaEv').value,responsable:$('hvResp').value};
+  if(!data.titulo||!data.fecha){toast('Título y fecha requeridos','err');return}
+  await api('/api/equipos/'+curHVId+'/hoja_vida','POST',data);
+  close('ovAddHV');['hvTit','hvDescEv','hvResp'].forEach(id=>$(id).value='');
+  await refreshHV();toast('Evento registrado','ok');
+}
+
+/* ════════════════════════════════════════════════════
+   USUARIOS
+════════════════════════════════════════════════════ */
+function renderUsr(){
+  const q=($('srchUsr')?.value||'').toLowerCase();
+  const est=$('ftUsrEst')?.value||'';
+  const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!est||u.estado===est));
+  $('usrCount').textContent=`${rows.length} usuario(s)`;
+  const tb=$('usrTbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
+  tb.innerHTML=rows.map((u,i)=>`<tr>
+    <td><div class="av-cell">
+      <div class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${u.nombre.charAt(0)}</div>
+      <div class="name">${u.nombre}</div>
+    </div></td>
+    <td style="color:var(--text3)">${u.email}</td>
+    <td>${u.cargo||'—'}</td>
+    <td>${u.departamento||'—'}</td>
+    <td class="mono">${u.telefono||'—'}</td>
+    <td><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
+    <td><div class="act-cell">
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="editUsr(${u.id})">✏️</button>
+      <button class="btn btn-danger btn-icon btn-sm" onclick="delUsr(${u.id})">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+function openUsrModal(){editUsrId=null;$('usrModalTitle').textContent='Nuevo responsable';['uNom','uEmail','uCargo','uDpto','uTel'].forEach(id=>$(id).value='');$('uEst').value='activo';open('ovUsr')}
+function editUsr(id){
+  const u=USR.find(x=>x.id===id);if(!u)return;
+  editUsrId=id;$('usrModalTitle').textContent='Editar responsable';
+  $('uNom').value=u.nombre;$('uEmail').value=u.email;$('uCargo').value=u.cargo||'';
+  $('uDpto').value=u.departamento||'';$('uTel').value=u.telefono||'';$('uEst').value=u.estado;
+  open('ovUsr');
+}
+async function saveUsr(){
+  const data={nombre:$('uNom').value.trim(),email:$('uEmail').value.trim(),cargo:$('uCargo').value,departamento:$('uDpto').value,telefono:$('uTel').value,estado:$('uEst').value};
+  if(!data.nombre||!data.email){toast('Nombre y email son requeridos','err');return}
+  const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
+  if(res.error){toast(res.error,'err');return}
+  close('ovUsr');await loadAll();renderUsr();renderDashboard();
+  toast(editUsrId?'Usuario actualizado':'Usuario creado','ok');editUsrId=null;
+}
+async function delUsr(id){
+  if(!confirm('¿Eliminar este responsable?'))return;
+  await api('/api/usuarios/'+id,'DELETE');await loadAll();renderUsr();toast('Usuario eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   PRÉSTAMOS
+════════════════════════════════════════════════════ */
+function renderLoan(){
+  const q=($('srchLoan')?.value||'').toLowerCase();
+  const est=$('ftLoanEst')?.value||'';
+  const rows=LOANS.filter(p=>(!q||(p.equipo_nombre||'').toLowerCase().includes(q)||(p.usuario_nombre||'').toLowerCase().includes(q))&&(!est||p.estado===est));
+  $('loanCount').textContent=`${rows.length} préstamo(s)`;
+  const tb=$('loanTbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;return}
+  tb.innerHTML=rows.map(p=>{
+    const overdue=p.estado==='activo'&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+    const dl=daysLeft(p.fecha_devolucion_esperada);
+    const near=p.estado==='activo'&&dl!==null&&dl>=0&&dl<=7;
+    return`<tr style="${overdue?'background:rgba(248,113,113,.04)':near?'background:rgba(251,191,36,.04)':''}">
+      <td><div class="av-cell">
+        <div class="tipo-av">${TIPO_ICON[p.equipo_tipo]||'📦'}</div>
+        <div class="name">${p.equipo_nombre}</div>
+      </div></td>
+      <td>${p.usuario_nombre}<div style="font-size:11px;color:var(--text3)">${p.departamento||''}</div></td>
+      <td class="mono">${fmtDate(p.fecha_prestamo)}</td>
+      <td class="mono" style="color:${overdue?'var(--red)':near?'var(--amber)':'var(--text3)'}">
+        ${fmtDate(p.fecha_devolucion_esperada)}
+        ${overdue?`<div style="font-size:10px;color:var(--red);font-weight:700">Venció hace ${Math.abs(dl)} día(s)</div>`:''}
+        ${near&&!overdue?`<div style="font-size:10px;color:var(--amber);font-weight:700">En ${dl} día(s)</div>`:''}
+      </td>
+      <td class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
+      <td><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
+      <td style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
+      <td><div class="act-cell">
+        ${p.estado==='activo'?`<button class="btn btn-teal btn-sm" onclick="returnLoan(${p.id})">✅ Devolver</button>`:''}
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️</button>
+      </div></td>
+    </tr>`;}).join('');
+}
+function openLoanModal(){
+  const sel=$('lEq');
+  const activos=LOANS.filter(p=>p.estado==='activo').map(p=>p.equipo_id);
+  sel.innerHTML='<option value="">Seleccionar equipo disponible…</option>'+EQ.filter(e=>!activos.includes(e.id)).map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo})</option>`).join('');
+  $('lUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
+  $('lFecha').value=TODAY;$('lDevol').value='';$('lNotas').value='';
+  open('ovLoan');
+}
+async function saveLoan(){
+  const data={equipo_id:parseInt($('lEq').value),usuario_id:parseInt($('lUsr').value),fecha_prestamo:$('lFecha').value,fecha_devolucion_esperada:$('lDevol').value||null,notas:$('lNotas').value};
+  if(!data.equipo_id||!data.usuario_id||!data.fecha_prestamo){toast('Equipo, responsable y fecha son requeridos','err');return}
+  const res=await api('/api/prestamos','POST',data);
+  if(res.error){toast(res.error,'err');return}
+  close('ovLoan');await loadAll();renderLoan();renderDashboard();toast('Préstamo registrado','ok');
+}
+async function returnLoan(id){
+  if(!confirm('¿Confirmar devolución del equipo?'))return;
+  await api('/api/prestamos/'+id+'/devolver','PUT');await loadAll();renderLoan();renderDashboard();toast('Equipo devuelto correctamente','ok');
+}
+async function delLoan(id){
+  if(!confirm('¿Eliminar este préstamo?'))return;
+  await api('/api/prestamos/'+id,'DELETE');await loadAll();renderLoan();toast('Préstamo eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   CALENDARIO
+════════════════════════════════════════════════════ */
+async function renderCal(){
+  const events=await api('/api/calendario');
+  const today=TODAY;
+  const upcoming=events.filter(e=>e.date>=today);
+  const overdue=events.filter(e=>e.date<today);
+
+  function evHTML(e){
+    const isOverdue=e.date<today;
+    const cls=isOverdue?'cal-vencido':`cal-${e.type}`;
+    const dl=daysLeft(e.date);
+    return`<div class="cal-event ${cls}" onclick="nav('${e.type==='prestamo'?'prestamos':'mantenimientos'}')">
+      <div class="cal-event-dot"></div>
+      <div class="cal-event-body">
+        <div class="cal-event-title">${e.type==='prestamo'?'🔁':'🔧'} ${e.title}</div>
+        <div class="cal-event-sub">${e.sub}${e.descripcion?' · '+e.descripcion.slice(0,40):e.notas?' · '+e.notas.slice(0,40):''}</div>
+      </div>
+      <div class="cal-event-date">${fmtDate(e.date)}${dl!==null&&!isOverdue?` (${dl}d)`:''}${isOverdue?' ⚠':''}</div>
+    </div>`;
+  }
+
+  // Group by month
+  function groupByMonth(evs){
+    const months={};
+    evs.forEach(e=>{const mo=e.date.slice(0,7);if(!months[mo])months[mo]=[];months[mo].push(e)});
+    return months;
+  }
+  const monthNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function renderMonths(evs){
+    const g=groupByMonth(evs);
+    return Object.keys(g).sort().map(mo=>{
+      const[y,m]=mo.split('-');
+      return`<div class="cal-month">${monthNames[parseInt(m)-1]} ${y}</div>`+g[mo].map(evHTML).join('');
+    }).join('');
+  }
+
+  $('calUpcoming').innerHTML=upcoming.length?renderMonths(upcoming):'<div class="empty"><div class="empty-icon">✅</div><h3>Sin eventos próximos</h3><p>Todo al día</p></div>';
+  $('calOverdue').innerHTML=overdue.length?overdue.map(evHTML).join(''):'<div class="empty"><div class="empty-icon">🎉</div><h3>Sin vencidos</h3><p>Excelente gestión</p></div>';
+}
+
+/* ════════════════════════════════════════════════════
+   REPORTES
+════════════════════════════════════════════════════ */
+function renderReportes(){
+  const totalValor=EQ.reduce((a,e)=>a+(e.valor||0),0);
+  const byTipo={};EQ.forEach(e=>{byTipo[e.tipo]=(byTipo[e.tipo]||0)+1});
+  const sorted=Object.entries(byTipo).sort((a,b)=>b[1]-a[1]);
+  const totalMantCost=MANTS.reduce((a,m)=>a+(m.costo||0),0);
+
+  $('reportesContent').innerHTML=`
+    <div class="stats-row" style="margin-bottom:22px">
+      <div class="stat-card" style="--accent-color:var(--blue)"><div class="glow-dot"></div>
+        <div class="stat-label">Valor total inventario</div>
+        <div class="stat-value" style="color:var(--blue);font-size:26px">$${(totalValor/1000000).toFixed(1)}M</div>
+        <div class="stat-sub">${Number(totalValor).toLocaleString('es-CO')} COP</div>
+      </div>
+      <div class="stat-card" style="--accent-color:var(--green)"><div class="glow-dot" style="background:var(--green)"></div>
+        <div class="stat-label">Equipos en buen estado</div>
+        <div class="stat-value" style="color:var(--green)">${EQ.filter(e=>e.estado==='bueno').length}</div>
+        <div class="stat-sub">${EQ.length?Math.round(EQ.filter(e=>e.estado==='bueno').length/EQ.length*100):0}% del total</div>
+      </div>
+      <div class="stat-card" style="--accent-color:var(--amber)"><div class="glow-dot" style="background:var(--amber)"></div>
+        <div class="stat-label">Costo en mantenimientos</div>
+        <div class="stat-value" style="color:var(--amber);font-size:26px">$${(totalMantCost/1000).toFixed(0)}K</div>
+        <div class="stat-sub">${MANTS.length} mantenimiento(s) histórico(s)</div>
+      </div>
+      <div class="stat-card" style="--accent-color:var(--violet)"><div class="glow-dot" style="background:var(--violet)"></div>
+        <div class="stat-label">Tipos de equipos</div>
+        <div class="stat-value" style="color:var(--violet)">${Object.keys(byTipo).length}</div>
+        <div class="stat-sub">Categorías diferentes</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Distribución por tipo</div></div>
+        <div class="card-body">${sorted.map(([t,c])=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:8px">${TIPO_ICON[t]||'📦'} <span style="font-size:13px">${t}</span></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:100px;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden">
+                <div style="width:${Math.round(c/EQ.length*100)}%;height:100%;background:var(--blue);border-radius:3px"></div>
+              </div>
+              <span style="font-family:var(--font-d);font-weight:700;color:var(--text);min-width:24px;text-align:right">${c}</span>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Últimos préstamos</div></div>
+        <div class="card-body">${LOANS.slice(0,8).map(p=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+            <div><div style="font-size:13px;font-weight:600;color:var(--text)">${p.equipo_nombre}</div>
+            <div style="font-size:11px;color:var(--text3)">${p.usuario_nombre}</div></div>
+            <span class="bs ${bsClass(p.estado)}">${bsLabel(p.estado)}</span>
+          </div>`).join('')||'<div class="empty"><p>Sin préstamos</p></div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════
+   GLOBAL SEARCH
+════════════════════════════════════════════════════ */
+function gSearchFn(q){
+  if(!q)return;
+  const ql=q.toLowerCase();
+  const found=EQ.filter(e=>e.nombre.toLowerCase().includes(ql)||(e.serial||'').toLowerCase().includes(ql));
+  if(found.length){nav('equipos');$('srchEq').value=q;renderEq()}
+}
+
+/* ════════════════════════════════════════════════════
+   MODAL CLOSE ON BACKDROP
+════════════════════════════════════════════════════ */
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open')});
+});
+
+// Override open for hoja de vida add event button
+document.querySelectorAll('[onclick="open(\'ovAddHV\')"]').forEach(b=>{
+  b.setAttribute('onclick','open_ovAddHV()');
+});
+
+/* ════════════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>

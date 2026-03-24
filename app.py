@@ -1,0 +1,467 @@
+from flask import Flask, request, jsonify, send_from_directory
+import os
+import requests
+from datetime import datetime, date, timedelta
+from dotenv import load_dotenv
+import json
+
+# Cargar variables de entorno
+load_dotenv()
+
+app = Flask(__name__, static_folder='static', template_folder='templates')
+
+# Credenciales de Supabase
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_API_URL = f"{SUPABASE_URL}/rest/v1"
+HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': f'Bearer {SUPABASE_KEY}',
+    'Content-Type': 'application/json'
+}
+
+def supabase_request(method, table, query='', data=None):
+    """Helper para hacer requests a Supabase REST API"""
+    url = f"{SUPABASE_API_URL}/{table}{query}"
+    try:
+        if method == 'GET':
+            resp = requests.get(url, headers=HEADERS)
+        elif method == 'POST':
+            resp = requests.post(url, headers=HEADERS, json=data)
+        elif method == 'PATCH':
+            resp = requests.patch(url, headers=HEADERS, json=data)
+        elif method == 'DELETE':
+            resp = requests.delete(url, headers=HEADERS)
+        else:
+            return None
+        
+        if resp.status_code in [200, 201]:
+            try:
+                return resp.json()
+            except:
+                return {'ok': True}
+        else:
+            return {'error': resp.text, 'status': resp.status_code}
+    except Exception as e:
+        return {'error': str(e)}
+
+@app.route('/api/dashboard')
+def dashboard():
+    try:
+        today = date.today().isoformat()
+        in7 = (date.today() + timedelta(days=7)).isoformat()
+        
+        # Total equipos
+        equipos = supabase_request('GET', 'equipos', '?select=count()')
+        total_equipos = len(equipos) if isinstance(equipos, list) else 0
+        
+        # Total usuarios activos
+        usuarios = supabase_request('GET', 'usuarios', '?estado=eq.activo&select=count()')
+        total_usuarios = len(usuarios) if isinstance(usuarios, list) else 0
+        
+        # Préstamos activos
+        prestamos_act = supabase_request('GET', 'prestamos', '?estado=eq.activo&select=count()')
+        prestamos_activos = len(prestamos_act) if isinstance(prestamos_act, list) else 0
+        
+        # Mantenimientos en proceso
+        mant_proc = supabase_request('GET', 'mantenimientos', '?estado=eq.en_proceso&select=count()')
+        mant_en_proceso = len(mant_proc) if isinstance(mant_proc, list) else 0
+        
+        # Estados de equipos
+        equipos_data = supabase_request('GET', 'equipos', '?select=estado')
+        estados = {}
+        if isinstance(equipos_data, list):
+            for eq in equipos_data:
+                estado = eq.get('estado', 'desconocido')
+                estados[estado] = estados.get(estado, 0) + 1
+        
+        # Tipos de equipos
+        tipos_data = supabase_request('GET', 'equipos', '?select=tipo')
+        tipos_count = {}
+        if isinstance(tipos_data, list):
+            for eq in tipos_data:
+                tipo = eq.get('tipo', 'desconocido')
+                tipos_count[tipo] = tipos_count.get(tipo, 0) + 1
+        tipos_equipos = [{'tipo': k, 'count': v} for k, v in sorted(tipos_count.items(), key=lambda x: x[1], reverse=True)[:7]]
+        
+        # Valor total
+        equipos_valor = supabase_request('GET', 'equipos', '?select=valor')
+        valor_total = 0
+        if isinstance(equipos_valor, list):
+            valor_total = sum(int(eq.get('valor', 0) or 0) for eq in equipos_valor)
+        
+        preventivos_vencidos = 0
+        proximos_vencer = []
+        prestamos_vencidos = []
+        
+        return jsonify({
+            'total_equipos': total_equipos,
+            'total_usuarios': total_usuarios,
+            'prestamos_activos': prestamos_activos,
+            'mant_en_proceso': mant_en_proceso,
+            'estados': estados,
+            'tipos_equipos': tipos_equipos,
+            'preventivos_vencidos': preventivos_vencidos,
+            'valor_total': valor_total,
+            'proximos_vencer': proximos_vencer,
+            'prestamos_vencidos': prestamos_vencidos,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+        return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== USUARIOS ==========
+@app.route('/api/usuarios', methods=['GET'])
+def get_usuarios():
+    try:
+        result = supabase_request('GET', 'usuarios', '?order=nombre.asc')
+        if isinstance(result, list):
+            return jsonify(result)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/usuarios', methods=['POST'])
+def create_usuario():
+    try:
+        d = request.json
+        result = supabase_request('POST', 'usuarios', '', {
+            'nombre': d['nombre'],
+            'email': d['email'],
+            'cargo': d.get('cargo', ''),
+            'departamento': d.get('departamento', ''),
+            'telefono': d.get('telefono', ''),
+            'estado': d.get('estado', 'activo')
+        })
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 201
+        return jsonify(result), 201
+    except Exception as e:
+        if 'email' in str(e).lower():
+            return jsonify({'error': 'El email ya existe'}), 400
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/usuarios/<int:id>', methods=['PUT'])
+def update_usuario(id):
+    try:
+        d = request.json
+        result = supabase_request('PATCH', 'usuarios', f'?id=eq.{id}', {
+            'nombre': d['nombre'],
+            'email': d['email'],
+            'cargo': d.get('cargo', ''),
+            'departamento': d.get('departamento', ''),
+            'telefono': d.get('telefono', ''),
+            'estado': d.get('estado', 'activo')
+        })
+        return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+def delete_usuario(id):
+    try:
+        supabase_request('DELETE', 'usuarios', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos', methods=['GET'])
+def get_equipos():
+    try:
+        result = supabase_request('GET', 'equipos', '?order=nombre.asc')
+        if isinstance(result, list):
+            return jsonify(result)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:id>', methods=['GET'])
+def get_equipo(id):
+    try:
+        result = supabase_request('GET', 'equipos', f'?id=eq.{id}')
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0])
+        return jsonify({'error': 'No encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos', methods=['POST'])
+def create_equipo():
+    try:
+        d = request.json
+        equipo_result = supabase_request('POST', 'equipos', '', {
+            'nombre': d['nombre'],
+            'tipo': d['tipo'],
+            'marca': d.get('marca', ''),
+            'modelo': d.get('modelo', ''),
+            'serial': d.get('serial', ''),
+            'estado': d.get('estado', 'bueno'),
+            'ubicacion': d.get('ubicacion', ''),
+            'fecha_adquisicion': d.get('fecha_adquisicion', ''),
+            'valor': d.get('valor', 0),
+            'descripcion': d.get('descripcion', '')
+        })
+        
+        if isinstance(equipo_result, list) and len(equipo_result) > 0:
+            equipo_id = equipo_result[0]['id']
+            # Crear entrada en hoja_vida
+            supabase_request('POST', 'hoja_vida', '', {
+                'equipo_id': equipo_id,
+                'tipo': 'adquisicion',
+                'titulo': 'Registro inicial',
+                'descripcion': d.get('descripcion', 'Equipo registrado en sistema'),
+                'fecha': date.today().isoformat(),
+                'responsable': 'Sistema'
+            })
+            return jsonify(equipo_result[0]), 201
+        
+        return jsonify(equipo_result), 201
+    except Exception as e:
+        if 'serial' in str(e).lower():
+            return jsonify({'error': 'El serial ya existe'}), 400
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:id>', methods=['PUT'])
+def update_equipo(id):
+    try:
+        d = request.json
+        result = supabase_request('PATCH', 'equipos', f'?id=eq.{id}', {
+            'nombre': d['nombre'],
+            'tipo': d['tipo'],
+            'marca': d.get('marca', ''),
+            'modelo': d.get('modelo', ''),
+            'serial': d.get('serial', ''),
+            'estado': d.get('estado', 'bueno'),
+            'ubicacion': d.get('ubicacion', ''),
+            'fecha_adquisicion': d.get('fecha_adquisicion', ''),
+            'valor': d.get('valor', 0),
+            'descripcion': d.get('descripcion', '')
+        })
+        return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:id>', methods=['DELETE'])
+def delete_equipo(id):
+    try:
+        supabase_request('DELETE', 'equipos', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== MANTENIMIENTOS ==========
+@app.route('/api/mantenimientos', methods=['GET'])
+def get_all_mantenimientos():
+    try:
+        mants = supabase_request('GET', 'mantenimientos', '?order=fecha.desc')
+        if isinstance(mants, list):
+            return jsonify(mants)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:id>/mantenimientos', methods=['GET'])
+def get_mants_equipo(id):
+    try:
+        result = supabase_request('GET', 'mantenimientos', f'?equipo_id=eq.{id}&order=fecha.desc')
+        if isinstance(result, list):
+            return jsonify(result)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mantenimientos', methods=['POST'])
+def create_mantenimiento():
+    try:
+        d = request.json
+        
+        mant_result = supabase_request('POST', 'mantenimientos', '', {
+            'equipo_id': d['equipo_id'],
+            'tipo': d['tipo'],
+            'descripcion': d['descripcion'],
+            'fecha': d['fecha'],
+            'tecnico': d.get('tecnico', ''),
+            'costo': d.get('costo', 0),
+            'estado': d.get('estado', 'completado'),
+            'proxima_revision': d.get('proxima_revision') or None
+        })
+        
+        # Crear entrada en hoja_vida
+        supabase_request('POST', 'hoja_vida', '', {
+            'equipo_id': d['equipo_id'],
+            'tipo': 'mantenimiento',
+            'titulo': f"Mant. {d['tipo']}: {d['descripcion'][:60]}",
+            'descripcion': d.get('descripcion', ''),
+            'fecha': d['fecha'],
+            'responsable': d.get('tecnico', '')
+        })
+        
+        return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mantenimientos/<int:id>', methods=['PUT'])
+def update_mantenimiento(id):
+    try:
+        d = request.json
+        supabase_request('PATCH', 'mantenimientos', f'?id=eq.{id}', {
+            'tipo': d['tipo'],
+            'descripcion': d['descripcion'],
+            'fecha': d['fecha'],
+            'tecnico': d.get('tecnico', ''),
+            'costo': d.get('costo', 0),
+            'estado': d.get('estado', 'completado'),
+            'proxima_revision': d.get('proxima_revision') or None
+        })
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mantenimientos/<int:id>', methods=['DELETE'])
+def delete_mantenimiento(id):
+    try:
+        supabase_request('DELETE', 'mantenimientos', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== HOJA DE VIDA ==========
+@app.route('/api/equipos/<int:id>/hoja_vida', methods=['GET'])
+def get_hoja_vida(id):
+    try:
+        result = supabase_request('GET', 'hoja_vida', f'?equipo_id=eq.{id}&order=fecha.desc,id.desc')
+        if isinstance(result, list):
+            return jsonify(result)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:id>/hoja_vida', methods=['POST'])
+def add_hoja_vida(id):
+    try:
+        d = request.json
+        result = supabase_request('POST', 'hoja_vida', '', {
+            'equipo_id': id,
+            'tipo': d['tipo'],
+            'titulo': d['titulo'],
+            'descripcion': d.get('descripcion', ''),
+            'fecha': d['fecha'],
+            'responsable': d.get('responsable', '')
+        })
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 201
+        return jsonify(result), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/hoja_vida/<int:id>', methods=['DELETE'])
+def delete_hoja_vida(id):
+    try:
+        supabase_request('DELETE', 'hoja_vida', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== PRÉSTAMOS ==========
+@app.route('/api/prestamos', methods=['GET'])
+def get_prestamos():
+    try:
+        prestamos = supabase_request('GET', 'prestamos', '?order=creado_en.desc')
+        if isinstance(prestamos, list):
+            return jsonify(prestamos)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/prestamos', methods=['POST'])
+def create_prestamo():
+    try:
+        d = request.json
+        
+        # Verificar si el equipo ya tiene un préstamo activo
+        existing = supabase_request('GET', 'prestamos', f'?equipo_id=eq.{d["equipo_id"]}&estado=eq.activo')
+        if isinstance(existing, list) and len(existing) > 0:
+            return jsonify({'error': 'El equipo ya tiene un prestamo activo'}), 400
+        
+        supabase_request('POST', 'prestamos', '', {
+            'equipo_id': d['equipo_id'],
+            'usuario_id': d['usuario_id'],
+            'fecha_prestamo': d['fecha_prestamo'],
+            'fecha_devolucion_esperada': d.get('fecha_devolucion_esperada') or None,
+            'estado': 'activo',
+            'notas': d.get('notas', '')
+        })
+        
+        return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/prestamos/<int:id>/devolver', methods=['PUT'])
+def devolver_prestamo(id):
+    try:
+        supabase_request('PATCH', 'prestamos', f'?id=eq.{id}', {
+            'estado': 'devuelto',
+            'fecha_devolucion_real': date.today().isoformat()
+        })
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/prestamos/<int:id>', methods=['DELETE'])
+def delete_prestamo(id):
+    try:
+        supabase_request('DELETE', 'prestamos', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== CALENDARIO ==========
+@app.route('/api/calendario')
+def get_calendario():
+    try:
+        events = []
+        
+        # Mantenimientos
+        mants = supabase_request('GET', 'mantenimientos', '?order=proxima_revision.asc')
+        if isinstance(mants, list):
+            for m in mants:
+                if m.get('proxima_revision'):
+                    events.append({
+                        'date': m['proxima_revision'],
+                        'type': 'mantenimiento',
+                        'title': f"Equipo ID: {m['equipo_id']}",
+                        'sub': m['tipo'],
+                        'id': m['id'],
+                        'estado': m['estado'],
+                        'descripcion': m.get('descripcion', '')
+                    })
+        
+        # Préstamos
+        prestamos = supabase_request('GET', 'prestamos', '?estado=eq.activo&order=fecha_devolucion_esperada.asc')
+        if isinstance(prestamos, list):
+            for p in prestamos:
+                if p.get('fecha_devolucion_esperada'):
+                    events.append({
+                        'date': p['fecha_devolucion_esperada'],
+                        'type': 'prestamo',
+                        'title': f"Equipo ID: {p['equipo_id']}",
+                        'sub': f"Usuario ID: {p['usuario_id']}",
+                        'id': p['id'],
+                        'estado': p['estado'],
+                        'notas': p.get('notas', '')
+                    })
+        
+        events.sort(key=lambda x: x['date'])
+        return jsonify(events)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/')
+def index(): 
+    return send_from_directory('templates', 'index.html')
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
