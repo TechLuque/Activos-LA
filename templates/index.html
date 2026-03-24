@@ -138,7 +138,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .user-name{font-size:13px;font-weight:600;color:var(--text)}
 .user-role{font-size:10px;color:var(--text3)}
 
-.page-content{flex:1;overflow-y:auto;padding:28px}
+.page-content{flex:1;overflow-y:auto;padding:28px;display:flex;flex-direction:column}
 
 /* ═══════════════ PAGES ══════════════════ */
 .page{display:none;animation:fadeUp .3s ease}
@@ -217,7 +217,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .mli-right{font-family:var(--font-d);font-size:18px;font-weight:800}
 
 /* ═══════════════ TABLE ════════════════ */
-.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;max-height:calc(100vh - 200px)}
+.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;max-height:calc(100vh - 280px)}
 table{width:100%;border-collapse:collapse;background:var(--surface)}
 thead tr{background:var(--surface2)}
 th{padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-bottom:1px solid var(--border)}
@@ -381,6 +381,98 @@ select option{background:var(--surface2)}
 .mono{font-family:var(--mono);font-size:12px;color:var(--text3)}
 .section-sep{margin:18px 0;border:none;border-top:1px solid var(--border)}
 .row-flex{display:flex;align-items:center;gap:10px}
+
+/* ═══════════════ RESPONSIVE ════════════ */
+@media (max-width:1024px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .page-content{padding:20px}
+  .topbar{padding:12px 18px;gap:10px}
+  .search-wrap{max-width:200px}
+}
+
+@media (max-width:768px){
+  :root{--sidebar-w:0px}
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .page-content{padding:16px;flex:1;overflow-y:auto}
+  .stats-row{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+  .topbar{padding:12px 14px;flex-wrap:wrap}
+  .topbar-left h1{font-size:16px}
+  .search-wrap{flex:1;min-width:120px;max-width:none;margin-left:0;margin-top:8px}
+  .user-pill{padding:4px 10px 4px 4px}
+  .card-header{flex-direction:column;gap:10px}
+  .card-header>button{width:100%}
+  .modal{max-width:90vw;max-height:85vh}
+  .modal-lg{max-width:95vw}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid.c1{grid-template-columns:1fr}
+  .form-grid .fg.s2{grid-column:span 1}
+  .tbl-wrap{max-height:calc(100vh - 250px);border-radius:8px}
+  table{font-size:12px}
+  th,td{padding:10px 12px}
+  .pg-header{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px}
+  .pg-header>button{width:100%;padding:10px 16px}
+  .tbl-toolbar{flex-direction:column;align-items:stretch}
+  .tbl-toolbar input,.tbl-toolbar select{width:100%}
+  .btn{padding:8px 14px;font-size:12px}
+  .btn-icon{padding:6px}
+  .act-cell{flex-direction:column;gap:4px}
+  .act-cell .btn{width:100%;padding:6px 10px}
+  .pg-heading h2{font-size:20px}
+  .pg-heading p{font-size:12px}
+}
+
+@media (max-width:480px){
+  :root{--sidebar-w:0px}
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .page-content{padding:12px;}
+  .topbar{padding:10px 12px;flex-direction:column;gap:8px}
+  .topbar-left{width:100%;display:flex;justify-content:space-between;align-items:center}
+  .topbar-left h1{font-size:14px}
+  .topbar-left p{font-size:10px}
+  .search-wrap{width:100%;max-width:none;margin:0}
+  .search-wrap input{font-size:12px;padding:8px 12px 8px 32px}
+  .user-pill{padding:4px 8px 4px 4px}
+  .user-name{font-size:11px}
+  .user-role{font-size:9px}
+  .user-av{width:24px;height:24px;font-size:10px}
+  .stats-row{grid-template-columns:1fr;gap:10px;margin-bottom:12px}
+  .stat-card{padding:14px}
+  .stat-card h3{font-size:14px}
+  .stat-card .glow-dot{width:28px;height:28px;top:10px;right:10px}
+  .modal{width:calc(100vw - 20px);max-width:none;max-height:90vh;border-radius:12px}
+  .modal-head{padding:16px 16px 0}
+  .modal-body{padding:14px 16px 16px}
+  .m-close{width:24px;height:24px;font-size:14px}
+  .form-grid{gap:10px}
+  label{font-size:11px}
+  input,select,textarea{font-size:12px;padding:8px 10px}
+  .form-actions{flex-direction:column-reverse;gap:8px}
+  .form-actions .btn{width:100%}
+  .card{margin-bottom:12px}
+  .card-header{padding:14px 14px 0}
+  .card-body{padding:12px 14px}
+  .card-title{font-size:13px}
+  .tbl-wrap{max-height:calc(100vh - 220px);border-radius:8px;margin-bottom:10px}
+  table{font-size:11px;width:100%;display:block;overflow:hidden}
+  thead{display:none}
+  tbody{display:block}
+  tr{display:block;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+  td{display:block;text-align:right;padding:8px 10px;border:none;position:relative;padding-left:40%;min-height:32px}
+  td::before{content:attr(data-label);position:absolute;left:10px;font-weight:600;color:var(--text3);font-size:10px}
+  .act-cell{flex-direction:row;gap:4px}
+  .act-cell .btn{width:auto;padding:4px 8px;font-size:11px}
+  .pg-header{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:12px}
+  .pg-heading h2{font-size:18px}
+  .pg-heading p{font-size:11px}
+  .pg-header button{width:100%;padding:10px}
+  .filter-row{flex-direction:column}
+  .filter-row input,.filter-row select{width:100%}
+  .count-badge{margin-left:0;margin-top:8px}
+  .overlay{padding:10px}
+}
+
 </style>
 </head>
 <body>
@@ -1110,16 +1202,16 @@ function renderEq(){
     const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
     return `
     <tr>
-      <td><div class="av-cell">
+      <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[e.tipo]||'📦'}</div>
         <div><div class="name">${e.nombre}</div><div class="sub">${[e.marca,e.modelo].filter(Boolean).join(' ')}</div></div>
       </div></td>
-      <td><span style="font-size:12px;color:var(--text3)">${e.tipo}</span></td>
-      <td><span class="mono">${e.serial||'—'}</span></td>
-      <td><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
-      <td><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
-      <td><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
-      <td><div class="act-cell">
+      <td data-label="Tipo"><span style="font-size:12px;color:var(--text3)">${e.tipo}</span></td>
+      <td data-label="Serial"><span class="mono">${e.serial||'—'}</span></td>
+      <td data-label="Responsable"><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
+      <td data-label="Estado"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
+      <td data-label="Valor"><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
+      <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-ghost btn-icon btn-sm" title="Hoja de vida" onclick="openHV(${e.id})">📋</button>
         <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editEq(${e.id})">✏️</button>
         <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delEq(${e.id})">🗑️</button>
@@ -1195,18 +1287,18 @@ function renderMant(){
   tb.innerHTML=rows.map(m=>{
     const overdue=m.proxima_revision&&m.proxima_revision<TODAY&&m.estado==='completado';
     return`<tr>
-      <td><div class="av-cell">
+      <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[m.equipo_tipo]||'📦'}</div>
         <div class="name">${m.equipo_nombre}</div>
       </div></td>
-      <td><span class="bs ${bsClass(m.tipo)}">${bsLabel(m.tipo)}</span></td>
-      <td style="max-width:180px;font-size:12px;color:var(--text2)">${m.descripcion.slice(0,70)}${m.descripcion.length>70?'…':''}</td>
-      <td class="mono">${fmtDate(m.fecha)}</td>
-      <td style="color:var(--text3)">${m.tecnico||'—'}</td>
-      <td class="mono">${m.costo?fmt(m.costo):'—'}</td>
-      <td><span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span></td>
-      <td class="mono" style="color:${overdue?'var(--red)':'var(--text3)'}">${fmtDate(m.proxima_revision)}${overdue?' ⚠':''}</td>
-      <td><div class="act-cell">
+      <td data-label="Tipo"><span class="bs ${bsClass(m.tipo)}">${bsLabel(m.tipo)}</span></td>
+      <td data-label="Descripción" style="max-width:180px;font-size:12px;color:var(--text2)">${m.descripcion.slice(0,70)}${m.descripcion.length>70?'…':''}</td>
+      <td data-label="Fecha" class="mono">${fmtDate(m.fecha)}</td>
+      <td data-label="Técnico" style="color:var(--text3)">${m.tecnico||'—'}</td>
+      <td data-label="Costo" class="mono">${m.costo?fmt(m.costo):'—'}</td>
+      <td data-label="Estado"><span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span></td>
+      <td data-label="Próx. Revisión" class="mono" style="color:${overdue?'var(--red)':'var(--text3)'}">${fmtDate(m.proxima_revision)}${overdue?' ⚠':''}</td>
+      <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-ghost btn-icon btn-sm" onclick="editMant(${m.id})">✏️</button>
         <button class="btn btn-danger btn-icon btn-sm" onclick="delMant(${m.id})">🗑️</button>
       </div></td>
@@ -1349,16 +1441,16 @@ function renderUsr(){
   const tb=$('usrTbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
   tb.innerHTML=rows.map((u,i)=>`<tr>
-    <td><div class="av-cell">
+    <td data-label="Nombre"><div class="av-cell">
       <div class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${u.nombre.charAt(0)}</div>
       <div class="name">${u.nombre}</div>
     </div></td>
-    <td style="color:var(--text3)">${u.email}</td>
-    <td>${u.cargo||'—'}</td>
-    <td>${u.departamento||'—'}</td>
-    <td class="mono">${u.telefono||'—'}</td>
-    <td><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
-    <td><div class="act-cell">
+    <td data-label="Email" style="color:var(--text3)">${u.email}</td>
+    <td data-label="Cargo">${u.cargo||'—'}</td>
+    <td data-label="Departamento">${u.departamento||'—'}</td>
+    <td data-label="Teléfono" class="mono">${u.telefono||'—'}</td>
+    <td data-label="Estado"><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
+    <td data-label="Acciones"><div class="act-cell">
       <button class="btn btn-ghost btn-icon btn-sm" onclick="editUsr(${u.id})">✏️</button>
       <button class="btn btn-danger btn-icon btn-sm" onclick="delUsr(${u.id})">🗑️</button>
     </div></td>
@@ -1400,22 +1492,23 @@ function renderLoan(){
     const dl=daysLeft(p.fecha_devolucion_esperada);
     const near=p.estado==='activo'&&dl!==null&&dl>=0&&dl<=7;
     return`<tr style="${overdue?'background:rgba(248,113,113,.04)':near?'background:rgba(251,191,36,.04)':''}">
-      <td><div class="av-cell">
+      <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[p.equipo_tipo]||'📦'}</div>
         <div class="name">${p.equipo_nombre}</div>
       </div></td>
-      <td>${p.usuario_nombre}<div style="font-size:11px;color:var(--text3)">${p.departamento||''}</div></td>
-      <td class="mono">${fmtDate(p.fecha_prestamo)}</td>
-      <td class="mono" style="color:${overdue?'var(--red)':near?'var(--amber)':'var(--text3)'}">
+      <td data-label="Responsable">${p.usuario_nombre}<div style="font-size:11px;color:var(--text3)">${p.departamento||''}</div></td>
+      <td data-label="Fecha Préstamo" class="mono">${fmtDate(p.fecha_prestamo)}</td>
+      <td data-label="Devolver Antes" class="mono" style="color:${overdue?'var(--red)':near?'var(--amber)':'var(--text3)'}">
         ${fmtDate(p.fecha_devolucion_esperada)}
         ${overdue?`<div style="font-size:10px;color:var(--red);font-weight:700">Venció hace ${Math.abs(dl)} día(s)</div>`:''}
         ${near&&!overdue?`<div style="font-size:10px;color:var(--amber);font-weight:700">En ${dl} día(s)</div>`:''}
       </td>
-      <td class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
-      <td><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
-      <td style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
-      <td><div class="act-cell">
+      <td data-label="Devuelto" class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
+      <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
+      <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
+      <td data-label="Acciones"><div class="act-cell">
         ${p.estado==='activo'?`<button class="btn btn-teal btn-sm" onclick="returnLoan(${p.id})">✅ Devolver</button>`:''}
+
         <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
