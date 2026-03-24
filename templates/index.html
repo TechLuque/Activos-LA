@@ -522,7 +522,7 @@ select option{background:var(--surface2)}
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Equipo</th><th>Tipo</th><th>Serial</th><th>Ubicación</th><th>Estado</th><th>Valor</th><th>Acciones</th>
+          <th>Equipo</th><th>Tipo</th><th>Serial</th><th>Ubicación</th><th>Responsable</th><th>Estado</th><th>Valor</th><th>Acciones</th>
         </tr></thead><tbody id="eqTbody"></tbody></table>
       </div>
     </section>
@@ -1101,8 +1101,10 @@ function renderEq(){
     (!tipo||e.tipo===tipo)&&(!est||e.estado===est));
   $('eqCount').textContent=`${rows.length} equipo(s)`;
   const tb=$('eqTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
-  tb.innerHTML=rows.map(e=>`
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
+  tb.innerHTML=rows.map(e=>{
+    const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
+    return `
     <tr>
       <td><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[e.tipo]||'📦'}</div>
@@ -1111,6 +1113,7 @@ function renderEq(){
       <td><span style="font-size:12px;color:var(--text3)">${e.tipo}</span></td>
       <td><span class="mono">${e.serial||'—'}</span></td>
       <td style="color:var(--text3)">${e.ubicacion||'—'}</td>
+      <td><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
       <td><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
       <td><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
       <td><div class="act-cell">
@@ -1118,7 +1121,8 @@ function renderEq(){
         <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editEq(${e.id})">✏️</button>
         <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delEq(${e.id})">🗑️</button>
       </div></td>
-    </tr>`).join('');
+    </tr>
+    `}).join('');
 }
 
 function openEqModal(reset=true){
