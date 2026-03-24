@@ -662,6 +662,11 @@ select option{background:var(--surface2)}
         <div class="fg"><label>Estado</label>
           <select id="eEst"><option value="bueno">Bueno</option><option value="regular">Regular</option><option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option></select>
         </div>
+        <div class="fg"><label>Responsable</label>
+          <select id="eResponsable">
+            <option value="">Seleccionar responsable…</option>
+          </select>
+        </div>
         <div class="fg"><label>Marca</label><input id="eMarca" placeholder="ej: Apple"></div>
         <div class="fg"><label>Modelo</label><input id="eModelo" placeholder="ej: MBP M3"></div>
         <div class="fg"><label>Serial</label><input id="eSerial" placeholder="Número de serie"></div>
@@ -1124,7 +1129,17 @@ function renderEq(){
 }
 
 function openEqModal(reset=true){
-  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno'}
+  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno';$('eResponsable').value=''}
+  // Cargar usuarios en el select
+  const selResp=$('eResponsable');
+  if(selResp.options.length<=1){
+    USR.forEach(u=>{
+      const opt=document.createElement('option');
+      opt.value=u.id;
+      opt.textContent=u.nombre;
+      selResp.appendChild(opt);
+    });
+  }
   open('ovEq');
 }
 function editEq(id){
@@ -1134,11 +1149,23 @@ function editEq(id){
   $('eMarca').value=e.marca||'';$('eModelo').value=e.modelo||'';$('eSerial').value=e.serial||'';
   $('eFecha').value=e.fecha_adquisicion||'';
   $('eValor').value=e.valor||'';$('eDesc').value=e.descripcion||'';
+  // Cargar usuarios en el select si no están ya cargados
+  const selResp=$('eResponsable');
+  if(selResp.options.length<=1){
+    USR.forEach(u=>{
+      const opt=document.createElement('option');
+      opt.value=u.id;
+      opt.textContent=u.nombre;
+      selResp.appendChild(opt);
+    });
+  }
+  $('eResponsable').value=e.usuario_id||'';
   open('ovEq');
 }
 async function saveEq(){
   const data={nombre:$('eNom').value.trim(),tipo:$('eTipo').value,estado:$('eEst').value,
     marca:$('eMarca').value,modelo:$('eModelo').value,serial:$('eSerial').value,
+    usuario_id:parseInt($('eResponsable').value)||null,
     fecha_adquisicion:$('eFecha').value,
     valor:parseFloat($('eValor').value)||0,descripcion:$('eDesc').value};
   if(!data.nombre||!data.tipo){toast('Nombre y tipo son requeridos','err');return}

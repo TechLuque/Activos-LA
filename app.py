@@ -199,7 +199,7 @@ def create_equipo():
             'modelo': d.get('modelo', ''),
             'serial': d.get('serial', ''),
             'estado': d.get('estado', 'bueno'),
-            'ubicacion': d.get('ubicacion', ''),
+            'usuario_id': d.get('usuario_id', None),
             'fecha_adquisicion': d.get('fecha_adquisicion', ''),
             'valor': d.get('valor', 0),
             'descripcion': d.get('descripcion', '')
@@ -235,7 +235,7 @@ def update_equipo(id):
             'modelo': d.get('modelo', ''),
             'serial': d.get('serial', ''),
             'estado': d.get('estado', 'bueno'),
-            'ubicacion': d.get('ubicacion', ''),
+            'usuario_id': d.get('usuario_id', None),
             'fecha_adquisicion': d.get('fecha_adquisicion', ''),
             'valor': d.get('valor', 0),
             'descripcion': d.get('descripcion', '')
