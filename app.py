@@ -459,6 +459,31 @@ def get_calendario():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/health')
+def health():
+    """Health check endpoint to verify backend and Supabase connectivity"""
+    try:
+        # Test Supabase connection
+        test = supabase_request('GET', 'usuarios', '?limit=1')
+        if isinstance(test, list) or test.get('error') is None:
+            return jsonify({
+                'status': 'ok',
+                'message': 'Backend and Supabase connected',
+                'supabase_url': SUPABASE_URL.split('://')[0] if SUPABASE_URL else 'not-set'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Supabase connection failed',
+                'error': test.get('error')
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': 'Health check failed',
+            'error': str(e)
+        }), 500
+
 @app.route('/')
 def index(): 
     return send_from_directory('templates', 'index.html')

@@ -217,7 +217,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .mli-right{font-family:var(--font-d);font-size:18px;font-weight:800}
 
 /* ═══════════════ TABLE ════════════════ */
-.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;max-height:calc(100vh - 200px)}
 table{width:100%;border-collapse:collapse;background:var(--surface)}
 thead tr{background:var(--surface2)}
 th{padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-bottom:1px solid var(--border)}
@@ -819,8 +819,19 @@ let editEqId=null, editUsrId=null, editMantId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
 const api=async(url,m='GET',b=null)=>{
-  const r=await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null});
-  return r.json();
+  try{
+    const r=await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null});
+    const data=await r.json();
+    if(!r.ok){
+      console.error(`API Error [${r.status}](${url}):`,data);
+      return {error:data.error||'API Error'};
+    }
+    console.log(`✓ API ${m} ${url}:`,data.length?`${data.length} items`:'success');
+    return data;
+  }catch(e){
+    console.error(`Network Error (${url}):`,e);
+    return {error:e.message};
+  }
 };
 
 const open=id=>document.getElementById(id).classList.add('open');
@@ -882,15 +893,49 @@ function nav(page){
    INIT
 ════════════════════════════════════════════════════ */
 async function init(){
+  console.log('🚀 Initializing app...');
   $('pgDate').textContent=`Hola, Administrador · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
+  
+  // Check backend health
+  const health=await api('/api/health');
+  if(health.error){
+    console.error('❌ Backend health check failed:',health.error);
+    toast('No se puede conectar al servidor','err');
+  }else{
+    console.log('✓ Backend healthy:',health.message);
+  }
+  
   await loadAll();
   renderDashboard();
 }
 
 async function loadAll(){
-  [EQ,USR,LOANS,MANTS]=await Promise.all([api('/api/equipos'),api('/api/usuarios'),api('/api/prestamos'),api('/api/mantenimientos')]);
-  DASH=await api('/api/dashboard');
-  updateNavBadges();
+  console.log('📂 Loading all data from backend...');
+  try{
+    const [eq,usr,loans,mants]=await Promise.all([
+      api('/api/equipos'),
+      api('/api/usuarios'),
+      api('/api/prestamos'),
+      api('/api/mantenimientos')
+    ]);
+    
+    // Check for errors in any response
+    if(eq.error||usr.error||loans.error||mants.error){
+      console.error('Data load errors:',{eq:eq.error,usr:usr.error,loans:loans.error,mants:mants.error});
+      toast('Error loading data from server','err');
+      return;
+    }
+    
+    EQ=eq; USR=usr; LOANS=loans; MANTS=mants;
+    console.log(`✓ All data loaded: ${EQ.length} equipos, ${USR.length} usuarios, ${LOANS.length} prestamos, ${MANTS.length} mantenimientos`);
+    
+    DASH=await api('/api/dashboard');
+    if(!DASH.error)console.log('✓ Dashboard data loaded');
+    updateNavBadges();
+  }catch(e){
+    console.error('Fatal error in loadAll:',e);
+    toast('Error fatal al cargar datos','err');
+  }
 }
 
 function updateNavBadges(){
@@ -1487,6 +1532,28 @@ function gSearchFn(q){
 ════════════════════════════════════════════════════ */
 document.querySelectorAll('.overlay').forEach(ov=>{
   ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open')});
+});
+
+// Attach close handlers to all close buttons
+document.querySelectorAll('.m-close').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const overlay=btn.closest('.overlay');
+    if(overlay)overlay.classList.remove('open');
+  });
+});
+
+// Attach close handlers to all Cancelar buttons
+document.querySelectorAll('.modal-body .btn-ghost').forEach(btn=>{
+  if(btn.textContent.trim()==='Cancelar'){
+    btn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const overlay=btn.closest('.overlay');
+      if(overlay)overlay.classList.remove('open');
+    });
+  }
 });
 
 // Override open for hoja de vida add event button
