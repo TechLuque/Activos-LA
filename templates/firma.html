@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Firma de Préstamo — ActivosEQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f172a;
+            --surface: #1a2235;
+            --surface2: #243548;
+            --surface3: #2d3e52;
+            --border: #384860;
+            --text: #e2e8f0;
+            --text2: #cbd5e1;
+            --text3: #94a3b8;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --radius: 8px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--blue), #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 16px 0 8px;
+        }
+        .header p {
+            color: var(--text3);
+            font-size: 14px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            background: var(--surface2);
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: var(--text3);
+            margin-bottom: 4px;
+        }
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .signature-section {
+            margin: 24px 0;
+        }
+        .signature-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .signature-container {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            background: var(--surface2);
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .signature-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover {
+            background: var(--surface3);
+        }
+        .btn-primary {
+            background: var(--blue);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .image-section {
+            margin: 20px 0;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .image-input {
+            display: flex;
+            flex-direction: column;
+        }
+        .image-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .file-input {
+            display: none;
+        }
+        .file-input-label {
+            background: var(--surface2);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-input-label:hover {
+            background: var(--surface3);
+            border-color: var(--blue);
+        }
+        .file-input-label.has-file {
+            border-style: solid;
+            border-color: var(--green);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .file-input-label p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text3);
+        }
+        .file-input-label .size {
+            font-size: 10px;
+            color: var(--text3);
+            margin-top: 4px;
+        }
+        .image-preview {
+            width: 100%;
+            height: 150px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+        }
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            display: block;
+        }
+        .alert.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #86efac;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: block;
+        }
+        .alert.info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            display: block;
+        }
+        @media (max-width: 640px) {
+            .container { padding: 16px; }
+            .image-grid { grid-template-columns: 1fr; }
+            .info-grid { grid-template-columns: 1fr; }
+            .signature-container { height: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">ActivosEQ</div>
+            <h1>Firma de Préstamo</h1>
+            <p>Completa el formulario para recibir el equipo</p>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div class="card">
+            <div class="card-title">Información del préstamo</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Equipo</div>
+                    <div class="info-value" id="infEquipo">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Responsable</div>
+                    <div class="info-value" id="infResponsable">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Fecha de Préstamo</div>
+                    <div class="info-value" id="infFecha">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Devolución Esperada</div>
+                    <div class="info-value" id="infDevol">—</div>
+                </div>
+            </div>
+            <div>
+                <div class="info-label">Notas</div>
+                <div style="background: var(--surface2); padding: 12px; border-radius: 6px; color: var(--text2); font-size: 14px;">
+                    <span id="infNotas">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="signature-section">
+                <div class="signature-label">Firma digital *</div>
+                <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Dibuja tu firma en el recuadro:</p>
+                <div class="signature-container">
+                    <canvas id="signaturePad"></canvas>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-ghost" onclick="clearSignature()">🗑️ Limpiar</button>
+                    <span id="sigStatus" style="color: var(--text3); font-size: 12px; align-self: center;">
+                        Sin firmar
+                    </span>
+                </div>
+            </div>
+
+            <div class="image-section">
+                <div class="signature-label" style="margin-top: 20px;">Imágenes del equipo *</div>
+                <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Sube 2 fotos: antes y después de recibir el equipo</p>
+                <div class="image-grid">
+                    <div class="image-input">
+                        <div class="image-label">Foto 1: Estado inicial</div>
+                        <input type="file" id="lImg1" class="file-input" accept="image/*" onchange="previewImage(1)">
+                        <label for="lImg1" class="file-input-label" id="label1">
+                            <p>📷 Selecciona imagen</p>
+                            <div class="size">JPG, PNG (máx 5MB)</div>
+                        </label>
+                        <div class="image-preview" id="preview1">
+                            <p style="color: var(--text3); font-size: 12px;">Sin imagen</p>
+                        </div>
+                    </div>
+
+                    <div class="image-input">
+                        <div class="image-label">Foto 2: Verificación</div>
+                        <input type="file" id="lImg2" class="file-input" accept="image/*" onchange="previewImage(2)">
+                        <label for="lImg2" class="file-input-label" id="label2">
+                            <p>📷 Selecciona imagen</p>
+                            <div class="size">JPG, PNG (máx 5MB)</div>
+                        </label>
+                        <div class="image-preview" id="preview2">
+                            <p style="color: var(--text3); font-size: 12px;">Sin imagen</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="btn btn-primary" onclick="submitSignatureForm()" style="flex: 1;">
+                    ✅ Confirmar firma y fotos
+                </button>
+            </div>
+        </div>
+
+        <div class="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 12px; color: var(--text3);">Procesando tu firma...</p>
+        </div>
+    </div>
+
+    <script>
+        let signPad = null;
+        let loanData = null;
+        const loanId = window.location.pathname.split('/').pop();
+
+        function $(id) {
+            return document.getElementById(id);
+        }
+
+        function showAlert(msg, type = 'info') {
+            const box = $('alertBox');
+            box.textContent = msg;
+            box.className = `alert ${type}`;
+            setTimeout(() => { box.className = 'alert'; }, 5000);
+        }
+
+        async function initPage() {
+            try {
+                const res = await fetch(`/api/prestamos/${loanId}`);
+                
+                if (!res.ok) {
+                    showAlert('Préstamo no encontrado', 'error');
+                    return;
+                }
+                
+                loanData = await res.json();
+                
+                // Llenar información
+                $('infEquipo').textContent = loanData.equipo_nombre || '—';
+                $('infResponsable').textContent = loanData.usuario_nombre || '—';
+                $('infFecha').textContent = loanData.fecha_prestamo || '—';
+                $('infDevol').textContent = loanData.fecha_devolucion_esperada || '—';
+                $('infNotas').textContent = loanData.notas || 'Sin notas';
+
+                // Inicializar firma
+                initSignaturePad();
+                showAlert('Completa el formulario y presiona "Confirmar"', 'info');
+            } catch (err) {
+                console.error(err);
+                showAlert('Error al cargar datos', 'error');
+            }
+        }
+
+        function initSignaturePad() {
+            const canvas = $('signaturePad');
+            if (!canvas) {
+                console.error('Canvas no encontrado');
+                showAlert('Error: Canvas de firma no disponible', 'error');
+                return;
+            }
+            
+            // Esperar a que se cargue el DOM completamente
+            setTimeout(() => {
+                try {
+                    // Limpiar canvas anterior si existe
+                    if (signPad) {
+                        signPad = null;
+                    }
+                    
+                    const container = canvas.parentElement;
+                    if (!container) {
+                        console.error('Contenedor del canvas no encontrado');
+                        return;
+                    }
+                    
+                    // Établecer dimensiones
+                    const rect = container.getBoundingClientRect();
+                    console.log('Canvas container size:', rect.width, 'x', rect.height);
+                    
+                    // Asegurar que tiene dimensiones mínimas
+                    canvas.width = Math.max(rect.width - 4, 300);
+                    canvas.height = 200;
+                    
+                    console.log('Canvas initialized:', canvas.width, 'x', canvas.height);
+                    
+                    // Inicializar SignaturePad
+                    signPad = new SignaturePad(canvas, {
+                        penColor: '#3b82f6',
+                        backgroundColor: 'transparent',
+                        minWidth: 1,
+                        maxWidth: 3,
+                        velocityFilterWeight: 0.7,
+                        minDistance: 5
+                    });
+                    
+                    // Agregar listeners
+                    canvas.addEventListener('touchstart', () => {
+                        console.log('Touch started on signature pad');
+                    });
+                    canvas.addEventListener('touchend', updateSignatureStatus);
+                    canvas.addEventListener('mousedown', () => {
+                        console.log('Mouse down on signature pad');
+                    });
+                    canvas.addEventListener('mouseup', updateSignatureStatus);
+                    
+                    console.log('SignaturePad initialized successfully');
+                    showAlert('Canvas de firma listo - dibuja tu firma', 'info');
+                } catch (err) {
+                    console.error('Error initializing SignaturePad:', err);
+                    showAlert('Error al inicializar canvas: ' + err.message, 'error');
+                }
+            }, 100);
+        }
+
+        function clearSignature() {
+            if (signPad) signPad.clear();
+            updateSignatureStatus();
+        }
+
+        function updateSignatureStatus() {
+            const status = $('sigStatus');
+            if (signPad && !signPad.isEmpty()) {
+                status.textContent = '✅ Firmado';
+                status.style.color = 'var(--green)';
+            } else {
+                status.textContent = 'Sin firmar';
+                status.style.color = 'var(--text3)';
+            }
+        }
+
+        function previewImage(num) {
+            const inputId = `lImg${num}`;
+            const labelId = `label${num}`;
+            const previewId = `preview${num}`;
+            const file = $(inputId).files[0];
+            const preview = $(previewId);
+            const label = $(labelId);
+
+            if (!file) {
+                preview.innerHTML = '<p style="color: var(--text3); font-size: 12px;">Sin imagen</p>';
+                label.classList.remove('has-file');
+                return;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                showAlert('Por favor selecciona una imagen válida', 'error');
+                $(inputId).value = '';
+                preview.innerHTML = '<p style="color: var(--red); font-size: 12px;">Archivo inválido</p>';
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showAlert('La imagen es muy grande (máx 5MB)', 'error');
+                $(inputId).value = '';
+                preview.innerHTML = '<p style="color: var(--red); font-size: 12px;">Archivo muy grande</p>';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Imagen">`;
+                label.classList.add('has-file');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function submitSignatureForm() {
+            const img1File = $('lImg1').files[0];
+            const img2File = $('lImg2').files[0];
+            const hasSignature = signPad && !signPad.isEmpty();
+
+            console.log('Submit form - Signature:', hasSignature, 'Image1:', !!img1File, 'Image2:', !!img2File);
+
+            if (!img1File || !img2File) {
+                showAlert('Se requieren 2 imágenes', 'error');
+                return;
+            }
+
+            if (!hasSignature) {
+                showAlert('Se requiere firma digital - dibuja tu firma en el recuadro', 'error');
+                return;
+            }
+
+            $('alertBox').style.display = 'none';
+            document.querySelector('.loading').style.display = 'block';
+
+            try {
+                const firmaDataURL = signPad.toDataURL();
+                console.log('Firma generada, tamaño:', firmaDataURL.length);
+                
+                const formData = new FormData();
+                formData.append('firma_data', firmaDataURL);
+                formData.append('imagen1', img1File);
+                formData.append('imagen2', img2File);
+
+                const response = await fetch(`/api/prestamos/${loanId}/firma`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const res = await response.json();
+                console.log('Signature save response:', res);
+                
+                if (res.error) {
+                    document.querySelector('.loading').style.display = 'none';
+                    showAlert(res.error, 'error');
+                    return;
+                }
+
+                // Success!
+                document.body.innerHTML = `
+                    <div class="container">
+                        <div class="header">
+                            <div class="logo">ActivosEQ</div>
+                            <h1>✅ Firma completada</h1>
+                            <p>Gracias por firmar el préstamo</p>
+                        </div>
+                        <div class="card">
+                            <h2 style="margin-bottom: 16px;">Información registrada:</h2>
+                            <ul style="line-height: 2; color: var(--text2); font-size: 14px;">
+                                <li>✅ Firma digital capturada</li>
+                                <li>✅ Imagen 1 subida</li>
+                                <li>✅ Imagen 2 subida</li>
+                            </ul>
+                            <p style="margin-top: 20px; color: var(--text3); font-size: 12px;">El préstamo ha sido registrado en el sistema. Puedes cerrar esta ventana.</p>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Error:', err);
+                document.querySelector('.loading').style.display = 'none';
+                showAlert('Error al procesar firma: ' + err.message, 'error');
+            }
+        }
+
+        // Iniciar
+        initPage();
+</body>
+</html>

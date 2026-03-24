@@ -47,6 +47,19 @@ python app.py
 | **Préstamos** | Asignar/devolver equipos con seguimiento de fechas |
 | **Mantenimientos** | Registro preventivo y correctivo |
 | **Calendario** | Próximas revisiones y devoluciones programadas |
+| **Firma Digital** | Requiere firma y 2 fotos en cada préstamo (rastreable) |
+
+### 📝 Firma Digital y Documentación
+
+El sistema ahora incluye captura de firma digital y documentos de préstamos:
+
+- ✅ **Firma Digital:** Canvas con capacidad de dibujo (requiere presión táctil)
+- ✅ **FotoDocs:** Captura de 2 imágenes por préstamo (ID, documentos, etc)
+- ✅ **Almacenamiento:** Guardadas en `/uploads/prestamos/` con timestampes
+- ✅ **Visualización:** Modal para revisar histórico de documentos firmados
+- ✅ **Base de Datos:** URLs almacenadas en `prestamos.firma_url`, `.imagen1_url`, `.imagen2_url`
+
+Ver [DOCUMENT_STORAGE.md](DOCUMENT_STORAGE.md) para detalles de rutas, convenciones de nombres y acceso.
 
 ## 🗄️ Base de Datos
 
@@ -62,13 +75,17 @@ Usa **Supabase** (PostgreSQL en la nube). No requiere instalación local.
 
 ```
 activoseq/
-├── app.py              # Backend Flask + 25 endpoints REST
-├── requirements.txt    # Dependencias Python
-├── vercel.json         # Configuración deployment Vercel
-├── .env.example        # Template de variables
+├── app.py                           # Backend Flask + 30 endpoints REST
+├── requirements.txt                 # Dependencias Python
+├── vercel.json                      # Configuración deployment Vercel
+├── .env.example                     # Template de variables
+├── DOCUMENT_STORAGE.md              # 📄 Documentación de almacenamiento
+├── VERCEL_DEBUGGING.md              # Troubleshooting deployment
 ├── templates/
-│   └── index.html      # Frontend SPA
-└── static/             # Archivos CSS/JS (si aplica)
+│   ├── index.html                   # Frontend SPA - Panel principal
+│   └── firma.html                   # Página pública de firma digital
+├── static/                          # Archivos CSS/JS (si aplica)
+└── uploads/prestamos/               # 📁 Documentos de préstamos (firmas e imágenes)
 ```
 
 ## 🌐 Deployment en Vercel

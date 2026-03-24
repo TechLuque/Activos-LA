@@ -4,6 +4,7 @@ import requests
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 import json
+import base64
 
 # Cargar variables de entorno
 load_dotenv()
@@ -23,15 +24,21 @@ HEADERS = {
 def supabase_request(method, table, query='', data=None):
     """Helper para hacer requests a Supabase REST API"""
     url = f"{SUPABASE_API_URL}/{table}{query}"
+    headers = HEADERS.copy()
+    
+    # Para POST, agregar prefer=return=representation para que retorne los datos
+    if method == 'POST':
+        headers['Prefer'] = 'return=representation'
+    
     try:
         if method == 'GET':
-            resp = requests.get(url, headers=HEADERS)
+            resp = requests.get(url, headers=headers)
         elif method == 'POST':
-            resp = requests.post(url, headers=HEADERS, json=data)
+            resp = requests.post(url, headers=headers, json=data)
         elif method == 'PATCH':
-            resp = requests.patch(url, headers=HEADERS, json=data)
+            resp = requests.patch(url, headers=headers, json=data)
         elif method == 'DELETE':
-            resp = requests.delete(url, headers=HEADERS)
+            resp = requests.delete(url, headers=headers)
         else:
             return None
         
@@ -382,8 +389,62 @@ def get_prestamos():
     try:
         prestamos = supabase_request('GET', 'prestamos', '?order=creado_en.desc')
         if isinstance(prestamos, list):
+            # Enriquecer con nombres de equipo y usuario
+            for loan in prestamos:
+                # Obtener nombre del equipo
+                if 'equipo_id' in loan:
+                    equipos = supabase_request('GET', 'equipos', f'?id=eq.{loan["equipo_id"]}')
+                    if isinstance(equipos, list) and len(equipos) > 0:
+                        loan['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
+                        loan['equipo_tipo'] = equipos[0].get('tipo', '')
+                    else:
+                        loan['equipo_nombre'] = 'Equipo desconocido'
+                
+                # Obtener nombre del usuario
+                if 'usuario_id' in loan:
+                    usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{loan["usuario_id"]}')
+                    if isinstance(usuarios, list) and len(usuarios) > 0:
+                        loan['usuario_nombre'] = usuarios[0].get('nombre', 'Usuario desconocido')
+                        loan['departamento'] = usuarios[0].get('departamento', '')
+                    else:
+                        loan['usuario_nombre'] = 'Usuario desconocido'
+            
             return jsonify(prestamos)
         return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/prestamos/<int:id>', methods=['GET'])
+def get_prestamo(id):
+    """Get a specific loan by ID for the public signature page"""
+    try:
+        prestamos = supabase_request('GET', 'prestamos', f'?id=eq.{id}')
+        
+        if isinstance(prestamos, list) and len(prestamos) > 0:
+            loan = prestamos[0]
+            
+            # Obtener nombre del equipo
+            if 'equipo_id' in loan and loan['equipo_id']:
+                equipos = supabase_request('GET', 'equipos', f'?id=eq.{loan["equipo_id"]}')
+                if isinstance(equipos, list) and len(equipos) > 0:
+                    loan['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
+                else:
+                    loan['equipo_nombre'] = 'Equipo desconocido'
+            else:
+                loan['equipo_nombre'] = 'Sin equipo'
+            
+            # Obtener nombre del usuario
+            if 'usuario_id' in loan and loan['usuario_id']:
+                usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{loan["usuario_id"]}')
+                if isinstance(usuarios, list) and len(usuarios) > 0:
+                    loan['usuario_nombre'] = usuarios[0].get('nombre', 'Usuario desconocido')
+                else:
+                    loan['usuario_nombre'] = 'Usuario desconocido'
+            else:
+                loan['usuario_nombre'] = 'Sin responsable'
+            
+            return jsonify(loan)
+        return jsonify({'error': 'Préstamo no encontrado'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -397,7 +458,7 @@ def create_prestamo():
         if isinstance(existing, list) and len(existing) > 0:
             return jsonify({'error': 'El equipo ya tiene un prestamo activo'}), 400
         
-        supabase_request('POST', 'prestamos', '', {
+        result = supabase_request('POST', 'prestamos', '', {
             'equipo_id': d['equipo_id'],
             'usuario_id': d['usuario_id'],
             'fecha_prestamo': d['fecha_prestamo'],
@@ -406,8 +467,87 @@ def create_prestamo():
             'notas': d.get('notas', '')
         })
         
-        return jsonify({'ok': True}), 201
+        # Retornar el ID del nuevo préstamo
+        # Con prefer=return=representation, Supabase retorna un array con el registro creado
+        if isinstance(result, list) and len(result) > 0:
+            new_loan = result[0]
+            return jsonify({
+                'id': new_loan.get('id'),
+                'ok': True
+            }), 201
+        elif isinstance(result, dict) and 'id' in result:
+            return jsonify({
+                'id': result.get('id'),
+                'ok': True
+            }), 201
+        else:
+            print(f"Unexpected result format: {result}")
+            return jsonify({'error': 'Error al crear préstamo', 'result': result}), 500
+            
     except Exception as e:
+        print(f"Create prestamo error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/prestamos/<int:id>/firma', methods=['POST'])
+def save_loan_signature(id):
+    """Save signature and images for a loan"""
+    try:
+        # Obtener archivos
+        imagen1 = request.files.get('imagen1')
+        imagen2 = request.files.get('imagen2')
+        firma_data = request.form.get('firma_data', '')
+        
+        if not imagen1 or not imagen2:
+            return jsonify({'error': 'Se requieren 2 imágenes'}), 400
+        
+        # Crear directorio de uploads si no existe
+        os.makedirs('uploads/prestamos', exist_ok=True)
+        
+        # Generar nombres únicos para los archivos
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Guardar imágenes localmente
+        img1_filename = f"image1_{id}_{timestamp}.jpg"
+        img2_filename = f"image2_{id}_{timestamp}.jpg"
+        
+        img1_path = f"uploads/prestamos/{img1_filename}"
+        img2_path = f"uploads/prestamos/{img2_filename}"
+        
+        # Guardar archivos
+        imagen1.save(img1_path)
+        imagen2.save(img2_path)
+        
+        # URLs para acceso frontend
+        img1_url = f"/uploads/prestamos/{img1_filename}"
+        img2_url = f"/uploads/prestamos/{img2_filename}"
+        
+        # Guardar firma como base64 o dataURL en la BD (es pequeño)
+        firma_url = firma_data  # DataURL - puede ser ineficiente pero funciona
+        
+        print(f"Images saved: {img1_path}, {img2_path}")
+        print(f"URLs: {img1_url}, {img2_url}")
+        
+        # Actualizar préstamo en BD con firma e imágenes
+        update_data = {
+            'firma_url': firma_url[:2000] if len(firma_url) > 2000 else firma_url,  # Limitar tamaño dataURL
+            'imagen1_url': img1_url,
+            'imagen2_url': img2_url
+        }
+        
+        result = supabase_request('PATCH', 'prestamos', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': 'Error al guardar préstamo'}), 500
+        
+        return jsonify({
+            'ok': True,
+            'firma_url': firma_url,
+            'img1_url': img1_url,
+            'img2_url': img2_url
+        }), 201
+        
+    except Exception as e:
+        print(f"Signature save error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prestamos/<int:id>/devolver', methods=['PUT'])
@@ -498,6 +638,16 @@ def health():
 @app.route('/')
 def index(): 
     return send_from_directory('templates', 'index.html')
+
+@app.route('/firma/<int:loan_id>')
+def firma_page(loan_id):
+    """Public signature page for a specific loan"""
+    return send_from_directory('templates', 'firma.html')
+
+@app.route('/uploads/<path:filename>')
+def serve_uploads(filename):
+    """Serve uploaded files from uploads directory"""
+    return send_from_directory('uploads', filename)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

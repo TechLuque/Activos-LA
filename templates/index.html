@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ActivosEQ — Gestión de Activos</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <style>
 /* ════════════════════════════════════════════════════════════
    DESIGN SYSTEM — Dark Premium Industrial
@@ -382,7 +383,35 @@ select option{background:var(--surface2)}
 .section-sep{margin:18px 0;border:none;border-top:1px solid var(--border)}
 .row-flex{display:flex;align-items:center;gap:10px}
 
-/* ═══════════════ RESPONSIVE ════════════ */
+/* ═══════════════ FIRMA DIGITAL ════════ */
+.signature-container{
+  border:2px dashed var(--border);border-radius:var(--radius-sm);
+  padding:0;background:var(--surface2);height:180px;position:relative;overflow:hidden
+}
+.signature-canvas{
+  display:block;width:100%;height:100%;cursor:crosshair;background:var(--surface2)
+}
+.img-preview{
+  width:100%;height:120px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface2);display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative
+}
+.img-preview img{
+  max-width:100%;max-height:100%;object-fit:contain
+}
+.img-preview .img-status{
+  font-size:12px;color:var(--text3);text-align:center
+}
+input[type="file"]{
+  width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface2);color:var(--text);font-size:12px;cursor:pointer
+}
+input[type="file"]::file-selector-button{
+  background:var(--blue);color:white;border:none;padding:8px 14px;border-radius:var(--radius-xs);
+  cursor:pointer;font-weight:600;margin-right:10px;font-size:12px
+}
+
+/* ═══════════════ RESPONSIVE FIRMA ════════ */
 @media (max-width:1024px){
   .stats-row{grid-template-columns:repeat(2,1fr)}
   .page-content{padding:20px}
@@ -847,6 +876,45 @@ select option{background:var(--surface2)}
         <button class="btn btn-ghost" onclick="close('ovLoan')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveLoan()">Registrar préstamo</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA ENVIAR LINK DE FIRMA -->
+<div class="overlay" id="ovSignLink">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Link para firma</h3><p>Envía este link al responsable para que firme</p></div>
+      <button class="m-close" onclick="close('ovSignLink')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="sig-link-box">
+        <p>Comparte este link con el responsable para que firme y suba las imágenes de recepción:</p>
+        <input type="text" id="sigLinkUrl" readonly>
+        <div class="row-flex">
+          <button class="btn btn-primary btn-sm" onclick="copySignatureLink()">📋 Copiar link</button>
+        </div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:var(--radius-sm);margin:12px 0">
+        <p style="margin:0;font-size:12px;color:var(--text3)">O comparte el código:</p>
+        <div id="sigLinkQR" style="margin:8px 0"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="close('ovSignLink')">Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCUMENTOS PRÉSTAMO -->
+<div class="overlay" id="ovLoanDocs">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Documentos del préstamo</h3><p>Firma e imágenes de recepción</p></div>
+      <button class="m-close" onclick="close('ovLoanDocs')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="loanDocsContent"></div>
     </div>
   </div>
 </div>
@@ -1509,8 +1577,9 @@ function renderLoan(){
       <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
       <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
       <td data-label="Acciones"><div class="act-cell">
+        ${p.estado==='activo'&&!p.firma_url?`<button class="btn btn-success btn-sm" onclick="showSignatureLinkModal(${p.id})">🔗 Firmar</button>`:''}
+        ${p.firma_url||p.imagen1_url||p.imagen2_url?`<button class="btn btn-primary btn-sm" onclick="viewLoanDocuments(${p.id})">📄 Docs</button>`:''}
         ${p.estado==='activo'?`<button class="btn btn-teal btn-sm" onclick="returnLoan(${p.id})">✅ Devolver</button>`:''}
-
         <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
@@ -1524,11 +1593,100 @@ function openLoanModal(){
   open('ovLoan');
 }
 async function saveLoan(){
-  const data={equipo_id:parseInt($('lEq').value),usuario_id:parseInt($('lUsr').value),fecha_prestamo:$('lFecha').value,fecha_devolucion_esperada:$('lDevol').value||null,notas:$('lNotas').value};
-  if(!data.equipo_id||!data.usuario_id||!data.fecha_prestamo){toast('Equipo, responsable y fecha son requeridos','err');return}
+  const equipo_id=parseInt($('lEq').value);
+  const usuario_id=parseInt($('lUsr').value);
+  const fecha_prestamo=$('lFecha').value;
+  const fecha_devolucion_esperada=$('lDevol').value||null;
+  const notas=$('lNotas').value;
+  
+  if(!equipo_id||!usuario_id||!fecha_prestamo){
+    toast('Equipo, responsable y fecha son requeridos','err');
+    return;
+  }
+  
+  const data={
+    equipo_id:equipo_id,
+    usuario_id:usuario_id,
+    fecha_prestamo:fecha_prestamo,
+    fecha_devolucion_esperada:fecha_devolucion_esperada,
+    notas:notas
+  };
+  
   const res=await api('/api/prestamos','POST',data);
-  if(res.error){toast(res.error,'err');return}
-  close('ovLoan');await loadAll();renderLoan();renderDashboard();toast('Préstamo registrado','ok');
+  console.log('Create loan response:', res);
+  
+  if(res.error){
+    toast(res.error,'err');
+    console.error('Error creating loan:', res);
+    return;
+  }
+  
+  // Obtener el ID del préstamo creado
+  let newLoanId=res.id;
+  
+  console.log('New loan ID:', newLoanId);
+  
+  // Si por alguna razón no viene el ID, no continuar
+  if(!newLoanId){
+    console.error('No se obtuvo el ID del préstamo',res);
+    toast('Error: No se pudo obtener el ID del préstamo','err');
+    return;
+  }
+  
+  close('ovLoan');
+  await loadAll();
+  renderLoan();
+  renderDashboard();
+  toast('Préstamo registrado ✅','ok');
+  
+  // Mostrar modal para enviar link de firma
+  setTimeout(()=>{
+    showSignatureLinkModal(newLoanId);
+  },500);
+}
+function viewLoanDocuments(id){
+  const loan=LOANS.find(l=>l.id===id);
+  if(!loan){toast('Préstamo no encontrado','err');return}
+  
+  let html=`<div style="margin-bottom:20px"><h3>${loan.equipo_nombre}</h3><p style="color:var(--text3);font-size:12px">${loan.usuario_nombre} — ${fmtDate(loan.fecha_prestamo)}</p></div>`;
+  
+  // Mostrar firma
+  if(loan.firma_url){
+    html+=`<div style="margin-bottom:20px">
+      <div class="card-title">✍️ Firma Digital</div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px">
+        ${loan.firma_url.startsWith('data:')?`<img src="${loan.firma_url}" style="max-width:100%;height:auto;border-radius:6px;background:var(--surface2);padding:8px">`:`<p style="color:var(--text3);text-align:center">Firma guardada</p>`}
+      </div>
+    </div>`;
+  }
+  
+  // Mostrar imágenes
+  if(loan.imagen1_url||loan.imagen2_url){
+    html+=`<div><div class="card-title">📷 Imágenes de recepción</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">`;
+    
+    if(loan.imagen1_url){
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <img src="${loan.imagen1_url}" style="width:100%;height:auto;object-fit:cover">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Estado inicial</div>
+      </div>`;
+    }
+    
+    if(loan.imagen2_url){
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <img src="${loan.imagen2_url}" style="width:100%;height:auto;object-fit:cover">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Verificación</div>
+      </div>`;
+    }
+    
+    html+=`</div></div>`;
+  }
+  
+  if(!loan.firma_url&&!loan.imagen1_url&&!loan.imagen2_url){
+    html+=`<div style="padding:20px;text-align:center;color:var(--text3)"><p>Sin documentos registrados aún</p></div>`;
+  }
+  
+  $('loanDocsContent').innerHTML=html;
+  open('ovLoanDocs');
 }
 async function returnLoan(id){
   if(!confirm('¿Confirmar devolución del equipo?'))return;
@@ -1684,6 +1842,145 @@ document.querySelectorAll('.modal-body .btn-ghost').forEach(btn=>{
 document.querySelectorAll('[onclick="open(\'ovAddHV\')"]').forEach(b=>{
   b.setAttribute('onclick','open_ovAddHV()');
 });
+
+/* ════════════════════════════════════════════════════
+   FIRMA DIGITAL - SIGNATURE PAD
+════════════════════════════════════════════════════ */
+let signPad=null;
+
+function showSignatureLinkModal(loanId){
+  console.log('showSignatureLinkModal called with loanId:', loanId);
+  if(!loanId){
+    toast('Error: ID de prestamo invalido','err');
+    return;
+  }
+  const sigUrl=`${window.location.origin}/firma/${loanId}`;
+  console.log('Generated URL:', sigUrl);
+  $('sigLinkUrl').value=sigUrl;
+  $('sigLinkQR').innerHTML='';
+  open('ovSignLink');
+}
+
+function copySignatureLink(){
+  const url=$('sigLinkUrl').value;
+  navigator.clipboard.writeText(url).then(()=>{
+    toast('Link copiado al portapapeles ✅','ok');
+  }).catch(err=>{
+    console.error('Error copying:',err);
+    toast('Error al copiar','err');
+  });
+}
+
+function initSignaturePad(){
+  const canvas=document.getElementById('signaturePad');
+  if(!canvas)return;
+  
+  const rect=canvas.parentElement.getBoundingClientRect();
+  canvas.width=rect.width;
+  canvas.height=rect.height;
+  
+  signPad=new SignaturePad(canvas,{
+    penColor:'#3b82f6',
+    backgroundColor:'transparent'
+  });
+}
+
+function clearSignature(){
+  if(signPad)signPad.clear();
+  updateSignatureStatus();
+}
+
+function updateSignatureStatus(){
+  const status=$('sigStatus');
+  if(!status)return;
+  if(signPad&&!signPad.isEmpty()){
+    status.textContent='Estado: ✅ Firmado';
+    status.style.color='var(--green)';
+  }else{
+    status.textContent='Estado: sin firmar';
+    status.style.color='var(--text3)';
+  }
+}
+
+function previewImage(num){
+  const inputId='lImg'+num;
+  const previewId='imgPrev'+num;
+  const file=$(inputId).files[0];
+  const preview=$(previewId);
+  
+  if(!file){
+    preview.innerHTML='<div class="img-status">No seleccionada</div>';
+    return;
+  }
+  
+  if(!file.type.startsWith('image/')){
+    toast('Por favor selecciona una imagen válida','err');
+    $(inputId).value='';
+    preview.innerHTML='<div class="img-status">Archivo inválido</div>';
+    return;
+  }
+  
+  const reader=new FileReader();
+  reader.onload=function(e){
+    preview.innerHTML='<img src="'+e.target.result+'" alt="Imagen '+num+'">';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitSignatureForm(){
+  const loanId=window.currentLoanId;
+  if(!loanId){
+    toast('ID de préstamo no encontrado','err');
+    return;
+  }
+  
+  const img1File=$('lImg1').files[0];
+  const img2File=$('lImg2').files[0];
+  const hasSignature=signPad&&!signPad.isEmpty();
+  
+  if(!img1File||!img2File){
+    toast('Se requieren 2 imágenes','err');
+    return;
+  }
+  
+  if(!hasSignature){
+    toast('Se requiere firma digital','err');
+    return;
+  }
+  
+  toast('Procesando firma y imágenes...','info');
+  
+  // Convertir firma a PNG base64
+  const firmaDataURL=signPad.toDataURL();
+  
+  const formData=new FormData();
+  formData.append('firma_data',firmaDataURL);
+  formData.append('imagen1',img1File);
+  formData.append('imagen2',img2File);
+  
+  try{
+    const response=await fetch(`/api/prestamos/${loanId}/firma`,{
+      method:'POST',
+      body:formData
+    });
+    const res=await response.json();
+    if(res.error){
+      toast(res.error,'err');
+      return;
+    }
+    
+    close('ovSignatureForm');
+    toast('Firma e imágenes recibidas ✅','ok');
+    
+    // Redirigir a página de confirmación
+    setTimeout(()=>{
+      window.location.href='/';
+    },1500);
+  }catch(err){
+    console.error('Error:',err);
+    toast('Error al procesar signature','err');
+  }
+}
 
 /* ════════════════════════════════════════════════════
    BOOT
