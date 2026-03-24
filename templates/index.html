@@ -719,7 +719,7 @@ select option{background:var(--surface2)}
       <div class="pg-header">
         <div class="pg-heading"><h2>Reportes</h2><p>Resumen ejecutivo del inventario</p></div>
       </div>
-      <div id="reportesContent"></div>
+      <div style="flex:1;overflow-y:auto;padding:0 20px"><div id="reportesContent"></div></div>
     </section>
 
   </div>
@@ -1047,6 +1047,8 @@ function updateNavBadges(){
 ════════════════════════════════════════════════════ */
 function renderDashboard(){
   const d=DASH;
+  console.log('📊 Dashboard data:',d);
+  
   // Stats
   const valorM=d.valor_total?(d.valor_total/1000000).toFixed(1):'0';
   $('statsRow').innerHTML=`
@@ -1087,8 +1089,8 @@ function renderDashboard(){
       alertHTML+=`<div class="alert-item alert-vencido" onclick="nav('prestamos')">
         <div class="alert-dot"></div>
         <div class="alert-item-info">
-          <div class="alert-item-title">🔴 ${p.equipo_nombre}</div>
-          <div class="alert-item-sub">Responsable: ${p.usuario_nombre} · Notas: ${p.notas||'—'}</div>
+          <div class="alert-item-title">🔴 ${p.equipo_nombre||'Equipo desconocido'}</div>
+          <div class="alert-item-sub">Responsable: ${p.usuario_nombre||'—'} · Notas: ${p.notas||'—'}</div>
         </div>
         <div class="alert-item-date">Venció ${Math.abs(dl)} día(s)</div>
       </div>`;
@@ -1098,8 +1100,8 @@ function renderDashboard(){
       alertHTML+=`<div class="alert-item alert-proximo" onclick="nav('prestamos')">
         <div class="alert-dot"></div>
         <div class="alert-item-info">
-          <div class="alert-item-title">🟡 ${p.equipo_nombre}</div>
-          <div class="alert-item-sub">Responsable: ${p.usuario_nombre} · Devolver: ${fmtDate(p.fecha_devolucion_esperada)}</div>
+          <div class="alert-item-title">🟡 ${p.equipo_nombre||'Equipo desconocido'}</div>
+          <div class="alert-item-sub">Responsable: ${p.usuario_nombre||'—'} · Devolver: ${fmtDate(p.fecha_devolucion_esperada)}</div>
         </div>
         <div class="alert-item-date">En ${dl} día(s)</div>
       </div>`;
@@ -1110,13 +1112,13 @@ function renderDashboard(){
 
   // Bar chart
   const tipos=d.tipos_equipos||[];
-  const maxC=Math.max(...tipos.map(t=>t.count),1);
+  const maxC=Math.max(...tipos.map(t=>t.count||0),1);
   const barColors=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#fb923c'];
-  $('barChart').innerHTML=tipos.map((t,i)=>`
+  $('barChart').innerHTML=tipos.length?tipos.map((t,i)=>`
     <div class="bar-col">
-      <div class="bar" style="height:${Math.max(t.count/maxC*100,6)}%;background:${barColors[i%barColors.length]}" title="${t.tipo}: ${t.count}"></div>
+      <div class="bar" style="height:${Math.max((t.count||0)/maxC*100,6)}%;background:${barColors[i%barColors.length]}" title="${t.tipo}: ${t.count}"></div>
       <div class="bar-lbl">${t.tipo}</div>
-    </div>`).join('');
+    </div>`).join(''):'<div style="text-align:center;color:var(--text3);padding:20px">Sin datos</div>';
 
   // Donut
   const estados=[
@@ -1135,7 +1137,7 @@ function renderDashboard(){
     }
   });
   $('donutSvg').innerHTML=circles+`
-    <text x="${cx}" y="${cy-4}" text-anchor="middle" dominant-baseline="middle" style="font-family:var(--font-d);font-size:18px;font-weight:800;fill:var(--text)">${d.total_equipos}</text>
+    <text x="${cx}" y="${cy-4}" text-anchor="middle" dominant-baseline="middle" style="font-family:var(--font-d);font-size:18px;font-weight:800;fill:var(--text)">${d.total_equipos||0}</text>
     <text x="${cx}" y="${cy+12}" text-anchor="middle" dominant-baseline="middle" style="font-size:8px;fill:var(--text3)">equipos</text>`;
   $('donutLegend').innerHTML=estados.map(e=>{
     const val=ests[e.k]||0;

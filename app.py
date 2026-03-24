@@ -52,23 +52,23 @@ def dashboard():
         in7 = (date.today() + timedelta(days=7)).isoformat()
         
         # Total equipos
-        equipos = supabase_request('GET', 'equipos', '?select=count()')
+        equipos = supabase_request('GET', 'equipos')
         total_equipos = len(equipos) if isinstance(equipos, list) else 0
         
         # Total usuarios activos
-        usuarios = supabase_request('GET', 'usuarios', '?estado=eq.activo&select=count()')
+        usuarios = supabase_request('GET', 'usuarios', '?estado=eq.activo')
         total_usuarios = len(usuarios) if isinstance(usuarios, list) else 0
         
         # Préstamos activos
-        prestamos_act = supabase_request('GET', 'prestamos', '?estado=eq.activo&select=count()')
+        prestamos_act = supabase_request('GET', 'prestamos', '?estado=eq.activo')
         prestamos_activos = len(prestamos_act) if isinstance(prestamos_act, list) else 0
         
         # Mantenimientos en proceso
-        mant_proc = supabase_request('GET', 'mantenimientos', '?estado=eq.en_proceso&select=count()')
+        mant_proc = supabase_request('GET', 'mantenimientos', '?estado=eq.en_proceso')
         mant_en_proceso = len(mant_proc) if isinstance(mant_proc, list) else 0
         
         # Estados de equipos
-        equipos_data = supabase_request('GET', 'equipos', '?select=estado')
+        equipos_data = supabase_request('GET', 'equipos')
         estados = {}
         if isinstance(equipos_data, list):
             for eq in equipos_data:
@@ -76,23 +76,38 @@ def dashboard():
                 estados[estado] = estados.get(estado, 0) + 1
         
         # Tipos de equipos
-        tipos_data = supabase_request('GET', 'equipos', '?select=tipo')
         tipos_count = {}
-        if isinstance(tipos_data, list):
-            for eq in tipos_data:
+        if isinstance(equipos_data, list):
+            for eq in equipos_data:
                 tipo = eq.get('tipo', 'desconocido')
                 tipos_count[tipo] = tipos_count.get(tipo, 0) + 1
         tipos_equipos = [{'tipo': k, 'count': v} for k, v in sorted(tipos_count.items(), key=lambda x: x[1], reverse=True)[:7]]
         
         # Valor total
-        equipos_valor = supabase_request('GET', 'equipos', '?select=valor')
         valor_total = 0
-        if isinstance(equipos_valor, list):
-            valor_total = sum(int(eq.get('valor', 0) or 0) for eq in equipos_valor)
+        if isinstance(equipos_data, list):
+            valor_total = sum(int(eq.get('valor', 0) or 0) for eq in equipos_data)
         
-        preventivos_vencidos = 0
-        proximos_vencer = []
+        # Préstamos vencidos
+        todos_prestamos = supabase_request('GET', 'prestamos')
         prestamos_vencidos = []
+        proximos_vencer = []
+        if isinstance(todos_prestamos, list):
+            for p in todos_prestamos:
+                if p.get('estado') == 'activo' and p.get('fecha_devolucion_esperada'):
+                    fecha_dev = p['fecha_devolucion_esperada']
+                    if fecha_dev < today:
+                        prestamos_vencidos.append(p)
+                    elif fecha_dev <= in7:
+                        proximos_vencer.append(p)
+        
+        # Mantenimientos vencidos
+        todos_mants = supabase_request('GET', 'mantenimientos')
+        preventivos_vencidos = 0
+        if isinstance(todos_mants, list):
+            for m in todos_mants:
+                if m.get('tipo') == 'preventivo' and m.get('proxima_revision') and m.get('proxima_revision') < today:
+                    preventivos_vencidos += 1
         
         return jsonify({
             'total_equipos': total_equipos,
@@ -106,10 +121,6 @@ def dashboard():
             'proximos_vencer': proximos_vencer,
             'prestamos_vencidos': prestamos_vencidos,
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-        return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
