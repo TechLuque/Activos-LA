@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — ActivosEQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f172a;
+            --surface: #1a2235;
+            --surface2: #243548;
+            --border: #384860;
+            --text: #e2e8f0;
+            --text2: #cbd5e1;
+            --text3: #94a3b8;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --red: #ef4444;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #1a2844 100%);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .login-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .logo-text {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--blue), #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .title {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .title h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .title p {
+            color: var(--text3);
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: var(--blue);
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        input[type="text"]::placeholder,
+        input[type="password"]::placeholder {
+            color: var(--text3);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .btn-primary {
+            background: var(--blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            display: block;
+        }
+        
+        .alert.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #86efac;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <div class="logo-text">ActivosEQ</div>
+            </div>
+            
+            <div class="title">
+                <h1>Ingresa a tu cuenta</h1>
+                <p>Sistema de gestión de activos</p>
+            </div>
+            
+            <div id="alertBox" class="alert"></div>
+            
+            <div class="info">
+                💡 Demo: usuario <strong>admin</strong> / contraseña <strong>123456</strong>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input 
+                        id="username" 
+                        type="text" 
+                        placeholder="Tu usuario"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input 
+                        id="password" 
+                        type="password" 
+                        placeholder="Tu contraseña"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <span id="btnText">Ingresar</span>
+                        <div id="loadingSpinner" class="loading"><span class="spinner"></span>Autenticando...</div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function $(id) {
+            return document.getElementById(id);
+        }
+        
+        function showAlert(msg, type = 'info') {
+            const box = $('alertBox');
+            box.textContent = msg;
+            box.className = `alert ${type}`;
+            if (type !== 'success') return;
+            setTimeout(() => { box.className = 'alert'; }, 3000);
+        }
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = $('username').value.trim();
+            const password = $('password').value.trim();
+            
+            if (!username || !password) {
+                showAlert('Usuario y contraseña son requeridos', 'error');
+                return;
+            }
+            
+            // Mostrar loading
+            $('btnText').style.display = 'none';
+            $('loadingSpinner').style.display = 'block';
+            $('loginForm').style.opacity = '0.6';
+            $('loginForm').style.pointerEvents = 'none';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al autenticarse');
+                }
+                
+                showAlert('✅ Autenticación exitosa, redirigiendo...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+                
+            } catch (err) {
+                console.error('Error:', err);
+                showAlert('❌ ' + err.message, 'error');
+                $('btnText').style.display = 'inline';
+                $('loadingSpinner').style.display = 'none';
+                $('loginForm').style.opacity = '1';
+                $('loginForm').style.pointerEvents = 'auto';
+            }
+        }
+        
+        // Focus en username al cargar
+        window.addEventListener('load', () => {
+            $('username').focus();
+        });
+    </script>
+</body>
+</html>

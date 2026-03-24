@@ -308,7 +308,7 @@
                 <div class="signature-label">Firma digital *</div>
                 <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Dibuja tu firma en el recuadro:</p>
                 <div class="signature-container">
-                    <canvas id="signaturePad"></canvas>
+                    <canvas id="signaturePad" class="signature-canvas"></canvas>
                 </div>
                 <div class="button-group">
                     <button class="btn btn-ghost" onclick="clearSignature()">🗑️ Limpiar</button>
@@ -365,6 +365,10 @@
         let signPad = null;
         let loanData = null;
         const loanId = window.location.pathname.split('/').pop();
+        
+        // Detectar si es firma de devolución
+        const params = new URLSearchParams(window.location.search);
+        const tipoFirma = params.get('tipo') || 'inicial'; // 'inicial' o 'devolucion'
 
         function $(id) {
             return document.getElementById(id);
@@ -379,90 +383,141 @@
 
         async function initPage() {
             try {
-                const res = await fetch(`/api/prestamos/${loanId}`);
+                const url = `/api/prestamos/${loanId}`;
+                console.log('[INIT] Cargando prestamo desde: ' + url);
+                console.log('[INIT] Tipo de firma: ' + tipoFirma);
+                
+                const res = await fetch(url, {credentials: 'include'});
+                console.log('[INIT] Response status: ' + res.status);
                 
                 if (!res.ok) {
-                    showAlert('Préstamo no encontrado', 'error');
+                    const errText = await res.text();
+                    console.error('[ERROR] ' + res.status + ': ' + errText);
+                    showAlert('Prestamo no encontrado (Error ' + res.status + ')', 'error');
                     return;
                 }
                 
                 loanData = await res.json();
+                console.log('[INIT] Datos cargados:', loanData);
                 
-                // Llenar información
-                $('infEquipo').textContent = loanData.equipo_nombre || '—';
-                $('infResponsable').textContent = loanData.usuario_nombre || '—';
-                $('infFecha').textContent = loanData.fecha_prestamo || '—';
-                $('infDevol').textContent = loanData.fecha_devolucion_esperada || '—';
-                $('infNotas').textContent = loanData.notas || 'Sin notas';
+                if (!loanData || !loanData.id) {
+                    console.error('[ERROR] Respuesta vacia o sin ID');
+                    showAlert('Error: Datos invalidos del prestamo', 'error');
+                    return;
+                }
+                
+                // Actualizar título según tipo de firma
+                const titulo = tipoFirma === 'devolucion' ? 'Devolución de Equipo' : 'Firma de Préstamo';
+                const subtitulo = tipoFirma === 'devolucion' ? 'Confirma la devolución del equipo' : 'Confirma la recepción del equipo';
+                const $header = document.querySelector('.header h1');
+                const $headerp = document.querySelector('.header p');
+                if ($header) $header.textContent = titulo;
+                if ($headerp) $headerp.textContent = subtitulo;
+                
+                // Llenar informacion
+                const equipo = loanData.equipo_nombre || loanData.equipo || '—';
+                const responsable = loanData.usuario_nombre || loanData.usuario || '—';
+                const fecha = loanData.fecha_prestamo || '—';
+                const devol = loanData.fecha_devolucion_esperada || '—';
+                const notas = loanData.notas || 'Sin notas';
+                
+                console.log('[INIT] Asignando valores: equipo=' + equipo + ', responsable=' + responsable);
+                
+                $('infEquipo').textContent = equipo;
+                $('infResponsable').textContent = responsable;
+                $('infFecha').textContent = fecha;
+                $('infDevol').textContent = devol;
+                $('infNotas').textContent = notas;
+                
+                console.log('[INIT] Informacion cargada correctamente');
 
                 // Inicializar firma
                 initSignaturePad();
-                showAlert('Completa el formulario y presiona "Confirmar"', 'info');
+                const msg = tipoFirma === 'devolucion' ? 
+                  'Información cargada. Completa el formulario y presiona Confirmar Devolución' :
+                  'Información cargada. Completa el formulario y presiona Confirmar Firma';
+                showAlert(msg, 'info');
             } catch (err) {
-                console.error(err);
-                showAlert('Error al cargar datos', 'error');
+                console.error('[ERROR] Exception en initPage:', err);
+                showAlert('Error al cargar datos: ' + err.message, 'error');
             }
         }
 
         function initSignaturePad() {
             const canvas = $('signaturePad');
             if (!canvas) {
-                console.error('Canvas no encontrado');
-                showAlert('Error: Canvas de firma no disponible', 'error');
+                console.error('[ERROR] Canvas elemento no encontrado en DOM');
+                showAlert('Error: No se pudo cargar el área de firma', 'error');
                 return;
             }
             
-            // Esperar a que se cargue el DOM completamente
+            // Esperar un poco para que el DOM esté completamente listo
             setTimeout(() => {
                 try {
-                    // Limpiar canvas anterior si existe
+                    // Limpiar SignaturePad anterior si existe
                     if (signPad) {
+                        signPad.off();
                         signPad = null;
                     }
                     
                     const container = canvas.parentElement;
                     if (!container) {
-                        console.error('Contenedor del canvas no encontrado');
+                        console.error('[ERROR] Contenedor del canvas no encontrado');
                         return;
                     }
                     
-                    // Établecer dimensiones
-                    const rect = container.getBoundingClientRect();
-                    console.log('Canvas container size:', rect.width, 'x', rect.height);
+                    // Fijar dimensiones ANTES de inicializar SignaturePad
+                    // SignaturePad requiere dimensiones explícitas en el canvas
+                    const width = Math.max(container.offsetWidth - 4, 300);
+                    const height = 200;
                     
-                    // Asegurar que tiene dimensiones mínimas
-                    canvas.width = Math.max(rect.width - 4, 300);
-                    canvas.height = 200;
+                    canvas.width = width;
+                    canvas.height = height;
                     
-                    console.log('Canvas initialized:', canvas.width, 'x', canvas.height);
+                    console.log('[DEBUG] Canvas dimesiones:', width, 'x', height);
                     
-                    // Inicializar SignaturePad
+                    // Verificar que SignaturePad esté disponible
+                    if (typeof SignaturePad === 'undefined') {
+                        console.error('[ERROR] SignaturePad library no cargada');
+                        showAlert('Error: Librería de firma no disponible', 'error');
+                        return;
+                    }
+                    
+                    // Crear nueva instancia de SignaturePad
                     signPad = new SignaturePad(canvas, {
-                        penColor: '#3b82f6',
-                        backgroundColor: 'transparent',
-                        minWidth: 1,
-                        maxWidth: 3,
-                        velocityFilterWeight: 0.7,
-                        minDistance: 5
+                        penColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(0,0,0,0)',
+                        minWidth: 0.5,
+                        maxWidth: 2.5,
+                        throttle: 16,
+                        minDistance: 5,
+                        dotSize: 0
                     });
                     
-                    // Agregar listeners
-                    canvas.addEventListener('touchstart', () => {
-                        console.log('Touch started on signature pad');
+                    // Registrar eventos
+                    canvas.addEventListener('pointerdown', (e) => {
+                        updateSignatureStatus();
                     });
-                    canvas.addEventListener('touchend', updateSignatureStatus);
-                    canvas.addEventListener('mousedown', () => {
-                        console.log('Mouse down on signature pad');
+                    canvas.addEventListener('pointerup', (e) => {
+                        updateSignatureStatus();
                     });
-                    canvas.addEventListener('mouseup', updateSignatureStatus);
+                    canvas.addEventListener('pointermove', (e) => {
+                        if (signPad && !signPad.isEmpty()) {
+                            updateSignatureStatus();
+                        }
+                    });
                     
-                    console.log('SignaturePad initialized successfully');
-                    showAlert('Canvas de firma listo - dibuja tu firma', 'info');
+                    // Soporte para touch
+                    canvas.style.touchAction = 'none';
+                    
+                    console.log('[DEBUG] SignaturePad inicializado correctamente');
+                    updateSignatureStatus();
+                    showAlert('✅ Área de firma lista - comienza a firmar', 'info');
                 } catch (err) {
-                    console.error('Error initializing SignaturePad:', err);
-                    showAlert('Error al inicializar canvas: ' + err.message, 'error');
+                    console.error('[ERROR] Error al inicializar SignaturePad:', err);
+                    showAlert('Error: ' + err.message, 'error');
                 }
-            }, 100);
+            }, 150);
         }
 
         function clearSignature() {
@@ -518,75 +573,115 @@
         }
 
         async function submitSignatureForm() {
+            // Validar archivos
             const img1File = $('lImg1').files[0];
             const img2File = $('lImg2').files[0];
-            const hasSignature = signPad && !signPad.isEmpty();
-
-            console.log('Submit form - Signature:', hasSignature, 'Image1:', !!img1File, 'Image2:', !!img2File);
-
-            if (!img1File || !img2File) {
-                showAlert('Se requieren 2 imágenes', 'error');
+            
+            if (!img1File) {
+                showAlert('Se requiere la Foto 1 (Estado inicial)', 'error');
                 return;
             }
-
-            if (!hasSignature) {
-                showAlert('Se requiere firma digital - dibuja tu firma en el recuadro', 'error');
+            if (!img2File) {
+                showAlert('Se requiere la Foto 2 (Verificación)', 'error');
                 return;
             }
-
-            $('alertBox').style.display = 'none';
+            
+            // Validar firma
+            if (!signPad) {
+                showAlert('Error: Canvas de firma no disponible', 'error');
+                return;
+            }
+            
+            if (signPad.isEmpty()) {
+                showAlert('⚠️ Por favor dibuja tu firma en el área antes de confirmar', 'error');
+                return;
+            }
+            
+            // Mostrar loading
             document.querySelector('.loading').style.display = 'block';
-
+            $('alertBox').style.display = 'none';
+            
             try {
-                const firmaDataURL = signPad.toDataURL();
-                console.log('Firma generada, tamaño:', firmaDataURL.length);
+                // Obtener firma como PNG
+                const firmaDataURL = signPad.toDataURL('image/png');
                 
+                if (!firmaDataURL || firmaDataURL.length < 100) {
+                    throw new Error('Firma inválida o no se capturó correctamente');
+                }
+                
+                console.log('[DEBUG] Firma capturada, tamaño:', firmaDataURL.length, 'bytes');
+                console.log('[DEBUG] Imagen1:', img1File.name, 'Imagen2:', img2File.name);
+                
+                // Crear FormData
                 const formData = new FormData();
                 formData.append('firma_data', firmaDataURL);
                 formData.append('imagen1', img1File);
                 formData.append('imagen2', img2File);
-
+                formData.append('tipo', tipoFirma);  // 'inicial' o 'devolucion'
+                
+                console.log('[DEBUG] Enviando POST a /api/prestamos/' + loanId + '/firma con tipo: ' + tipoFirma);
+                
+                // Enviar al servidor
                 const response = await fetch(`/api/prestamos/${loanId}/firma`, {
                     method: 'POST',
+                    credentials: 'include',
                     body: formData
                 });
-
-                const res = await response.json();
-                console.log('Signature save response:', res);
                 
-                if (res.error) {
-                    document.querySelector('.loading').style.display = 'none';
-                    showAlert(res.error, 'error');
-                    return;
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText}`);
                 }
-
-                // Success!
+                
+                const result = await response.json();
+                console.log('[DEBUG] Respuesta del servidor:', result);
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                // ✅ ÉXITO - Mostrar mensaje
+                const titulo = tipoFirma === 'devolucion' ? 'Devolución Confirmada' : 'Préstamo Firmado';
+                const desc = tipoFirma === 'devolucion' ? 'Devolución del equipo registrada exitosamente' : 'Documentación registrada exitosamente';
+                const foto1Desc = tipoFirma === 'devolucion' ? 'Foto 1 (Estado devolución)' : 'Foto 1 (Estado inicial)';
+                const foto2Desc = tipoFirma === 'devolucion' ? 'Foto 2 (Confirmación)' : 'Foto 2 (Verificación)';
+                
                 document.body.innerHTML = `
                     <div class="container">
                         <div class="header">
                             <div class="logo">ActivosEQ</div>
-                            <h1>✅ Firma completada</h1>
-                            <p>Gracias por firmar el préstamo</p>
+                            <h1>✅ ${titulo}</h1>
+                            <p>${desc}</p>
                         </div>
                         <div class="card">
-                            <h2 style="margin-bottom: 16px;">Información registrada:</h2>
-                            <ul style="line-height: 2; color: var(--text2); font-size: 14px;">
-                                <li>✅ Firma digital capturada</li>
-                                <li>✅ Imagen 1 subida</li>
-                                <li>✅ Imagen 2 subida</li>
+                            <h2 style="margin-bottom: 16px;">Información guardada:</h2>
+                            <ul style="line-height: 2.2; color: var(--text2); font-size: 14px;">
+                                <li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
+                                <li>✅ <strong>${foto1Desc}</strong> (${img1File.name}) - Guardada</li>
+                                <li>✅ <strong>${foto2Desc}</strong> (${img2File.name}) - Guardada</li>
                             </ul>
-                            <p style="margin-top: 20px; color: var(--text3); font-size: 12px;">El préstamo ha sido registrado en el sistema. Puedes cerrar esta ventana.</p>
+                            <p style="margin-top: 24px; color: var(--green); font-size: 12px; font-weight: 600;">🎉 ${tipoFirma === 'devolucion' ? 'Equipo devuelto exitosamente.' : 'El préstamo ha sido completado y registrado en el sistema.'}</p>
+                            <p style="margin-top: 8px; color: var(--text3); font-size: 12px;">Puedes cerrar esta ventana. Los administradores podrán ver los documentos en el sistema.</p>
                         </div>
                     </div>
                 `;
+                
+                console.log('[DEBUG] Firma completada exitosamente');
+                
             } catch (err) {
-                console.error('Error:', err);
+                console.error('[ERROR] Error al guardar firma:', err);
                 document.querySelector('.loading').style.display = 'none';
-                showAlert('Error al procesar firma: ' + err.message, 'error');
+                $('alertBox').style.display = 'block';
+                showAlert('❌ Error: ' + err.message, 'error');
             }
         }
 
-        // Iniciar
-        initPage();
+        // Iniciar página cuando DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+    </script>
 </body>
 </html>
