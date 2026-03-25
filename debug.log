@@ -1,0 +1,140 @@
+[2026-03-25T11:43:01.887587] 
+[INIT] Current working directory: C:\Users\Usuario Normal\Documents\activoseq
+[2026-03-25T11:43:01.902232] [INIT] load_dotenv returned: True
+[2026-03-25T11:43:01.910594] [INIT] SUPABASE_URL from env: https://rdrqizmgcwvvrznjhrkw.supabase.co
+[2026-03-25T11:43:01.920958] [INIT] SUPABASE_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:43:01.927927] [INIT] SUPABASE_SECRET_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:43:03.538735] 
+[INIT] Current working directory: C:\Users\Usuario Normal\Documents\activoseq
+[2026-03-25T11:43:03.567167] [INIT] load_dotenv returned: True
+[2026-03-25T11:43:03.631431] [INIT] SUPABASE_URL from env: https://rdrqizmgcwvvrznjhrkw.supabase.co
+[2026-03-25T11:43:03.643593] [INIT] SUPABASE_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:43:03.648787] [INIT] SUPABASE_SECRET_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:43:55.230410] 
+======================================================================
+[2026-03-25T11:43:55.240490] [ENDPOINT] /api/prestamos/24/firma called
+[2026-03-25T11:43:55.245935] ======================================================================
+[2026-03-25T11:43:55.258019] [DEBUG] imagen1: WhatsApp Image 2026-03-19 at 14.35.33.jpeg
+[2026-03-25T11:43:55.262157] [DEBUG] imagen2: WhatsApp Image 2026-03-19 at 14.35.33.jpeg
+[2026-03-25T11:43:55.266177] [DEBUG] imagen1 size: 190950
+[2026-03-25T11:43:55.272031] [DEBUG] imagen2 size: 190950
+[2026-03-25T11:43:55.276423] [DEBUG] firma_data length: 29014
+[2026-03-25T11:43:55.280371] [DEBUG] tipo_firma: inicial
+[2026-03-25T11:43:55.285127] [DEBUG] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:43:55.289774] [DEBUG] SUPABASE_KEY: SET
+[2026-03-25T11:43:55.293740] [DEBUG] SUPABASE_SECRET_KEY: SET
+[2026-03-25T11:43:55.298100] [DEBUG] Firma base64 decoded: 21742 bytes
+[2026-03-25T11:43:55.303247] [DEBUG] Uploading firma to path: loan_24/firma_20260325_114355.png
+[2026-03-25T11:43:55.307445] [DEBUG] Calling supabase_storage_upload()...
+[2026-03-25T11:43:55.311649] 
+[STORAGE] ═════════════════════════════════════
+[2026-03-25T11:43:55.315715] [STORAGE] Uploading file: loan_24/firma_20260325_114355.png
+[2026-03-25T11:43:55.321039] [STORAGE] Content size: 21742 bytes
+[2026-03-25T11:43:55.326126] [STORAGE] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:43:55.330316] [STORAGE] SUPABASE_KEY len: 208
+[2026-03-25T11:43:55.335947] [STORAGE] SUPABASE_SECRET_KEY len: 219
+[2026-03-25T11:43:55.340619] [STORAGE] Storage URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/prestamos/loan_24/firma_20260325_114355.png
+[2026-03-25T11:43:55.344866] [STORAGE] Headers: Authorization=BearereyJhbGciOiJIUzI1NiIsInR5cCI6Ik..., apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[2026-03-25T11:43:55.349173] [STORAGE] Making POST request...
+[2026-03-25T11:43:56.928534] [STORAGE] Response status: 200
+[2026-03-25T11:43:56.937055] [STORAGE] Response body: {"Key":"prestamos/loan_24/firma_20260325_114355.png","Id":"50e166e2-d42c-4194-b021-60799c83748f"}
+[2026-03-25T11:43:56.945769] [STORAGE] SUCCESS - File uploaded: loan_24/firma_20260325_114355.png
+[2026-03-25T11:43:56.959725] [DEBUG] supabase_storage_upload() returned: True
+[2026-03-25T11:43:56.969603] [SUCCESS] Firma URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/public/prestamos/loan_24/firma_20260325_114355.png
+[2026-03-25T11:43:56.979369] [DEBUG] imagen1 size: 190950 bytes
+[2026-03-25T11:43:56.989700] [DEBUG] imagen2 size: 190950 bytes
+[2026-03-25T11:43:56.996042] 
+[STORAGE] ═════════════════════════════════════
+[2026-03-25T11:43:57.003287] [STORAGE] Uploading file: loan_24/imagen1_20260325_114355.jpg
+[2026-03-25T11:43:57.010063] [STORAGE] Content size: 190950 bytes
+[2026-03-25T11:43:57.016578] [STORAGE] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:43:57.023317] [STORAGE] SUPABASE_KEY len: 208
+[2026-03-25T11:43:57.030471] [STORAGE] SUPABASE_SECRET_KEY len: 219
+[2026-03-25T11:43:57.036133] [STORAGE] Storage URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/prestamos/loan_24/imagen1_20260325_114355.jpg
+[2026-03-25T11:43:57.040878] [STORAGE] Headers: Authorization=BearereyJhbGciOiJIUzI1NiIsInR5cCI6Ik..., apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[2026-03-25T11:43:57.045683] [STORAGE] Making POST request...
+[2026-03-25T11:43:58.462309] [STORAGE] Response status: 200
+[2026-03-25T11:43:58.471482] [STORAGE] Response body: {"Key":"prestamos/loan_24/imagen1_20260325_114355.jpg","Id":"9b7d67ed-db18-48a3-81e2-488cccab08d6"}
+[2026-03-25T11:43:58.479843] [STORAGE] SUCCESS - File uploaded: loan_24/imagen1_20260325_114355.jpg
+[2026-03-25T11:43:58.492859] 
+[STORAGE] ═════════════════════════════════════
+[2026-03-25T11:43:58.500926] [STORAGE] Uploading file: loan_24/imagen2_20260325_114355.jpg
+[2026-03-25T11:43:58.509125] [STORAGE] Content size: 190950 bytes
+[2026-03-25T11:43:58.516664] [STORAGE] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:43:58.524969] [STORAGE] SUPABASE_KEY len: 208
+[2026-03-25T11:43:58.532181] [STORAGE] SUPABASE_SECRET_KEY len: 219
+[2026-03-25T11:43:58.540189] [STORAGE] Storage URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/prestamos/loan_24/imagen2_20260325_114355.jpg
+[2026-03-25T11:43:58.547608] [STORAGE] Headers: Authorization=BearereyJhbGciOiJIUzI1NiIsInR5cCI6Ik..., apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[2026-03-25T11:43:58.572687] [STORAGE] Making POST request...
+[2026-03-25T11:44:00.389430] [STORAGE] Response status: 200
+[2026-03-25T11:44:00.397063] [STORAGE] Response body: {"Key":"prestamos/loan_24/imagen2_20260325_114355.jpg","Id":"68557fee-2337-4c9b-8dfc-9d7391e02b60"}
+[2026-03-25T11:44:00.405589] [STORAGE] SUCCESS - File uploaded: loan_24/imagen2_20260325_114355.jpg
+[2026-03-25T11:44:00.418245] [SUCCESS] Imagen1 (inicial) guardada: loan_24/imagen1_20260325_114355.jpg
+[2026-03-25T11:44:00.492495] [SUCCESS] Imagen2 (inicial) guardada: loan_24/imagen2_20260325_114355.jpg
+[2026-03-25T11:44:01.003830] 
+======================================================================
+[2026-03-25T11:44:01.790314] [ENDPOINT] /api/prestamos/24/firma called
+[2026-03-25T11:44:01.794830] ======================================================================
+[2026-03-25T11:44:01.805120] [DEBUG] imagen1: WhatsApp Image 2026-03-19 at 14.35.33.jpeg
+[2026-03-25T11:44:01.809965] [DEBUG] imagen2: WhatsApp Image 2026-03-19 at 14.35.33.jpeg
+[2026-03-25T11:44:01.814856] [DEBUG] imagen1 size: 190950
+[2026-03-25T11:44:01.821441] [DEBUG] imagen2 size: 190950
+[2026-03-25T11:44:01.825890] [DEBUG] firma_data length: 29014
+[2026-03-25T11:44:01.830527] [DEBUG] tipo_firma: inicial
+[2026-03-25T11:44:01.836101] [DEBUG] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:44:01.840659] [DEBUG] SUPABASE_KEY: SET
+[2026-03-25T11:44:01.845173] [DEBUG] SUPABASE_SECRET_KEY: SET
+[2026-03-25T11:44:01.850565] [DEBUG] Firma base64 decoded: 21742 bytes
+[2026-03-25T11:44:01.855855] [DEBUG] Uploading firma to path: loan_24/firma_20260325_114401.png
+[2026-03-25T11:44:01.860591] [DEBUG] Calling supabase_storage_upload()...
+[2026-03-25T11:44:01.865098] 
+[STORAGE] ═════════════════════════════════════
+[2026-03-25T11:44:01.870693] [STORAGE] Uploading file: loan_24/firma_20260325_114401.png
+[2026-03-25T11:44:01.875189] [STORAGE] Content size: 21742 bytes
+[2026-03-25T11:44:01.880073] [STORAGE] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:44:01.885794] [STORAGE] SUPABASE_KEY len: 208
+[2026-03-25T11:44:01.890420] [STORAGE] SUPABASE_SECRET_KEY len: 219
+[2026-03-25T11:44:01.895296] [STORAGE] Storage URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/prestamos/loan_24/firma_20260325_114401.png
+[2026-03-25T11:44:01.900355] [STORAGE] Headers: Authorization=BearereyJhbGciOiJIUzI1NiIsInR5cCI6Ik..., apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[2026-03-25T11:44:01.931678] [STORAGE] Making POST request...
+[2026-03-25T11:44:03.381524] [DEBUG] Supabase update result: {'error': '', 'status': 204}
+[2026-03-25T11:44:03.387967] 
+[SUCCESS] ==================== FIRMA COMPLETADA ====================
+[2026-03-25T11:44:03.731571] [STORAGE] Response status: 200
+[2026-03-25T11:44:03.738750] [STORAGE] Response body: {"Key":"prestamos/loan_24/firma_20260325_114401.png","Id":"71760906-9692-48c4-944d-5d656d3e0f67"}
+[2026-03-25T11:44:03.743838] [STORAGE] SUCCESS - File uploaded: loan_24/firma_20260325_114401.png
+[2026-03-25T11:44:03.751959] [DEBUG] supabase_storage_upload() returned: True
+[2026-03-25T11:44:03.757231] [SUCCESS] Firma URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/public/prestamos/loan_24/firma_20260325_114401.png
+[2026-03-25T11:44:03.763172] [DEBUG] imagen1 size: 190950 bytes
+[2026-03-25T11:44:03.769327] [DEBUG] imagen2 size: 190950 bytes
+[2026-03-25T11:44:03.774704] 
+[STORAGE] ═════════════════════════════════════
+[2026-03-25T11:44:03.780149] [STORAGE] Uploading file: loan_24/imagen1_20260325_114401.jpg
+[2026-03-25T11:44:03.785550] [STORAGE] Content size: 190950 bytes
+[2026-03-25T11:44:03.790944] [STORAGE] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:44:03.796118] [STORAGE] SUPABASE_KEY len: 208
+[2026-03-25T11:44:03.801981] [STORAGE] SUPABASE_SECRET_KEY len: 219
+[2026-03-25T11:44:03.807128] [STORAGE] Storage URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/prestamos/loan_24/imagen1_20260325_114401.jpg
+[2026-03-25T11:44:03.812531] [STORAGE] Headers: Authorization=BearereyJhbGciOiJIUzI1NiIsInR5cCI6Ik..., apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[2026-03-25T11:44:03.818030] [STORAGE] Making POST request...
+[2026-03-25T11:44:05.312045] [STORAGE] Response status: 200
+[2026-03-25T11:44:05.317238] [STORAGE] Response body: {"Key":"prestamos/loan_24/imagen1_20260325_114401.jpg","Id":"eb3c4913-28fc-4b4f-b896-2624d7c5d9f0"}
+[2026-03-25T11:44:05.322637] [STORAGE] SUCCESS - File uploaded: loan_24/imagen1_20260325_114401.jpg
+[2026-03-25T11:44:05.329848] 
+[STORAGE] ═════════════════════════════════════
+[2026-03-25T11:44:05.334924] [STORAGE] Uploading file: loan_24/imagen2_20260325_114401.jpg
+[2026-03-25T11:44:05.340479] [STORAGE] Content size: 190950 bytes
+[2026-03-25T11:44:05.345313] [STORAGE] SUPABASE_URL: https://rdrqizmgcwvvrznjhrkw.supabase.co...
+[2026-03-25T11:44:05.350665] [STORAGE] SUPABASE_KEY len: 208
+[2026-03-25T11:44:05.356302] [STORAGE] SUPABASE_SECRET_KEY len: 219
+[2026-03-25T11:44:05.361143] [STORAGE] Storage URL: https://rdrqizmgcwvvrznjhrkw.supabase.co/storage/v1/object/prestamos/loan_24/imagen2_20260325_114401.jpg
+[2026-03-25T11:44:05.365894] [STORAGE] Headers: Authorization=BearereyJhbGciOiJIUzI1NiIsInR5cCI6Ik..., apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[2026-03-25T11:44:05.371256] [STORAGE] Making POST request...
+[2026-03-25T11:44:07.130453] [STORAGE] Response status: 200
+[2026-03-25T11:44:07.140094] [STORAGE] Response body: {"Key":"prestamos/loan_24/imagen2_20260325_114401.jpg","Id":"e756d8a4-3784-499c-a77a-6a10553e1cbf"}
+[2026-03-25T11:44:07.155935] [STORAGE] SUCCESS - File uploaded: loan_24/imagen2_20260325_114401.jpg
+[2026-03-25T11:44:07.167044] [SUCCESS] Imagen1 (inicial) guardada: loan_24/imagen1_20260325_114401.jpg
+[2026-03-25T11:44:07.171984] [SUCCESS] Imagen2 (inicial) guardada: loan_24/imagen2_20260325_114401.jpg
+[2026-03-25T11:44:08.323702] [DEBUG] Supabase update result: {'error': '', 'status': 204}
+[2026-03-25T11:44:08.331515] 
+[SUCCESS] ==================== FIRMA COMPLETADA ====================

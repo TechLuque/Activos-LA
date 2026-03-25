@@ -6,9 +6,28 @@ from dotenv import load_dotenv
 import json
 import base64
 from functools import wraps
+from io import BytesIO
 
 # Cargar variables de entorno
 load_dotenv()
+
+# Debug logging function
+def debug_log(msg):
+    """Write debug message directly to file"""
+    try:
+        with open('debug.log', 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.now().isoformat()}] {msg}\n")
+            f.flush()
+    except:
+        pass
+
+# Verificar que las variables se cargaron
+import dotenv
+debug_log(f"\n[INIT] Current working directory: {os.getcwd()}")
+debug_log(f"[INIT] load_dotenv returned: {load_dotenv()}")
+debug_log(f"[INIT] SUPABASE_URL from env: {os.getenv('SUPABASE_URL')}")
+debug_log(f"[INIT] SUPABASE_KEY from env: {os.getenv('SUPABASE_KEY')[:50] if os.getenv('SUPABASE_KEY') else 'NOT SET'}...")
+debug_log(f"[INIT] SUPABASE_SECRET_KEY from env: {os.getenv('SUPABASE_SECRET_KEY')[:50] if os.getenv('SUPABASE_SECRET_KEY') else 'NOT SET'}...")
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-marzo-2026')
@@ -16,12 +35,78 @@ app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-ma
 # Credenciales de Supabase
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_SECRET_KEY = os.getenv('SUPABASE_SECRET_KEY')  # Service Role Key para Storage
 SUPABASE_API_URL = f"{SUPABASE_URL}/rest/v1"
+SUPABASE_STORAGE_BUCKET = 'prestamos'  # Nombre del bucket de Storage
 HEADERS = {
     'apikey': SUPABASE_KEY,
     'Authorization': f'Bearer {SUPABASE_KEY}',
     'Content-Type': 'application/json'
 }
+
+def supabase_storage_upload(file_content, file_path):
+    """Upload file to Supabase Storage bucket and return public URL
+    Uses Service Role Key to bypass Row-Level Security
+    
+    Args:
+        file_content: bytes content of the file
+        file_path: path within bucket (e.g., 'loan_22/firma.png')
+    
+    Returns:
+        public_url: string URL to access the file publicly
+    """
+    try:
+        debug_log(f"\n[STORAGE] ═════════════════════════════════════")
+        debug_log(f"[STORAGE] Uploading file: {file_path}")
+        debug_log(f"[STORAGE] Content size: {len(file_content)} bytes")
+        
+        storage_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/{file_path}"
+        
+        # Validate credentials are loaded
+        if not SUPABASE_URL:
+            debug_log(f"[ERROR] SUPABASE_URL is not set!")
+            return None
+        if not SUPABASE_KEY:
+            debug_log(f"[ERROR] SUPABASE_KEY is not set!")
+            return None
+        if not SUPABASE_SECRET_KEY:
+            debug_log(f"[ERROR] SUPABASE_SECRET_KEY is not set!")
+            return None
+        
+        debug_log(f"[STORAGE] SUPABASE_URL: {SUPABASE_URL[:50]}...")
+        debug_log(f"[STORAGE] SUPABASE_KEY len: {len(SUPABASE_KEY)}")
+        debug_log(f"[STORAGE] SUPABASE_SECRET_KEY len: {len(SUPABASE_SECRET_KEY)}")
+        
+        # Headers with Authorization using Service Role Key
+        headers = {
+            'Authorization': f'Bearer {SUPABASE_SECRET_KEY}',
+            'apikey': SUPABASE_KEY,
+            'Content-Type': 'application/octet-stream'
+        }
+        
+        debug_log(f"[STORAGE] Storage URL: {storage_url}")
+        debug_log(f"[STORAGE] Headers: Authorization=Bearer{SUPABASE_SECRET_KEY[:30]}..., apikey={SUPABASE_KEY[:30]}...")
+        debug_log(f"[STORAGE] Making POST request...")
+        
+        resp = requests.post(storage_url, headers=headers, data=file_content, timeout=10)
+        
+        debug_log(f"[STORAGE] Response status: {resp.status_code}")
+        debug_log(f"[STORAGE] Response body: {resp.text[:500]}")
+        
+        if resp.status_code in [200, 201]:
+            # Generar URL pública
+            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}/{file_path}"
+            debug_log(f"[STORAGE] SUCCESS - File uploaded: {file_path}")
+            return public_url
+        else:
+            debug_log(f"[STORAGE] FAILED - Status {resp.status_code}: {resp.text}")
+            return None
+    except Exception as e:
+        debug_log(f"[STORAGE] EXCEPTION: {e}")
+        debug_log(f"[STORAGE] Exception type: {type(e).__name__}")
+        import traceback
+        debug_log(traceback.format_exc())
+        return None
 
 def supabase_request(method, table, query='', data=None):
     """Helper para hacer requests a Supabase REST API"""
@@ -790,75 +875,131 @@ def create_prestamo():
 
 @app.route('/api/prestamos/<int:id>/firma', methods=['POST'])
 def save_loan_signature(id):
-    """Save signature and images for a loan - supports 'inicial' or 'devolucion'"""
+    """Save signature and images for a loan to Supabase Storage - supports 'inicial' or 'devolucion'"""
     try:
+        debug_log("\n" + "="*70)
+        debug_log(f"[ENDPOINT] /api/prestamos/{id}/firma called")
+        debug_log("="*70)
+        
         # Obtener archivos y parámetro de tipo
         imagen1 = request.files.get('imagen1')
         imagen2 = request.files.get('imagen2')
         firma_data = request.form.get('firma_data', '')
         tipo_firma = request.form.get('tipo', 'inicial')  # 'inicial' o 'devolucion'
         
+        debug_log(f"[DEBUG] imagen1: {imagen1.filename if imagen1 else 'None'}")
+        debug_log(f"[DEBUG] imagen2: {imagen2.filename if imagen2 else 'None'}")
+        debug_log(f"[DEBUG] imagen1 size: {len(imagen1.read()) if imagen1 else 'None'}")
+        imagen1.seek(0)  # Reset file pointer after reading size
+        if imagen2:
+            img2_size = len(imagen2.read())
+            imagen2.seek(0)  # Reset file pointer
+        else:
+            img2_size = 'None'
+        debug_log(f"[DEBUG] imagen2 size: {img2_size}")
+        debug_log(f"[DEBUG] firma_data length: {len(firma_data)}")
+        debug_log(f"[DEBUG] tipo_firma: {tipo_firma}")
+        debug_log(f"[DEBUG] SUPABASE_URL: {SUPABASE_URL[:50]}...")
+        debug_log(f"[DEBUG] SUPABASE_KEY: {'SET' if SUPABASE_KEY else 'NOT SET'}")
+        debug_log(f"[DEBUG] SUPABASE_SECRET_KEY: {'SET' if SUPABASE_SECRET_KEY else 'NOT SET'}")
+        
         if not imagen1 or not imagen2:
+            debug_log(f"[ERROR] Missing files: imagen1={bool(imagen1)}, imagen2={bool(imagen2)}")
             return jsonify({'error': 'Se requieren 2 imágenes'}), 400
         
-        if not firma_data:
-            return jsonify({'error': 'Se requiere la firma digital'}), 400
+        # Validar que los archivos no estén vacíos
+        img1_content_test = imagen1.read()
+        imagen1.seek(0)
+        if not img1_content_test:
+            debug_log(f"[ERROR] imagen1 is empty!")
+            return jsonify({'error': 'La imagen 1 está vacía'}), 400
         
-        # Crear directorio de uploads si no existe
-        os.makedirs('uploads/prestamos', exist_ok=True)
+        img2_content_test = imagen2.read()
+        imagen2.seek(0)
+        if not img2_content_test:
+            debug_log(f"[ERROR] imagen2 is empty!")
+            return jsonify({'error': 'La imagen 2 está vacía'}), 400
+        
+        if not firma_data:
+            debug_log(f"[ERROR] Missing firma_data")
+            return jsonify({'error': 'Se requiere la firma digital'}), 400
         
         # Generar timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
+        # Crear carpeta dentro del bucket para este préstamo
+        loan_folder = f"loan_{id}"
+        
         # ═══════════════════════════════════════════════════════════════
-        # GUARDAR FIRMA como PNG
+        # GUARDAR FIRMA a Supabase Storage como PNG
         # ═══════════════════════════════════════════════════════════════
         prefix = 'firma' if tipo_firma == 'inicial' else 'firma_devolucion'
-        firma_filename = f"{prefix}_{id}_{timestamp}.png"
-        firma_path = f"uploads/prestamos/{firma_filename}"
+        firma_filename = f"{prefix}_{timestamp}.png"
+        firma_path = f"{loan_folder}/{firma_filename}"
         
         try:
             # Extraer datos base64 del dataURL
             if firma_data.startswith('data:image'):
                 # formato: data:image/png;base64,iVBORw0KGgo...
                 header, encoded = firma_data.split(',', 1)
-                import base64
-                
                 img_data = base64.b64decode(encoded)
-                # Guardar como archivo binario PNG
-                with open(firma_path, 'wb') as f:
-                    f.write(img_data)
-                print(f"[SUCCESS] Firma ({tipo_firma}) guardada como PNG: {firma_path} ({len(img_data)} bytes)")
+                
+                debug_log(f"[DEBUG] Firma base64 decoded: {len(img_data)} bytes")
+                debug_log(f"[DEBUG] Uploading firma to path: {firma_path}")
+                
+                # Subir a Supabase Storage
+                debug_log(f"[DEBUG] Calling supabase_storage_upload()...")
+                firma_url = supabase_storage_upload(img_data, firma_path)
+                
+                debug_log(f"[DEBUG] supabase_storage_upload() returned: {firma_url is not None}")
+                
+                if not firma_url:
+                    debug_log(f"[ERROR] supabase_storage_upload returned None for firmware {tipo_firma}")
+                    return jsonify({'error': 'Error al guardar firma en Storage'}), 500
+                
+                debug_log(f"[SUCCESS] Firma URL: {firma_url}")
             else:
-                print(f"[WARNING] Firma no es dataURL válido, ignorando conversión")
+                return jsonify({'error': 'Firma no es un dataURL válido'}), 400
         except Exception as e:
-            print(f"[WARNING] Error convirtiendo firma a PNG: {e}")
-        
-        # URL de acceso a la firma
-        firma_url = f"/uploads/prestamos/{firma_filename}"
+            debug_log(f"[ERROR] Error procesando firma: {e}")
+            import traceback
+            debug_log(traceback.format_exc())
+            return jsonify({'error': f'Error al procesar firma: {str(e)}'}), 500
         
         # ═══════════════════════════════════════════════════════════════
-        # GUARDAR IMÁGENES
+        # GUARDAR IMÁGENES a Supabase Storage
         # ═══════════════════════════════════════════════════════════════
-        prefix_img = 'image1' if tipo_firma == 'inicial' else 'image1_dev'
-        prefix_img2 = 'image2' if tipo_firma == 'inicial' else 'image2_dev'
+        prefix_img = 'imagen1' if tipo_firma == 'inicial' else 'imagen1_dev'
+        prefix_img2 = 'imagen2' if tipo_firma == 'inicial' else 'imagen2_dev'
         
-        img1_filename = f"{prefix_img}_{id}_{timestamp}.jpg"
-        img2_filename = f"{prefix_img2}_{id}_{timestamp}.jpg"
+        img1_filename = f"{prefix_img}_{timestamp}.jpg"
+        img2_filename = f"{prefix_img2}_{timestamp}.jpg"
         
-        img1_path = f"uploads/prestamos/{img1_filename}"
-        img2_path = f"uploads/prestamos/{img2_filename}"
+        img1_path = f"{loan_folder}/{img1_filename}"
+        img2_path = f"{loan_folder}/{img2_filename}"
         
-        # Guardar archivos
-        imagen1.save(img1_path)
-        imagen2.save(img2_path)
-        
-        # URLs para acceso frontend
-        img1_url = f"/uploads/prestamos/{img1_filename}"
-        img2_url = f"/uploads/prestamos/{img2_filename}"
-        
-        print(f"[SUCCESS] Imagen1 ({tipo_firma}) guardada: {img1_path}")
-        print(f"[SUCCESS] Imagen2 ({tipo_firma}) guardada: {img2_path}")
+        # Leer contenido de archivos y subir a Storage
+        try:
+            img1_content = imagen1.read()
+            img2_content = imagen2.read()
+            
+            debug_log(f"[DEBUG] imagen1 size: {len(img1_content)} bytes")
+            debug_log(f"[DEBUG] imagen2 size: {len(img2_content)} bytes")
+            
+            img1_url = supabase_storage_upload(img1_content, img1_path)
+            img2_url = supabase_storage_upload(img2_content, img2_path)
+            
+            if not img1_url or not img2_url:
+                debug_log(f"[ERROR] One of images upload failed: img1={img1_url is not None}, img2={img2_url is not None}")
+                return jsonify({'error': 'Error al guardar imágenes en Storage'}), 500
+            
+            debug_log(f"[SUCCESS] Imagen1 ({tipo_firma}) guardada: {img1_path}")
+            debug_log(f"[SUCCESS] Imagen2 ({tipo_firma}) guardada: {img2_path}")
+        except Exception as e:
+            debug_log(f"[ERROR] Error guardando imágenes: {e}")
+            import traceback
+            debug_log(traceback.format_exc())
+            return jsonify({'error': f'Error al guardar imágenes: {str(e)}'}), 500
         
         # ═══════════════════════════════════════════════════════════════
         # ACTUALIZAR PRÉSTAMO EN BD según tipo de firma
@@ -883,24 +1024,25 @@ def save_loan_signature(id):
             }
         
         result = supabase_request('PATCH', 'prestamos', f'?id=eq.{id}', update_data)
-        print(f"[DEBUG] Supabase update result: {result}")
+        debug_log(f"[DEBUG] Supabase update result: {result}")
         
         if isinstance(result, dict) and result.get('error'):
             return jsonify({'error': f'Error al guardar en BD: {result.get("error")}'}), 500
         
+        debug_log("\n[SUCCESS] ==================== FIRMA COMPLETADA ====================")
         return jsonify({
             'ok': True,
             'firma_url': firma_url,
             'img1_url': img1_url,
             'img2_url': img2_url,
             'tipo': tipo_firma,
-            'message': f'Firma de {tipo_firma} y documentos guardados correctamente'
+            'message': f'Firma de {tipo_firma} y documentos guardados correctamente en Supabase Storage'
         }), 201
         
     except Exception as e:
-        print(f"[ERROR] save_loan_signature exception: {e}")
+        debug_log(f"\n[ERROR] save_loan_signature exception: {e}")
         import traceback
-        traceback.print_exc()
+        debug_log(traceback.format_exc())
         return jsonify({'error': f'Error al procesar firma: {str(e)}'}), 500
 
 @app.route('/api/prestamos/<int:id>/devolver', methods=['PUT'])
@@ -913,6 +1055,48 @@ def devolver_prestamo(id):
         })
         return jsonify({'ok': True, 'message': 'Prestamo marcado como devuelto'})
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== DEBUG ENDPOINT ==========
+@app.route('/api/debug/storage-test', methods=['POST'])
+def debug_storage_test():
+    """Test endpoint to debug Storage uploads"""
+    try:
+        print("\n" + "="*70)
+        print("DEBUG: Storage Upload Test")
+        print("="*70)
+        
+        # Create test data
+        test_content = b"TEST FILE CONTENT - " + bytes(str(datetime.now()), 'utf-8')
+        test_path = f"debug/test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        
+        print(f"\n[DEBUG] Testing upload to: {test_path}")
+        print(f"[DEBUG] Content size: {len(test_content)} bytes")
+        print(f"[DEBUG] SUPABASE_URL: {SUPABASE_URL}")
+        print(f"[DEBUG] SUPABASE_KEY exists: {bool(SUPABASE_KEY)}")
+        print(f"[DEBUG] SUPABASE_SECRET_KEY exists: {bool(SUPABASE_SECRET_KEY)}")
+        
+        # Call storage upload
+        result_url = supabase_storage_upload(test_content, test_path)
+        
+        print(f"\n[DEBUG] Upload result: {result_url}")
+        
+        if result_url:
+            return jsonify({
+                'ok': True,
+                'message': 'Storage upload successful',
+                'url': result_url
+            }), 200
+        else:
+            return jsonify({
+                'ok': False,
+                'message': 'Storage upload failed - check server logs'
+            }), 500
+            
+    except Exception as e:
+        print(f"\n[ERROR] Debug test error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prestamos/<int:id>', methods=['DELETE'])
