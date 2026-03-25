@@ -1,0 +1,2 @@
+# Este archivo asegura que la carpeta uploads existe
+# Todos los archivos se guardan en Supabase Storage, no aquí

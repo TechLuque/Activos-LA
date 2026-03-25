@@ -12,6 +12,10 @@ from io import BytesIO
 load_dotenv()
 
 import sys
+import platform
+
+# Detectar si estamos en Vercel (read-only filesystem)
+IS_VERCEL = 'VERCEL' in os.environ or os.getenv('VERCEL_ENV') == 'production'
 
 # Debug logging function
 def debug_log(msg):
@@ -24,13 +28,14 @@ def debug_log(msg):
     sys.stdout.flush()
     
     # Try to write to file for local development (Vercel will fail, but that's OK)
-    try:
-        with open('debug.log', 'a', encoding='utf-8') as f:
-            f.write(formatted_msg + "\n")
-            f.flush()
-    except:
-        # Silently fail on read-only systems (Vercel)
-        pass
+    if not IS_VERCEL:
+        try:
+            with open('debug.log', 'a', encoding='utf-8') as f:
+                f.write(formatted_msg + "\n")
+                f.flush()
+        except:
+            # Silently fail on read-only systems (Vercel)
+            pass
 
 # Verificar que las variables se cargaron
 import dotenv
@@ -40,7 +45,11 @@ debug_log(f"[INIT] SUPABASE_URL from env: {os.getenv('SUPABASE_URL')}")
 debug_log(f"[INIT] SUPABASE_KEY from env: {os.getenv('SUPABASE_KEY')[:50] if os.getenv('SUPABASE_KEY') else 'NOT SET'}...")
 debug_log(f"[INIT] SUPABASE_SECRET_KEY from env: {os.getenv('SUPABASE_SECRET_KEY')[:50] if os.getenv('SUPABASE_SECRET_KEY') else 'NOT SET'}...")
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(
+    __name__,
+    static_folder='static' if not IS_VERCEL else None,
+    template_folder='templates'
+)
 app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-marzo-2026')
 
 # Credenciales de Supabase
@@ -71,6 +80,10 @@ def supabase_storage_upload(file_content, file_path):
         debug_log(f"[STORAGE] Uploading file: {file_path}")
         debug_log(f"[STORAGE] Content size: {len(file_content)} bytes")
         
+        # Ensure file_content is bytes
+        if not isinstance(file_content, bytes):
+            file_content = bytes(file_content)
+        
         storage_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/{file_path}"
         
         # Validate credentials are loaded
@@ -96,7 +109,6 @@ def supabase_storage_upload(file_content, file_path):
         }
         
         debug_log(f"[STORAGE] Storage URL: {storage_url}")
-        debug_log(f"[STORAGE] Headers: Authorization=Bearer{SUPABASE_SECRET_KEY[:30]}..., apikey={SUPABASE_KEY[:30]}...")
         debug_log(f"[STORAGE] Making POST request...")
         
         resp = requests.post(storage_url, headers=headers, data=file_content, timeout=10)
@@ -890,6 +902,7 @@ def save_loan_signature(id):
     try:
         debug_log("\n" + "="*70)
         debug_log(f"[ENDPOINT] /api/prestamos/{id}/firma called")
+        debug_log(f"[ENVIRONMENT] IS_VERCEL={IS_VERCEL}")
         debug_log("="*70)
         
         # Obtener archivos y parámetro de tipo
@@ -900,17 +913,26 @@ def save_loan_signature(id):
         
         debug_log(f"[DEBUG] imagen1: {imagen1.filename if imagen1 else 'None'}")
         debug_log(f"[DEBUG] imagen2: {imagen2.filename if imagen2 else 'None'}")
-        debug_log(f"[DEBUG] imagen1 size: {len(imagen1.read()) if imagen1 else 'None'}")
-        imagen1.seek(0)  # Reset file pointer after reading size
-        if imagen2:
-            img2_size = len(imagen2.read())
-            imagen2.seek(0)  # Reset file pointer
-        else:
-            img2_size = 'None'
-        debug_log(f"[DEBUG] imagen2 size: {img2_size}")
+        
+        # Read files in memory only (no disk I/O)
+        try:
+            img1_content_test = imagen1.read() if imagen1 else b''
+            if imagen1:
+                imagen1.seek(0)  # Reset file pointer after reading size
+            if imagen2:
+                img2_content_test = imagen2.read()
+                imagen2.seek(0)  # Reset file pointer
+            else:
+                img2_content_test = b''
+        except Exception as e:
+            debug_log(f"[ERROR] Error reading files from request: {e}")
+            return jsonify({'error': f'Error al leer archivos: {str(e)}'}), 400
+        
+        debug_log(f"[DEBUG] imagen1 size: {len(img1_content_test)} bytes")
+        debug_log(f"[DEBUG] imagen2 size: {len(img2_content_test)} bytes")
         debug_log(f"[DEBUG] firma_data length: {len(firma_data)}")
         debug_log(f"[DEBUG] tipo_firma: {tipo_firma}")
-        debug_log(f"[DEBUG] SUPABASE_URL: {SUPABASE_URL[:50]}...")
+        debug_log(f"[DEBUG] SUPABASE_URL: {SUPABASE_URL[:50] if SUPABASE_URL else 'NOT SET'}...")
         debug_log(f"[DEBUG] SUPABASE_KEY: {'SET' if SUPABASE_KEY else 'NOT SET'}")
         debug_log(f"[DEBUG] SUPABASE_SECRET_KEY: {'SET' if SUPABASE_SECRET_KEY else 'NOT SET'}")
         
@@ -919,14 +941,10 @@ def save_loan_signature(id):
             return jsonify({'error': 'Se requieren 2 imágenes'}), 400
         
         # Validar que los archivos no estén vacíos
-        img1_content_test = imagen1.read()
-        imagen1.seek(0)
         if not img1_content_test:
             debug_log(f"[ERROR] imagen1 is empty!")
             return jsonify({'error': 'La imagen 1 está vacía'}), 400
         
-        img2_content_test = imagen2.read()
-        imagen2.seek(0)
         if not img2_content_test:
             debug_log(f"[ERROR] imagen2 is empty!")
             return jsonify({'error': 'La imagen 2 está vacía'}), 400
