@@ -1537,23 +1537,24 @@ function renderEq(){
   // Populate tipo filter
   const ft=$('ftTipo');
   if(ft&&ft.options.length<=1){
-    [...new Set(EQ.map(e=>e.tipo))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o)});
+    [...new Set(EQ.map(e=>e.tipo_nombre||e.tipo))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o)});
   }
   const rows=EQ.filter(e=>
     (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
-    (!tipo||e.tipo===tipo)&&(!est||e.estado===est));
+    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est));
   $('eqCount').textContent=`${rows.length} equipo(s)`;
   const tb=$('eqTbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
   tb.innerHTML=rows.map(e=>{
     const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
+    const tipoNombre = e.tipo_nombre || e.tipo || 'Sin tipo';
     return `
     <tr>
       <td data-label="Equipo"><div class="av-cell">
-        <div class="tipo-av">${TIPO_ICON[e.tipo]||'📦'}</div>
+        <div class="tipo-av">${TIPO_ICON[tipoNombre]||'📦'}</div>
         <div><div class="name">${e.nombre}</div><div class="sub">${[e.marca,e.modelo].filter(Boolean).join(' ')}</div></div>
       </div></td>
-      <td data-label="Tipo"><span style="font-size:12px;color:var(--text3)">${e.tipo}</span></td>
+      <td data-label="Tipo"><span style="font-size:12px;color:var(--text3)">${tipoNombre}</span></td>
       <td data-label="Serial"><span class="mono">${e.serial||'—'}</span></td>
       <td data-label="Responsable"><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
       <td data-label="Estado"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
@@ -1588,7 +1589,7 @@ function openEqModal(reset=true){
 function editEq(id){
   const e=EQ.find(x=>x.id===id);if(!e)return;
   editEqId=id;$('eqModalTitle').textContent='Editar equipo';
-  $('eNom').value=e.nombre;$('eTipo').value=e.tipo;$('eEst').value=e.estado;
+  $('eNom').value=e.nombre;$('eTipo').value=e.tipo_nombre||e.tipo;$('eEst').value=e.estado;
   $('eMarca').value=e.marca||'';$('eModelo').value=e.modelo||'';$('eSerial').value=e.serial||'';
   $('eFecha').value=e.fecha_adquisicion||'';
   $('eValor').value=e.valor||'';$('eDesc').value=e.descripcion||'';
@@ -1871,7 +1872,7 @@ function openMantModal(equipoId=null){
   $('mTipo').value='preventivo';$('mEst').value='completado';$('mFecha').value=TODAY;
   // Populate equipo select
   const sel=$('mEquipo');
-  sel.innerHTML='<option value="">Seleccionar equipo…</option>'+EQ.map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo})</option>`).join('');
+  sel.innerHTML='<option value="">Seleccionar equipo…</option>'+EQ.map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo_nombre||e.tipo})</option>`).join('');
   if(equipoId)sel.value=equipoId;
   open('ovMant');
 }
@@ -1879,7 +1880,7 @@ function editMant(id){
   const m=MANTS.find(x=>x.id===id);if(!m)return;
   editMantId=id;$('mantModalTitle').textContent='Editar mantenimiento';$('mantModalSub').textContent=m.equipo_nombre;
   const sel=$('mEquipo');
-  sel.innerHTML='<option value="">Seleccionar equipo…</option>'+EQ.map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo})</option>`).join('');
+  sel.innerHTML='<option value="">Seleccionar equipo…</option>'+EQ.map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo_nombre||e.tipo})</option>`).join('');
   sel.value=m.equipo_id;$('mTipo').value=m.tipo;$('mEst').value=m.estado;
   $('mDesc').value=m.descripcion;$('mFecha').value=m.fecha;$('mTec').value=m.tecnico||'';
   $('mCosto').value=m.costo||'';$('mProx').value=m.proxima_revision||'';
@@ -1907,7 +1908,7 @@ async function openHV(equipoId){
   curHVId=equipoId;
   const e=EQ.find(x=>x.id===equipoId);
   $('hvTitle').textContent=e.nombre;
-  $('hvSub').textContent=`${e.tipo} · ${[e.marca,e.modelo].filter(Boolean).join(' ')} · Serial: ${e.serial||'—'}`;
+  $('hvSub').textContent=`${e.tipo_nombre||e.tipo} · ${[e.marca,e.modelo].filter(Boolean).join(' ')} · Serial: ${e.serial||'—'}`;
   $('hvEquipoMeta').innerHTML=`<div class="mant-info-cards">
     <div class="mant-info-card"><div class="mic-label">Estado</div><div class="mic-val"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></div></div>
     <div class="mant-info-card"><div class="mic-label">Valor</div><div class="mic-val mono">${fmt(e.valor)}</div></div>
