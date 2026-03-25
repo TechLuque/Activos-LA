@@ -1,0 +1,101 @@
+id,nombre,tipo,marca,modelo,serial,estado,fecha_adquisicion,valor,descripcion,creado_en,usuario_id,tipo_nombre,tipo_id
+521,Máquina de Humo,Maquina Humo,,,PT0203,bueno,,,,2026-03-24 17:18:38.60378,26,Maquina Humo,18
+522,Panel Acústico,Panel Acustico,,,PT0202,bueno,,,,2026-03-24 17:18:38.60378,26,Panel Acustico,18
+523,Panel LED,Panel Led,,,PT0201,bueno,,,,2026-03-24 17:18:38.60378,26,Panel Led,18
+524,Luz Godox,Pantalla led,,,PT0199,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+525,Luz Godox,Pantalla led,,,PT0198,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+526,Luz Godox,Pantalla led,,,PT0197,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+527,Luz Godox,Pantalla led,,,PT0196,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+528,Luz Godox,Pantalla led,,,PT0195,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+529,Godox,Pantalla led,,,PT0194,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+530,Godox,Pantalla led,,,PT0193,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+531,Godox,Pantalla led,,,PT0192,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+532,Godox,Pantalla led,,,PT0191,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+533,Godox,Pantalla led,,,PT0190,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+534,Parlet Luces Rectangular,Pantalla led,,,PT0189,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+535,Micrófono,Microfono,,,PT0185,bueno,,,,2026-03-24 17:18:38.60378,26,Microfono,18
+537,ALTAVOZ BOSE,Bafle,,,PT0183,bueno,,,,2026-03-24 17:18:38.60378,26,Bafle,18
+538,Luz LED,Pantalla led,,,PT0188,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+539,Luz LED,Pantalla led,,,PT0187,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+540,Luz LED,Pantalla led,,,PT0186,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+541,Luz LED,Pantalla led,,,PT0182,bueno,,,,2026-03-24 17:18:38.60378,26,Pantalla led,18
+542,Parlet de Luces,Luz parlet,,,PT0181,bueno,,,,2026-03-24 17:18:38.60378,26,Luz parlet,18
+543,Parlet de Luces,Luz parlet,,,PT0180,bueno,,,,2026-03-24 17:18:38.60378,26,Luz parlet,18
+544,Parlet de Luces,Luz parlet,,,PT0179,bueno,,,,2026-03-24 17:18:38.60378,26,Luz parlet,18
+545,Parlet de Luces,Luz parlet,,,PT0178,bueno,,,,2026-03-24 17:18:38.60378,26,Luz parlet,18
+546,Televisor Producción,Televisores,,,PT0177,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+547,Televisor Producción,Televisores,,,PT0176,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+548,Televisor Producción,Televisores,,,PT0175,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+549,Televisor Producción,Televisores,,,PT0174,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+550,Televisor Producción,Televisores,,,PT0173,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+551,Televisor Producción,Televisores,,,PT0172,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+552,Televisor Producción,Televisores,,,PT0171,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+553,Televisor Producción,Televisores,,,PT0170,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+554,Televisor Producción,Televisores,,,PT0169,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+555,Televisor Producción,Televisores,,,PT0168,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+556,Televisor Producción,Televisores,,,PT0167,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+557,Televisor Producción,Televisores,,,PT0166,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+558,Televisor Producción,Televisores,,,PT0165,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+559,Televisor Producción,Televisores,,,PT0164,bueno,,,,2026-03-24 17:18:38.60378,26,Televisores,18
+560,In-ears,Inears,,,PT0163,bueno,,,,2026-03-24 17:18:38.60378,26,Inears,18
+561,Disco SSD,Filtros antipop,,,PT0162,bueno,,,,2026-03-24 17:18:38.60378,26,Filtros antipop,18
+562,Disco SSD 2TB,Disco,,,PT0161,bueno,,,,2026-03-24 17:18:38.60378,26,Disco,18
+563,Disco SSD 2TB,Disco,,,PT0160,bueno,,,,2026-03-24 17:18:38.60378,26,Disco,18
+564,Filtro Lente Cámara,Filtro Lente,,,PT0159,bueno,,,,2026-03-24 17:18:38.60378,26,Filtro Lente,18
+565,Filtro Lente Cámara,Filtro Lente,,,PT0158,bueno,,,,2026-03-24 17:18:38.60378,26,Filtro Lente,18
+566,Filtro Lente Cámara,Filtro Lente,,,PT0157,bueno,,,,2026-03-24 17:18:38.60378,26,Filtro Lente,18
+567,Cámara,Camara,,,PT0156,bueno,,,,2026-03-24 17:18:38.60378,26,Camara,18
+568,Cámara,Camara,,,PT0155,bueno,,,,2026-03-24 17:18:38.60378,26,Camara,18
+569,Cámara,Camara,,,PT0154,bueno,,,,2026-03-24 17:18:38.60378,26,Camara,18
+570,Base Micrófono,Base Microfono,,,PT0153,bueno,,,,2026-03-24 17:18:38.60378,26,Base Microfono,18
+571,TECLADO/MOUSE ASUS INALAMBRICO,Teclados,,,TC0163,bueno,,,,2026-03-24 17:18:38.60378,1,Teclados,18
+572,CRUCIAL,Disco,,,TC0162,bueno,,,,2026-03-24 17:18:38.60378,26,Disco,18
+573,POWEST 2000VA/ 1800W,UPS,,,TC0161,bueno,,,,2026-03-24 17:18:38.60378,26,UPS,18
+574,APC by schneider Electric,UPS,,,TC0160,bueno,,,,2026-03-24 17:18:38.60378,,UPS,18
+575,CDP 1000VA/400W,UPS,,,TC0159,bueno,,,,2026-03-24 17:18:38.60378,,UPS,18
+576,USB 32GB,Usb,,,TC0027,bueno,,,,2026-03-24 17:18:38.60378,,Usb,18
+577,DMX Pro DJ Lighting,Consola,,,PT0147,bueno,,,,2026-03-24 17:18:38.60378,26,Consola,18
+578,Consola de Audio,Consola,,,PT0146,bueno,,,,2026-03-24 17:18:38.60378,26,Consola,18
+579,Wireless Laser,Wireless Laser,,,PT0149,bueno,,,,2026-03-24 17:18:38.60378,26,Wireless Laser,18
+580,Base Micrófono,Base Microfono,,,PT0152,bueno,,,,2026-03-24 17:18:38.60378,26,Base Microfono,18
+581,Audífonos ATH-M50x,Audífonos,,,PT0148,bueno,,,,2026-03-24 17:18:38.60378,26,Audífonos,18
+582,Micrófono,Microfono,,,PT0151,bueno,,,,2026-03-24 17:18:38.60378,26,Microfono,18
+583,Micrófono,Microfono,,,PT0150,bueno,,,,2026-03-24 17:18:38.60378,26,Microfono,18
+584,Micrófonos Repuestos,Microfono,,,PT0145,bueno,,,,2026-03-24 17:18:38.60378,26,Microfono,18
+585,Pack Micrófono,Microfono,,,PT0144,bueno,,,,2026-03-24 17:18:38.60378,26,Microfono,18
+586,Audífonos ATH-M30x,Audífonos,,,PT0141,bueno,,,,2026-03-24 17:18:38.60378,26,Audífonos,18
+587,Control Presentador,Controles,,,PT0143,regular,,,,2026-03-24 17:18:38.60378,26,Controles,18
+588,Control Spotlight,Controles,,,PT0142,bueno,,,,2026-03-24 17:18:38.60378,26,Controles,18
+589,Control Samsung Smart,Controles,,,PT0140,bueno,,,,2026-03-24 17:18:38.60378,26,Controles,18
+590,Control Samsung SolarCell Remote,Controles,,,PT0139,bueno,,,,2026-03-24 17:18:38.60378,26,Controles,18
+591,Control Samsung,Controles,,,PT0138,bueno,,,,2026-03-24 17:18:38.60378,26,Controles,18
+592,Control Samsung Smart,Controles,,,PT0137,bueno,,,,2026-03-24 17:18:38.60378,26,Controles,18
+593,Cargador de Pila,Cargadores,,,PT0136,bueno,,,,2026-03-24 17:18:38.60378,26,Cargadores,18
+594,Cargador de Pila,Cargadores,,,PT0135,bueno,,,,2026-03-24 17:18:38.60378,26,Cargadores,18
+595,Cargador de pila,Cargadores,,,PT0134,bueno,,,,2026-03-24 17:18:38.60378,26,Cargadores,18
+596,Cargador de pila,Cargadores,,,PT0133,bueno,,,,2026-03-24 17:18:38.60378,26,Cargadores,18
+597,Cargador de pila,Cargadores,,,PT0132,bueno,,,,2026-03-24 17:18:38.60378,26,Cargadores,18
+598,Receptor P3RA,Receptor,,,PT0131,bueno,,,,2026-03-24 17:18:38.60378,26,Receptor,18
+599,Receptor P3RA,Receptor,,,PT0130,bueno,,,,2026-03-24 17:18:38.60378,26,Receptor,18
+600,Emisor,Emisor,,,PT0129,bueno,,,,2026-03-24 17:18:38.60378,26,Emisor,18
+601,Emisor,Emisor,,,PT0128,bueno,,,,2026-03-24 17:18:38.60378,26,Emisor,18
+602,Emisor,Emisor,,,PT0127,bueno,,,,2026-03-24 17:18:38.60378,26,Emisor,18
+603,Emisor Bodypack,Emisor,,,PT0126,bueno,,,,2026-03-24 17:18:38.60378,26,Emisor,18
+604,G502 X,Mouses,,,TC0158,bueno,,,,2026-03-24 17:18:38.60378,10,Mouses,18
+605,MULTIPUERTO,Multipuerto,,,PT0125,bueno,,,,2026-03-24 17:18:38.60378,26,Multipuerto,18
+606,Claqueta,Claqueta,,,PT0124,bueno,,,,2026-03-24 17:18:38.60378,26,Claqueta,18
+607,Convertidor Negro,Convertidor,,,PT0123,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+608,Convertidor Negro,Convertidor,,,PT0122,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+609,Convertidor Negro,Convertidor,,,PT0121,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+610,Convertidor Negro,Convertidor,,,PT0120,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+611,Convertidor Negro,Convertidor,,,PT0119,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+612,Convertidor Source,Convertidor,,,PT0118,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+613,Convertidor HDMI 4K2K,HDMI,,,PT0117,bueno,,,,2026-03-24 17:18:38.60378,26,HDMI,18
+614,Convertidor Source,Convertidor,,,PT0116,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+615,Convertidor Source,Convertidor,,,PT0115,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+616,Convertidor HDMI 4K2K,HDMI,,,PT0114,bueno,,,,2026-03-24 17:18:38.60378,26,HDMI,18
+617,Convertidor Source,Convertidor,,,PT0113,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+618,Convertidor 3G,Convertidor,,,PT0112,bueno,,,,2026-03-24 17:18:38.60378,26,Convertidor,18
+619,Multípuerto,Multipuerto,,,PT0111,bueno,,,,2026-03-24 17:18:38.60378,26,Multipuerto,18
+620,Multípuerto,Multipuerto,,,PT0110,bueno,,,,2026-03-24 17:18:38.60378,26,Multipuerto,18
+621,Multípuerto,Multipuerto,,,PT0109,bueno,,,,2026-03-24 17:19:49.436425,26,Multipuerto,18
