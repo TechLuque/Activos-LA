@@ -291,23 +291,32 @@ def index():
 @require_api_login
 def dashboard():
     try:
+        debug_log(f"\n[DASHBOARD] ══════════════════════════════════════")
         today = date.today().isoformat()
         in7 = (date.today() + timedelta(days=7)).isoformat()
         
         # Total equipos
+        debug_log(f"[DASHBOARD] Obteniendo equipos...")
         equipos = supabase_request('GET', 'equipos')
+        debug_log(f"[DASHBOARD] Respuesta equipos: {type(equipos)} → {str(equipos)[:150] if isinstance(equipos, dict) else f'{len(equipos)} items'}")
         total_equipos = len(equipos) if isinstance(equipos, list) else 0
         
         # Total usuarios activos
+        debug_log(f"[DASHBOARD] Obteniendo usuarios activos...")
         usuarios = supabase_request('GET', 'usuarios', '?estado=eq.activo')
+        debug_log(f"[DASHBOARD] Respuesta usuarios: {type(usuarios)} → {str(usuarios)[:150] if isinstance(usuarios, dict) else f'{len(usuarios)} items'}")
         total_usuarios = len(usuarios) if isinstance(usuarios, list) else 0
         
         # Préstamos activos
-        prestamos_act = supabase_request('GET', 'prestamos', '?estado=eq.activo')
+        debug_log(f"[DASHBOARD] Obteniendo préstamos activos...")
+        prestamos_act = supabase_request('GET', 'prestamos', '?estado=neq.devuelto')
+        debug_log(f"[DASHBOARD] Respuesta préstamos: {type(prestamos_act)} → {str(prestamos_act)[:150] if isinstance(prestamos_act, dict) else f'{len(prestamos_act)} items'}")
         prestamos_activos = len(prestamos_act) if isinstance(prestamos_act, list) else 0
         
         # Mantenimientos en proceso
-        mant_proc = supabase_request('GET', 'mantenimientos', '?estado=eq.en_proceso')
+        debug_log(f"[DASHBOARD] Obteniendo mantenimientos en proceso...")
+        mant_proc = supabase_request('GET', 'mantenimientos', '?estado=neq.completado')
+        debug_log(f"[DASHBOARD] Respuesta mantenimientos: {type(mant_proc)} → {str(mant_proc)[:150] if isinstance(mant_proc, dict) else f'{len(mant_proc)} items'}")
         mant_en_proceso = len(mant_proc) if isinstance(mant_proc, list) else 0
         
         # Estados de equipos
@@ -338,7 +347,7 @@ def dashboard():
         proximos_vencer = []
         if isinstance(todos_prestamos, list):
             for p in todos_prestamos:
-                if p.get('estado') == 'activo' and p.get('fecha_devolucion_esperada'):
+                if p.get('estado') != 'devuelto' and p.get('fecha_devolucion_esperada'):
                     fecha_dev = p['fecha_devolucion_esperada']
                     if fecha_dev < today:
                         prestamos_vencidos.append(p)
@@ -353,7 +362,7 @@ def dashboard():
                 if m.get('tipo') == 'preventivo' and m.get('proxima_revision') and m.get('proxima_revision') < today:
                     preventivos_vencidos += 1
         
-        return jsonify({
+        result = {
             'total_equipos': total_equipos,
             'total_usuarios': total_usuarios,
             'prestamos_activos': prestamos_activos,
@@ -364,7 +373,15 @@ def dashboard():
             'valor_total': valor_total,
             'proximos_vencer': proximos_vencer,
             'prestamos_vencidos': prestamos_vencidos,
-        })
+        }
+        debug_log(f"[DASHBOARD] ✓ Resultado final:")
+        debug_log(f"[DASHBOARD]   - Total equipos: {total_equipos}")
+        debug_log(f"[DASHBOARD]   - Total usuarios: {total_usuarios}")
+        debug_log(f"[DASHBOARD]   - Préstamos activos: {prestamos_activos}")
+        debug_log(f"[DASHBOARD]   - Mantenimientos en proceso: {mant_en_proceso}")
+        debug_log(f"[DASHBOARD]   - Préstamos vencidos: {len(prestamos_vencidos)}")
+        debug_log(f"[DASHBOARD]   - Revisiones vencidas: {preventivos_vencidos}")
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
