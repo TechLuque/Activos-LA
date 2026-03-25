@@ -1523,17 +1523,50 @@ function renderDashboard(){
       <div class="mli-right" style="color:var(--blue)">${d.prestamos_activos||0}</div>
     </div>`;
 
-  // Recent activity (last 5 maintenances)
-  const recent=MANTS.slice(0,5);
-  $('recentActivity').innerHTML=recent.length?recent.map(m=>`
-    <div class="mini-list-item">
-      <div class="mli-icon" style="background:${m.tipo==='preventivo'?'var(--blue-soft)':'var(--orange-soft)'}">${m.tipo==='preventivo'?'🛡️':'🔧'}</div>
-      <div class="mli-body">
-        <div class="mli-title">${m.equipo_nombre}</div>
-        <div class="mli-sub">${m.descripcion.slice(0,55)}${m.descripcion.length>55?'…':''}</div>
-      </div>
-      <span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span>
-    </div>`).join(''):'<div class="empty"><div class="empty-icon">📋</div><h3>Sin actividad reciente</h3></div>';
+  // Recent activity (combined mantenimientos + prestamos, last 5)
+  const allEvents = [
+    ...MANTS.map(m => ({
+      date: m.fecha || '2000-01-01',
+      type: 'mant',
+      title: m.equipo_nombre,
+      sub: m.descripcion.slice(0,55) + (m.descripcion.length>55?'…':''),
+      estado: m.estado,
+      tipoMant: m.tipo
+    })),
+    ...LOANS.map(p => ({
+      date: p.fecha_prestamo || '2000-01-01',
+      type: 'loan',
+      title: p.equipo_nombre,
+      sub: `${p.usuario_nombre} — ${p.departamento||''}`,
+      estado: p.estado,
+      notas: p.notas
+    }))
+  ];
+  // Sort by date descending (most recent first)
+  allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recent = allEvents.slice(0, 5);
+  
+  $('recentActivity').innerHTML=recent.length?recent.map(ev=>{
+    if(ev.type === 'mant') {
+      return `<div class="mini-list-item">
+        <div class="mli-icon" style="background:${ev.tipoMant==='preventivo'?'var(--blue-soft)':'var(--orange-soft)'}">${ev.tipoMant==='preventivo'?'🛡️':'🔧'}</div>
+        <div class="mli-body">
+          <div class="mli-title">${ev.title}</div>
+          <div class="mli-sub">${ev.sub}</div>
+        </div>
+        <span class="bs ${bsClass(ev.estado)}">${bsLabel(ev.estado)}</span>
+      </div>`;
+    } else {
+      return `<div class="mini-list-item">
+        <div class="mli-icon" style="background:var(--teal-soft)">🔁</div>
+        <div class="mli-body">
+          <div class="mli-title">${ev.title}</div>
+          <div class="mli-sub">${ev.sub}</div>
+        </div>
+        <span class="bs ${bsClass(ev.estado)}">${bsLabel(ev.estado)}</span>
+      </div>`;
+    }
+  }).join(''):'<div class="empty"><div class="empty-icon">📋</div><h3>Sin actividad reciente</h3></div>';
 }
 
 /* ════════════════════════════════════════════════════
