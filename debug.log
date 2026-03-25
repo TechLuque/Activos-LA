@@ -138,3 +138,21 @@
 [2026-03-25T11:44:08.323702] [DEBUG] Supabase update result: {'error': '', 'status': 204}
 [2026-03-25T11:44:08.331515] 
 [SUCCESS] ==================== FIRMA COMPLETADA ====================
+[2026-03-25T11:44:28.535134] 
+[INIT] Current working directory: C:\Users\Usuario Normal\Documents\activoseq
+[2026-03-25T11:44:28.542347] [INIT] load_dotenv returned: True
+[2026-03-25T11:44:28.547401] [INIT] SUPABASE_URL from env: https://rdrqizmgcwvvrznjhrkw.supabase.co
+[2026-03-25T11:44:28.552386] [INIT] SUPABASE_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:44:28.557536] [INIT] SUPABASE_SECRET_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:46:47.164824] 
+[INIT] Current working directory: C:\Users\Usuario Normal\Documents\activoseq
+[2026-03-25T11:46:47.178002] [INIT] load_dotenv returned: True
+[2026-03-25T11:46:47.183564] [INIT] SUPABASE_URL from env: https://rdrqizmgcwvvrznjhrkw.supabase.co
+[2026-03-25T11:46:47.195558] [INIT] SUPABASE_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:46:47.208356] [INIT] SUPABASE_SECRET_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:46:54.583550] 
+[INIT] Current working directory: C:\Users\Usuario Normal\Documents\activoseq
+[2026-03-25T11:46:54.593055] [INIT] load_dotenv returned: True
+[2026-03-25T11:46:54.598406] [INIT] SUPABASE_URL from env: https://rdrqizmgcwvvrznjhrkw.supabase.co
+[2026-03-25T11:46:54.606373] [INIT] SUPABASE_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
+[2026-03-25T11:46:54.612049] [INIT] SUPABASE_SECRET_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...

@@ -11,14 +11,25 @@ from io import BytesIO
 # Cargar variables de entorno
 load_dotenv()
 
+import sys
+
 # Debug logging function
 def debug_log(msg):
-    """Write debug message directly to file"""
+    """Write debug message to console/stdout (works on Vercel)"""
+    timestamp = datetime.now().isoformat()
+    formatted_msg = f"[{timestamp}] {msg}"
+    
+    # Output to stdout (visible in Vercel logs)
+    print(formatted_msg, file=sys.stdout)
+    sys.stdout.flush()
+    
+    # Try to write to file for local development (Vercel will fail, but that's OK)
     try:
         with open('debug.log', 'a', encoding='utf-8') as f:
-            f.write(f"[{datetime.now().isoformat()}] {msg}\n")
+            f.write(formatted_msg + "\n")
             f.flush()
     except:
+        # Silently fail on read-only systems (Vercel)
         pass
 
 # Verificar que las variables se cargaron
@@ -1173,10 +1184,11 @@ def health():
             'error': str(e)
         }), 500
 
-@app.route('/uploads/<path:filename>')
-def serve_uploads(filename):
-    """Serve uploaded files from uploads directory"""
-    return send_from_directory('uploads', filename)
+# @app.route('/uploads/<path:filename>')
+# def serve_uploads(filename):
+#     """Serve uploaded files from uploads directory - DISABLED in Vercel (read-only FS)"""
+#     # All files are now in Supabase Storage, not local uploads/
+#     return send_from_directory('uploads', filename)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
