@@ -801,7 +801,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Nombre</th><th>Descripción</th><th>Creado</th><th>Acciones</th>
+          <th>Nombre</th><th>Descripción</th><th>Departamento</th><th>Creado</th><th>Acciones</th>
         </tr></thead><tbody id="rolesTbody"></tbody></table>
       </div>
     </section>
@@ -905,8 +905,17 @@ input[type="file"]::file-selector-button{
       <button class="m-close" onclick="close('ovTipoRol')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid">
+      <div class="form-grid c1">
         <div class="fg"><label>Nombre del rol *</label><input id="rolNombre" placeholder="ej: Administrador, Técnico"></div>
+        <div class="fg"><label>Departamento *</label><select id="rolDpto">
+          <option value="">Seleccionar departamento…</option>
+          <option value="Finanzas">Finanzas</option>
+          <option value="Plataformas">Plataformas</option>
+          <option value="Producción">Producción</option>
+          <option value="Academia">Academia</option>
+          <option value="Contenido">Contenido</option>
+          <option value="Gerencia">Gerencia</option>
+        </select></div>
         <div class="fg s2"><label>Descripción</label><textarea id="rolDesc" placeholder="Descripción del rol y responsabilidades"></textarea></div>
       </div>
       <div class="form-actions">
@@ -1460,8 +1469,8 @@ function renderDashboard(){
   const barColors=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#fb923c'];
   $('barChart').innerHTML=tipos.length?tipos.map((t,i)=>`
     <div class="bar-col">
-      <div class="bar" style="height:${Math.max((t.count||0)/maxC*100,6)}%;background:${barColors[i%barColors.length]}" title="${t.tipo}: ${t.count}"></div>
-      <div class="bar-lbl">${t.tipo}</div>
+      <div class="bar" style="height:${Math.max((t.count||0)/maxC*100,6)}%;background:${barColors[i%barColors.length]}" title="${t.tipo_nombre}: ${t.count}"></div>
+      <div class="bar-lbl">${t.tipo_nombre}</div>
     </div>`).join(''):'<div style="text-align:center;color:var(--text3);padding:20px">Sin datos</div>';
 
   // Donut
@@ -1752,14 +1761,16 @@ function renderRoles(){
   
   $('rolesCount').textContent=`${filtered.length} rol${filtered.length!==1?'es':''}`;
   
+  const deptColors={'Finanzas':'#4f8ef7','Plataformas':'#2dd4bf','Producción':'#a78bfa','Academia':'#fbbf24','Contenido':'#f87171','Gerencia':'#34d399'};
+  
   const tbody=$('rolesTbody');
   tbody.innerHTML=filtered.map(r=>{
-    const perms=r.permisos?JSON.parse(r.permisos):[];
+    const deptColor=deptColors[r.departamento]||'#6b7280';
     return `
       <tr>
         <td><strong>${r.nombre}</strong></td>
         <td>${r.descripcion||'-'}</td>
-        <td><small>${perms.join(', ')||'Sin permisos'}</small></td>
+        <td><span style="font-size:11px;background:${deptColor}20;color:${deptColor};padding:4px 10px;border-radius:6px;display:inline-block;font-weight:600">${r.departamento||'Sin asignar'}</span></td>
         <td>${new Date(r.created_at).toLocaleDateString('es-CO')}</td>
         <td style="text-align:center">
           <button class="btn btn-sm btn-ghost" onclick="openEditarRol(${r.id},'${r.nombre.replace(/'/g,"\\'")}')" title="Editar">✏️</button>
@@ -1774,6 +1785,7 @@ function openRolModal(){
   editRolId=null;
   $('rolModalTitle').textContent='Nuevo rol';
   $('rolNombre').value='';
+  $('rolDpto').value='';
   $('rolDesc').value='';
   open('ovTipoRol');
 }
@@ -1783,20 +1795,23 @@ function openEditarRol(id,nombre){
   const rol=ROLES.find(r=>r.id===id);
   $('rolModalTitle').textContent='Editar rol';
   $('rolNombre').value=nombre;
+  $('rolDpto').value=rol?.departamento||'Gerencia';
   $('rolDesc').value=rol?.descripcion||'';
   open('ovTipoRol');
 }
 
 async function saveRol(){
   const nombre=$('rolNombre').value.trim();
+  const departamento=$('rolDpto').value;
   const descripcion=$('rolDesc').value.trim();
   
   if(!nombre){toast('El nombre del rol no puede estar vacío','err');return;}
+  if(!departamento){toast('El departamento es requerido','err');return;}
   
   const method=editRolId?'PUT':'POST';
   const endpoint=editRolId?`/api/roles/${editRolId}`:'/api/roles';
   
-  const res=await api(endpoint,method,{nombre,descripcion});
+  const res=await api(endpoint,method,{nombre,descripcion,departamento});
   
   if(res.id){
     if(editRolId){

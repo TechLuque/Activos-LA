@@ -322,9 +322,10 @@ def dashboard():
         tipos_count = {}
         if isinstance(equipos_data, list):
             for eq in equipos_data:
-                tipo = eq.get('tipo', 'desconocido')
+                # Usar tipo_nombre si existe, si no usar tipo
+                tipo = eq.get('tipo_nombre') or eq.get('tipo', 'Sin tipo')
                 tipos_count[tipo] = tipos_count.get(tipo, 0) + 1
-        tipos_equipos = [{'tipo': k, 'count': v} for k, v in sorted(tipos_count.items(), key=lambda x: x[1], reverse=True)[:7]]
+        tipos_equipos = [{'tipo_nombre': k, 'tipo': k, 'count': v} for k, v in sorted(tipos_count.items(), key=lambda x: x[1], reverse=True)[:7]]
         
         # Valor total
         valor_total = 0
@@ -663,13 +664,20 @@ def create_rol():
         data = request.json
         nombre = data.get('nombre', '').strip()
         descripcion = data.get('descripcion', '')
+        departamento = data.get('departamento', '')
+        
+        DEPARTAMENTOS_VALIDOS = ['Finanzas', 'Plataformas', 'Producción', 'Academia', 'Contenido', 'Gerencia']
         
         if not nombre:
             return jsonify({'error': 'El nombre es requerido'}), 400
         
+        if not departamento or departamento not in DEPARTAMENTOS_VALIDOS:
+            return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
+        
         result = supabase_request('POST', 'roles_empresa', '', {
             'nombre': nombre,
             'descripcion': descripcion,
+            'departamento': departamento,
             'permisos': '[]'
         })
         
@@ -688,14 +696,25 @@ def update_rol(id):
         data = request.json
         nombre = data.get('nombre', '').strip()
         descripcion = data.get('descripcion', '')
+        departamento = data.get('departamento', '')
+        
+        DEPARTAMENTOS_VALIDOS = ['Finanzas', 'Plataformas', 'Producción', 'Academia', 'Contenido', 'Gerencia']
         
         if not nombre:
             return jsonify({'error': 'El nombre es requerido'}), 400
         
-        result = supabase_request('PATCH', 'roles_empresa', f'?id=eq.{id}', {
+        if departamento and departamento not in DEPARTAMENTOS_VALIDOS:
+            return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
+        
+        update_data = {
             'nombre': nombre,
             'descripcion': descripcion
-        })
+        }
+        
+        if departamento:
+            update_data['departamento'] = departamento
+        
+        result = supabase_request('PATCH', 'roles_empresa', f'?id=eq.{id}', update_data)
         
         if isinstance(result, list) and len(result) > 0:
             return jsonify(result[0]), 200
