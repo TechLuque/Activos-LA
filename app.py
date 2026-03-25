@@ -577,11 +577,10 @@ def create_equipo():
         if isinstance(tipos_result, list) and len(tipos_result) > 0:
             tipo_id = tipos_result[0]['id']
         
-        # Escribir AMBOS: tipo (texto) y tipo_id (ID) para compatibilidad durante migración
+        # Escribir solo tipo_id (la columna tipo no existe)
         equipo_data = {
             'nombre': d['nombre'],
-            'tipo': tipo_nombre,  # Mantener para compatibilidad
-            'tipo_id': tipo_id,    # Nuevos datos
+            'tipo_id': tipo_id,
             'marca': d.get('marca', ''),
             'modelo': d.get('modelo', ''),
             'serial': d.get('serial', ''),
@@ -625,11 +624,10 @@ def update_equipo(id):
         if isinstance(tipos_result, list) and len(tipos_result) > 0:
             tipo_id = tipos_result[0]['id']
         
-        # Actualizar AMBOS: tipo (texto) y tipo_id (ID)
+        # Actualizar solo tipo_id (la columna tipo no existe)
         update_data = {
             'nombre': d['nombre'],
-            'tipo': tipo_nombre,  # Mantener para compatibilidad
-            'tipo_id': tipo_id,    # Nuevos datos
+            'tipo_id': tipo_id,
             'marca': d.get('marca', ''),
             'modelo': d.get('modelo', ''),
             'serial': d.get('serial', ''),
