@@ -550,6 +550,15 @@ input[type="file"]::file-selector-button{
         <div class="nav-icon">👥</div> Responsables
       </button>
     </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Configuración</div>
+      <button class="nav-btn" onclick="nav('admin-tipos')">
+        <div class="nav-icon">⚙️</div> Tipos de Equipos
+      </button>
+      <button class="nav-btn" onclick="nav('admin-roles')">
+        <div class="nav-icon">🔐</div> Roles
+      </button>
+    </div>
   </nav>
 </aside>
 
@@ -759,6 +768,44 @@ input[type="file"]::file-selector-button{
       <div style="flex:1;overflow-y:auto;padding:0 20px"><div id="reportesContent"></div></div>
     </section>
 
+    <!-- ════ ADMIN TIPOS DE EQUIPOS ════ -->
+    <section class="page" id="page-admin-tipos">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Tipos de Equipos</h2><p>Gestiona las categorías de equipos disponibles</p></div>
+        <button class="btn btn-primary" onclick="openTipoModal()">+ Nuevo tipo</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchTipo" type="text" placeholder="Buscar tipo…" oninput="renderTipos()">
+        </div>
+        <span class="count-badge" id="tiposCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Descripción</th><th>Creado</th><th>Acciones</th>
+        </tr></thead><tbody id="tiposTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ ADMIN ROLES ════ -->
+    <section class="page" id="page-admin-roles">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Roles de Empresa</h2><p>Define los roles y permisos de los usuarios</p></div>
+        <button class="btn btn-primary" onclick="openRolModal()">+ Nuevo rol</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchRol" type="text" placeholder="Buscar rol…" oninput="renderRoles()">
+        </div>
+        <span class="count-badge" id="rolesCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Descripción</th><th>Permisos</th><th>Creado</th><th>Acciones</th>
+        </tr></thead><tbody id="rolesTbody"></tbody></table>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -825,6 +872,46 @@ input[type="file"]::file-selector-button{
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovAgregarTipo')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveNewTipo()">Agregar tipo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDITAR TIPO DE EQUIPO -->
+<div class="overlay" id="ovEditarTipo">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Editar tipo de equipo</h3><p>Actualiza los datos</p></div>
+      <button class="m-close" onclick="close('ovEditarTipo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Nombre *</label><input id="editTipoNombre" placeholder="Nombre del tipo"></div>
+        <div class="fg"><label>Descripción</label><input id="editTipoDesc" placeholder="Descripción breve"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovEditarTipo')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditarTipo()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO ROL -->
+<div class="overlay" id="ovTipoRol">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="rolModalTitle">Nuevo rol</h3><p>Define un rol de usuario</p></div>
+      <button class="m-close" onclick="close('ovTipoRol')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Nombre del rol *</label><input id="rolNombre" placeholder="ej: Administrador, Técnico"></div>
+        <div class="fg s2"><label>Descripción</label><textarea id="rolDesc" placeholder="Descripción del rol y responsabilidades"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovTipoRol')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveRol()">Guardar</button>
       </div>
     </div>
   </div>
@@ -1162,7 +1249,7 @@ function bsLabel(s){
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
-  usuarios:'Responsables',prestamos:'Préstamos',calendario:'Calendario',reportes:'Reportes'};
+  usuarios:'Responsables',prestamos:'Préstamos',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
 
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1176,6 +1263,8 @@ function nav(page){
   if(page==='prestamos')renderLoan();
   if(page==='calendario')renderCal();
   if(page==='reportes')renderReportes();
+  if(page==='admin-tipos'){loadTiposEquipos();renderTipos();}
+  if(page==='admin-roles'){loadRoles();renderRoles();}
 }
 
 /* ════════════════════════════════════════════════════
@@ -1570,6 +1659,171 @@ async function saveEq(){
 async function delEq(id){
   if(!confirm('¿Eliminar este equipo? Esta acción no se puede deshacer.'))return;
   await api('/api/equipos/'+id,'DELETE');await loadAll();renderEq();renderDashboard();toast('Equipo eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   ADMINISTRACIÓN DE TIPOS
+════════════════════════════════════════════════════ */
+let editTipoId=null;
+
+function renderTipos(){
+  const srch=$('srchTipo').value.toLowerCase();
+  const filtered=TIPOS.filter(t=>t.nombre.toLowerCase().includes(srch)||t.descripcion?.toLowerCase().includes(srch));
+  
+  $('tiposCount').textContent=`${filtered.length} tipo${filtered.length!==1?'s':''}`;
+  
+  const tbody=$('tiposTbody');
+  tbody.innerHTML=filtered.map(t=>`
+    <tr>
+      <td>${t.nombre}</td>
+      <td>${t.descripcion||'-'}</td>
+      <td>${new Date(t.created_at).toLocaleDateString('es-CO')}</td>
+      <td style="text-align:center">
+        <button class="btn btn-sm btn-ghost" onclick="openEditarTipo(${t.id},'${t.nombre.replace(/'/g,"\\'")}')" title="Editar">✏️</button>
+        <button class="btn btn-sm btn-ghost" onclick="deleteTipo(${t.id},'${t.nombre.replace(/'/g,"\\'")}')" title="Eliminar">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openTipoModal(){
+  editTipoId=null;
+  $('newTipoNombre').value='';
+  $('newTipoDesc').value='';
+  open('ovAgregarTipo');
+}
+
+function openEditarTipo(id,nombre){
+  editTipoId=id;
+  $('editTipoNombre').value=nombre;
+  const tipo=TIPOS.find(t=>t.id===id);
+  $('editTipoDesc').value=tipo?.descripcion||'';
+  open('ovEditarTipo');
+}
+
+async function saveEditarTipo(){
+  const nombre=$('editTipoNombre').value.trim();
+  const descripcion=$('editTipoDesc').value.trim();
+  
+  if(!nombre){toast('El nombre no puede estar vacío','err');return;}
+  
+  const res=await api(`/api/tipos-equipos/${editTipoId}`,'PUT',{nombre,descripcion});
+  
+  if(res.id){
+    const idx=TIPOS.findIndex(t=>t.id===editTipoId);
+    TIPOS[idx]=res;
+    TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    renderTipos();
+    updateTiposInModal();
+    close('ovEditarTipo');
+    toast(`Tipo "${nombre}" actualizado`,'ok');
+    editTipoId=null;
+  }else{
+    toast(res.error||'Error al actualizar','err');
+  }
+}
+
+async function deleteTipo(id,nombre){
+  if(!confirm(`¿Eliminar tipo "${nombre}"? Esta acción no se puede deshacer.`))return;
+  
+  const res=await api(`/api/tipos-equipos/${id}`,'DELETE');
+  
+  if(res.ok){
+    TIPOS=TIPOS.filter(t=>t.id!==id);
+    renderTipos();
+    updateTiposInModal();
+    toast(`Tipo "${nombre}" eliminado`,'info');
+  }else{
+    toast('Error al eliminar el tipo','err');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   ADMINISTRACIÓN DE ROLES
+════════════════════════════════════════════════════ */
+let editRolId=null;
+
+function renderRoles(){
+  const srch=$('srchRol').value.toLowerCase();
+  const filtered=ROLES.filter(r=>r.nombre.toLowerCase().includes(srch)||r.descripcion?.toLowerCase().includes(srch));
+  
+  $('rolesCount').textContent=`${filtered.length} rol${filtered.length!==1?'es':''}`;
+  
+  const tbody=$('rolesTbody');
+  tbody.innerHTML=filtered.map(r=>{
+    const perms=r.permisos?JSON.parse(r.permisos):[];
+    return `
+      <tr>
+        <td><strong>${r.nombre}</strong></td>
+        <td>${r.descripcion||'-'}</td>
+        <td><small>${perms.join(', ')||'Sin permisos'}</small></td>
+        <td>${new Date(r.created_at).toLocaleDateString('es-CO')}</td>
+        <td style="text-align:center">
+          <button class="btn btn-sm btn-ghost" onclick="openEditarRol(${r.id},'${r.nombre.replace(/'/g,"\\'")}')" title="Editar">✏️</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteRol(${r.id},'${r.nombre.replace(/'/g,"\\'")}')" title="Eliminar" ${['Administrador','Usuario'].includes(r.nombre)?'disabled title="No puedes eliminar roles del sistema"':''}>🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openRolModal(){
+  editRolId=null;
+  $('rolModalTitle').textContent='Nuevo rol';
+  $('rolNombre').value='';
+  $('rolDesc').value='';
+  open('ovTipoRol');
+}
+
+function openEditarRol(id,nombre){
+  editRolId=id;
+  const rol=ROLES.find(r=>r.id===id);
+  $('rolModalTitle').textContent='Editar rol';
+  $('rolNombre').value=nombre;
+  $('rolDesc').value=rol?.descripcion||'';
+  open('ovTipoRol');
+}
+
+async function saveRol(){
+  const nombre=$('rolNombre').value.trim();
+  const descripcion=$('rolDesc').value.trim();
+  
+  if(!nombre){toast('El nombre del rol no puede estar vacío','err');return;}
+  
+  const method=editRolId?'PUT':'POST';
+  const endpoint=editRolId?`/api/roles/${editRolId}`:'/api/roles';
+  
+  const res=await api(endpoint,method,{nombre,descripcion});
+  
+  if(res.id){
+    if(editRolId){
+      const idx=ROLES.findIndex(r=>r.id===editRolId);
+      ROLES[idx]=res;
+    }else{
+      ROLES.push(res);
+    }
+    ROLES.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    renderRoles();
+    close('ovTipoRol');
+    toast(editRolId?'Rol actualizado':'Rol creado correctamente','ok');
+    editRolId=null;
+  }else{
+    toast(res.error||'Error al guardar rol','err');
+  }
+}
+
+async function deleteRol(id,nombre){
+  if(!confirm(`¿Eliminar rol "${nombre}"? Esta acción no se puede deshacer.`))return;
+  
+  const res=await api(`/api/roles/${id}`,'DELETE');
+  
+  if(res.ok){
+    ROLES=ROLES.filter(r=>r.id!==id);
+    renderRoles();
+    toast(`Rol "${nombre}" eliminado`,'info');
+  }else{
+    toast('Error al eliminar el rol','err');
+  }
 }
 
 /* ════════════════════════════════════════════════════
