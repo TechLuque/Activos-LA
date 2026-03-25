@@ -384,6 +384,13 @@ def create_usuario():
     try:
         d = request.json
         
+        # Departamentos permitidos
+        DEPARTAMENTOS_VALIDOS = ['Finanzas', 'Plataformas', 'Producción', 'Academia', 'Contenido', 'Gerencia']
+        
+        # Validaciones
+        if not d.get('departamento') or d.get('departamento') not in DEPARTAMENTOS_VALIDOS:
+            return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
+        
         # Resolver rol_id
         rol_id = d.get('rol_id', None)
         if not rol_id and d.get('rol_nombre'):
@@ -392,16 +399,12 @@ def create_usuario():
             if isinstance(roles_result, list) and len(roles_result) > 0:
                 rol_id = roles_result[0]['id']
         
-        # Si aún no tiene rol, asignar "Usuario" por defecto
         if not rol_id:
-            roles_result = supabase_request('GET', 'roles_empresa', '?nombre=eq.Usuario')
-            if isinstance(roles_result, list) and len(roles_result) > 0:
-                rol_id = roles_result[0]['id']
+            return jsonify({'error': 'Rol es requerido'}), 400
         
         usuario_data = {
             'nombre': d['nombre'],
             'email': d['email'],
-            'cargo': d.get('cargo', ''),
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo'),
@@ -422,6 +425,13 @@ def update_usuario(id):
     try:
         d = request.json
         
+        # Departamentos permitidos
+        DEPARTAMENTOS_VALIDOS = ['Finanzas', 'Plataformas', 'Producción', 'Academia', 'Contenido', 'Gerencia']
+        
+        # Validar departamento si fue proporcionado
+        if d.get('departamento') and d.get('departamento') not in DEPARTAMENTOS_VALIDOS:
+            return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
+        
         # Resolver rol_id
         rol_id = d.get('rol_id', None)
         if not rol_id and d.get('rol_nombre'):
@@ -433,7 +443,6 @@ def update_usuario(id):
         update_data = {
             'nombre': d['nombre'],
             'email': d['email'],
-            'cargo': d.get('cargo', ''),
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo')

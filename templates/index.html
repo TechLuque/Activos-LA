@@ -711,7 +711,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Nombre</th><th>Email</th><th>Cargo</th><th>Rol del Sistema</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
+          <th>Nombre</th><th>Email</th><th>Rol</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="usrTbody"></tbody></table>
       </div>
     </section>
@@ -958,9 +958,8 @@ input[type="file"]::file-selector-button{
       <div class="form-grid">
         <div class="fg s2"><label>Nombre completo *</label><input id="uNom" placeholder="Nombre y apellidos"></div>
         <div class="fg s2"><label>Email *</label><input type="email" id="uEmail" placeholder="correo@empresa.com"></div>
-        <div class="fg"><label>Cargo</label><input id="uCargo" placeholder="ej: Analista TI"></div>
-        <div class="fg"><label>Rol del Sistema</label><select id="uRol"><option value="">Seleccionar rol…</option></select></div>
-        <div class="fg"><label>Departamento</label><input id="uDpto" placeholder="ej: Tecnología"></div>
+        <div class="fg"><label>Rol del Sistema *</label><select id="uRol" onchange="updateDptoFromRol()"><option value="">Seleccionar rol…</option></select></div>
+        <div class="fg"><label>Departamento (automático)</label><input id="uDpto" type="text" readonly placeholder="Se asigna automáticamente"></div>
         <div class="fg"><label>Teléfono</label><input id="uTel" placeholder="300 123 4567"></div>
         <div class="fg"><label>Estado</label><select id="uEst"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
       </div>
@@ -1998,7 +1997,7 @@ function renderUsr(){
   const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!est||u.estado===est));
   $('usrCount').textContent=`${rows.length} usuario(s)`;
   const tb=$('usrTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
   tb.innerHTML=rows.map((u,i)=>{
     const rol=ROLES.find(r=>r.id===u.rol_id);
     return `<tr>
@@ -2007,8 +2006,7 @@ function renderUsr(){
         <div class="name">${u.nombre}</div>
       </div></td>
       <td data-label="Email" style="color:var(--text3)">${u.email}</td>
-      <td data-label="Cargo">${u.cargo||'—'}</td>
-      <td data-label="Rol del Sistema"><span style="font-size:11px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:6px;display:inline-block">${rol?.nombre||'—'}</span></td>
+      <td data-label="Rol"><span style="font-size:11px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:6px;display:inline-block">${rol?.nombre||'—'}</span></td>
       <td data-label="Departamento">${u.departamento||'—'}</td>
       <td data-label="Teléfono" class="mono">${u.telefono||'—'}</td>
       <td data-label="Estado"><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
@@ -2022,7 +2020,7 @@ function renderUsr(){
 function openUsrModal(){
   editUsrId=null;
   $('usrModalTitle').textContent='Nuevo responsable';
-  ['uNom','uEmail','uCargo','uDpto','uTel'].forEach(id=>$(id).value='');
+  ['uNom','uEmail','uDpto','uTel'].forEach(id=>$(id).value='');
   $('uEst').value='activo';
   $('uRol').value='';
   
@@ -2035,6 +2033,7 @@ function openUsrModal(){
     opt.textContent=r.nombre;
     rolSel.appendChild(opt);
   });
+  $('uDpto').value='';
   
   open('ovUsr');
 }
@@ -2046,7 +2045,6 @@ function editUsr(id){
   $('usrModalTitle').textContent='Editar responsable';
   $('uNom').value=u.nombre;
   $('uEmail').value=u.email;
-  $('uCargo').value=u.cargo||'';
   $('uDpto').value=u.departamento||'';
   $('uTel').value=u.telefono||'';
   $('uEst').value=u.estado;
@@ -2062,19 +2060,28 @@ function editUsr(id){
     rolSel.appendChild(opt);
   });
   
+  // Actualizar departamento según rol seleccionado
+  updateDptoFromRol();
+  
   open('ovUsr');
 }
+function updateDptoFromRol(){
+  const rolId=parseInt($('uRol').value);
+  if(!rolId){$('uDpto').value='';return;}
+  const rol=ROLES.find(r=>r.id===rolId);
+  $('uDpto').value=rol?.departamento||'';
+}
+
 async function saveUsr(){
   const data={
     nombre:$('uNom').value.trim(),
     email:$('uEmail').value.trim(),
-    cargo:$('uCargo').value,
     departamento:$('uDpto').value,
     telefono:$('uTel').value,
     estado:$('uEst').value,
     rol_id:parseInt($('uRol').value)||null
   };
-  if(!data.nombre||!data.email){toast('Nombre y email son requeridos','err');return}
+  if(!data.nombre||!data.email||!data.rol_id||!data.departamento){toast('Nombre, email, rol y departamento son requeridos','err');return}
   const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
   if(res.error){toast(res.error,'err');return}
   close('ovUsr');await loadAll();renderUsr();renderDashboard();
