@@ -743,7 +743,34 @@ def delete_rol(id):
 def get_all_mantenimientos():
     try:
         mants = supabase_request('GET', 'mantenimientos', '?order=fecha.desc')
+        
         if isinstance(mants, list):
+            # Fetch equipos and tipos to resolve names
+            equipos = supabase_request('GET', 'equipos')
+            tipos = supabase_request('GET', 'tipos_equipos')
+            
+            # Build maps
+            eq_map = {}
+            if isinstance(equipos, list):
+                for eq in equipos:
+                    eq_map[eq['id']] = {'nombre': eq.get('nombre'), 'tipo_id': eq.get('tipo_id')}
+            
+            tipos_map = {}
+            if isinstance(tipos, list):
+                for tipo in tipos:
+                    tipos_map[tipo['id']] = tipo.get('nombre')
+            
+            # Enrich mantenimientos with resolved names
+            for m in mants:
+                eq_id = m.get('equipo_id')
+                if eq_id in eq_map:
+                    m['equipo_nombre'] = eq_map[eq_id].get('nombre', 'Equipo desconocido')
+                    tipo_id = eq_map[eq_id].get('tipo_id')
+                    m['equipo_tipo'] = tipos_map.get(tipo_id, 'Desconocido')
+                else:
+                    m['equipo_nombre'] = 'Equipo desconocido'
+                    m['equipo_tipo'] = 'Desconocido'
+            
             return jsonify(mants)
         return jsonify([])
     except Exception as e:
@@ -754,6 +781,28 @@ def get_mants_equipo(id):
     try:
         result = supabase_request('GET', 'mantenimientos', f'?equipo_id=eq.{id}&order=fecha.desc')
         if isinstance(result, list):
+            # Fetch equipo and tipos to resolve names
+            eq = supabase_request('GET', 'equipos', f'?id=eq.{id}')
+            tipos = supabase_request('GET', 'tipos_equipos')
+            
+            eq_nombre = 'Equipo desconocido'
+            eq_tipo = 'Desconocido'
+            
+            if isinstance(eq, list) and len(eq) > 0:
+                eq_nombre = eq[0].get('nombre', 'Equipo desconocido')
+                tipo_id = eq[0].get('tipo_id')
+                
+                if isinstance(tipos, list):
+                    for tipo in tipos:
+                        if tipo['id'] == tipo_id:
+                            eq_tipo = tipo.get('nombre', 'Desconocido')
+                            break
+            
+            # Enrich mantenimientos with resolved names
+            for m in result:
+                m['equipo_nombre'] = eq_nombre
+                m['equipo_tipo'] = eq_tipo
+            
             return jsonify(result)
         return jsonify([])
     except Exception as e:
@@ -858,16 +907,23 @@ def get_prestamos():
     try:
         prestamos = supabase_request('GET', 'prestamos', '?order=creado_en.desc')
         if isinstance(prestamos, list):
+            # Fetch tipos para mapeo
+            tipos = supabase_request('GET', 'tipos_equipos')
+            tipos_map = {t['id']: t['nombre'] for t in tipos} if isinstance(tipos, list) else {}
+            
             # Enriquecer con nombres de equipo y usuario
             for loan in prestamos:
                 # Obtener nombre del equipo
                 if 'equipo_id' in loan:
                     equipos = supabase_request('GET', 'equipos', f'?id=eq.{loan["equipo_id"]}')
                     if isinstance(equipos, list) and len(equipos) > 0:
-                        loan['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
-                        loan['equipo_tipo'] = equipos[0].get('tipo', '')
+                        eq = equipos[0]
+                        loan['equipo_nombre'] = eq.get('nombre', 'Equipo desconocido')
+                        tipo_id = eq.get('tipo_id')
+                        loan['equipo_tipo'] = tipos_map.get(tipo_id, 'Desconocido')
                     else:
                         loan['equipo_nombre'] = 'Equipo desconocido'
+                        loan['equipo_tipo'] = 'Desconocido'
                 
                 # Obtener nombre del usuario
                 if 'usuario_id' in loan:

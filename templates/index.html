@@ -2153,7 +2153,7 @@ function renderLoan(){
 function openLoanModal(){
   const sel=$('lEq');
   const activos=LOANS.filter(p=>p.estado==='activo').map(p=>p.equipo_id);
-  sel.innerHTML='<option value="">Seleccionar equipo disponible…</option>'+EQ.filter(e=>!activos.includes(e.id)).map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo})</option>`).join('');
+  sel.innerHTML='<option value="">Seleccionar equipo disponible…</option>'+EQ.filter(e=>!activos.includes(e.id)).map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo_nombre||e.tipo})</option>`).join('');
   $('lUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
   $('lFecha').value=TODAY;$('lDevol').value='';$('lNotas').value='';
   open('ovLoan');
