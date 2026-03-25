@@ -711,7 +711,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Nombre</th><th>Email</th><th>Cargo</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
+          <th>Nombre</th><th>Email</th><th>Cargo</th><th>Rol del Sistema</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="usrTbody"></tbody></table>
       </div>
     </section>
@@ -959,6 +959,7 @@ input[type="file"]::file-selector-button{
         <div class="fg s2"><label>Nombre completo *</label><input id="uNom" placeholder="Nombre y apellidos"></div>
         <div class="fg s2"><label>Email *</label><input type="email" id="uEmail" placeholder="correo@empresa.com"></div>
         <div class="fg"><label>Cargo</label><input id="uCargo" placeholder="ej: Analista TI"></div>
+        <div class="fg"><label>Rol del Sistema</label><select id="uRol"><option value="">Seleccionar rol…</option></select></div>
         <div class="fg"><label>Departamento</label><input id="uDpto" placeholder="ej: Tecnología"></div>
         <div class="fg"><label>Teléfono</label><input id="uTel" placeholder="300 123 4567"></div>
         <div class="fg"><label>Estado</label><select id="uEst"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
@@ -1996,33 +1997,82 @@ function renderUsr(){
   const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!est||u.estado===est));
   $('usrCount').textContent=`${rows.length} usuario(s)`;
   const tb=$('usrTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
-  tb.innerHTML=rows.map((u,i)=>`<tr>
-    <td data-label="Nombre"><div class="av-cell">
-      <div class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${u.nombre.charAt(0)}</div>
-      <div class="name">${u.nombre}</div>
-    </div></td>
-    <td data-label="Email" style="color:var(--text3)">${u.email}</td>
-    <td data-label="Cargo">${u.cargo||'—'}</td>
-    <td data-label="Departamento">${u.departamento||'—'}</td>
-    <td data-label="Teléfono" class="mono">${u.telefono||'—'}</td>
-    <td data-label="Estado"><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
-    <td data-label="Acciones"><div class="act-cell">
-      <button class="btn btn-ghost btn-icon btn-sm" onclick="editUsr(${u.id})">✏️</button>
-      <button class="btn btn-danger btn-icon btn-sm" onclick="delUsr(${u.id})">🗑️</button>
-    </div></td>
-  </tr>`).join('');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
+  tb.innerHTML=rows.map((u,i)=>{
+    const rol=ROLES.find(r=>r.id===u.rol_id);
+    return `<tr>
+      <td data-label="Nombre"><div class="av-cell">
+        <div class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${u.nombre.charAt(0)}</div>
+        <div class="name">${u.nombre}</div>
+      </div></td>
+      <td data-label="Email" style="color:var(--text3)">${u.email}</td>
+      <td data-label="Cargo">${u.cargo||'—'}</td>
+      <td data-label="Rol del Sistema"><span style="font-size:11px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:6px;display:inline-block">${rol?.nombre||'—'}</span></td>
+      <td data-label="Departamento">${u.departamento||'—'}</td>
+      <td data-label="Teléfono" class="mono">${u.telefono||'—'}</td>
+      <td data-label="Estado"><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
+      <td data-label="Acciones"><div class="act-cell">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="editUsr(${u.id})">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delUsr(${u.id})">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
 }
-function openUsrModal(){editUsrId=null;$('usrModalTitle').textContent='Nuevo responsable';['uNom','uEmail','uCargo','uDpto','uTel'].forEach(id=>$(id).value='');$('uEst').value='activo';open('ovUsr')}
+function openUsrModal(){
+  editUsrId=null;
+  $('usrModalTitle').textContent='Nuevo responsable';
+  ['uNom','uEmail','uCargo','uDpto','uTel'].forEach(id=>$(id).value='');
+  $('uEst').value='activo';
+  $('uRol').value='';
+  
+  // Llenar select de roles
+  const rolSel=$('uRol');
+  rolSel.innerHTML='<option value="">Seleccionar rol…</option>';
+  ROLES.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.id;
+    opt.textContent=r.nombre;
+    rolSel.appendChild(opt);
+  });
+  
+  open('ovUsr');
+}
+
 function editUsr(id){
-  const u=USR.find(x=>x.id===id);if(!u)return;
-  editUsrId=id;$('usrModalTitle').textContent='Editar responsable';
-  $('uNom').value=u.nombre;$('uEmail').value=u.email;$('uCargo').value=u.cargo||'';
-  $('uDpto').value=u.departamento||'';$('uTel').value=u.telefono||'';$('uEst').value=u.estado;
+  const u=USR.find(x=>x.id===id);
+  if(!u)return;
+  editUsrId=id;
+  $('usrModalTitle').textContent='Editar responsable';
+  $('uNom').value=u.nombre;
+  $('uEmail').value=u.email;
+  $('uCargo').value=u.cargo||'';
+  $('uDpto').value=u.departamento||'';
+  $('uTel').value=u.telefono||'';
+  $('uEst').value=u.estado;
+  
+  // Llenar y seleccionar rol
+  const rolSel=$('uRol');
+  rolSel.innerHTML='<option value="">Seleccionar rol…</option>';
+  ROLES.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.id;
+    opt.textContent=r.nombre;
+    if(u.rol_id===r.id)opt.selected=true;
+    rolSel.appendChild(opt);
+  });
+  
   open('ovUsr');
 }
 async function saveUsr(){
-  const data={nombre:$('uNom').value.trim(),email:$('uEmail').value.trim(),cargo:$('uCargo').value,departamento:$('uDpto').value,telefono:$('uTel').value,estado:$('uEst').value};
+  const data={
+    nombre:$('uNom').value.trim(),
+    email:$('uEmail').value.trim(),
+    cargo:$('uCargo').value,
+    departamento:$('uDpto').value,
+    telefono:$('uTel').value,
+    estado:$('uEst').value,
+    rol_id:parseInt($('uRol').value)||null
+  };
   if(!data.nombre||!data.email){toast('Nombre y email son requeridos','err');return}
   const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
   if(res.error){toast(res.error,'err');return}
