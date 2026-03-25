@@ -1598,10 +1598,15 @@ function openEqModal(reset=true){
 function editEq(id){
   const e=EQ.find(x=>x.id===id);if(!e)return;
   editEqId=id;$('eqModalTitle').textContent='Editar equipo';
-  $('eNom').value=e.nombre;$('eTipo').value=e.tipo_nombre||e.tipo;$('eEst').value=e.estado;
+  $('eNom').value=e.nombre;$('eEst').value=e.estado;
   $('eMarca').value=e.marca||'';$('eModelo').value=e.modelo||'';$('eSerial').value=e.serial||'';
   $('eFecha').value=e.fecha_adquisicion||'';
   $('eValor').value=e.valor||'';$('eDesc').value=e.descripcion||'';
+  
+  // Reconstruir opciones de tipo y asignar el valor correcto
+  updateTiposInModal();
+  setTimeout(()=>{$('eTipo').value=e.tipo_nombre||e.tipo;},50);
+  
   // Cargar usuarios en el select si no están ya cargados
   const selResp=$('eResponsable');
   if(selResp.options.length<=1){
