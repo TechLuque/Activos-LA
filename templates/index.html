@@ -1303,9 +1303,10 @@ async function init(){
     console.log('✓ Backend healthy:',health.message);
   }
   
-  await loadAll();
+  // Cargar tipos PRIMERO para que estén disponibles cuando se carguen otros datos
   await loadTiposEquipos();
   await loadRoles();
+  await loadAll();
   renderDashboard();
 }
 

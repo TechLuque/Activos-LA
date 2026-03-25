@@ -474,9 +474,18 @@ def get_equipos():
     try:
         result = supabase_request('GET', 'equipos', '?order=nombre.asc')
         if isinstance(result, list):
+            # Obtener todos los tipos para mapearlos
+            tipos_result = supabase_request('GET', 'tipos_equipos')
+            tipos_map = {t['id']: t['nombre'] for t in tipos_result} if isinstance(tipos_result, list) else {}
+            
+            # Agregar tipo_nombre a cada equipo
+            for eq in result:
+                eq['tipo_nombre'] = tipos_map.get(eq.get('tipo_id'), eq.get('tipo', 'Sin tipo'))
+            
             return jsonify(result)
         return jsonify([])
     except Exception as e:
+        debug_log(f"[ERROR] Error getting equipos: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/tipos-equipos', methods=['GET'])
