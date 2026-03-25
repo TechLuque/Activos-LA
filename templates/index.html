@@ -780,13 +780,12 @@ input[type="file"]::file-selector-button{
       <div class="form-grid">
         <div class="fg s2"><label>Nombre *</label><input id="eNom" placeholder="ej: MacBook Pro 14"></div>
         <div class="fg"><label>Tipo *</label>
-          <select id="eTipo">
-            <option value="">Seleccionar…</option>
-            <option>Computador</option><option>Teclado</option><option>Mouse</option><option>Monitor</option>
-            <option>UPS</option><option>Impresora</option><option>Tablet</option><option>Teléfono</option>
-            <option>Tripode</option><option>Silla</option><option>Pantalla led</option><option>Servidor</option>
-            <option>Router</option><option>Switch</option><option>Otro</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <select id="eTipo" style="flex:1">
+              <option value="">Seleccionar…</option>
+            </select>
+            <button type="button" class="btn btn-sm" onclick="openAgregarTipo()" title="Agregar nuevo tipo" style="padding:8px 12px">➕</button>
+          </div>
         </div>
         <div class="fg"><label>Estado</label>
           <select id="eEst"><option value="bueno">Bueno</option><option value="regular">Regular</option><option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option></select>
@@ -806,6 +805,26 @@ input[type="file"]::file-selector-button{
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovEq')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveEq()">Guardar equipo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AGREGAR TIPO DE EQUIPO -->
+<div class="overlay" id="ovAgregarTipo">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Agregar tipo de equipo</h3><p>Crea una nueva categoría</p></div>
+      <button class="m-close" onclick="close('ovAgregarTipo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Nombre del tipo *</label><input id="newTipoNombre" placeholder="ej: Proyector, Escáner, etc"></div>
+        <div class="fg"><label>Descripción</label><input id="newTipoDesc" placeholder="Descripción breve (opcional)"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovAgregarTipo')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewTipo()">Agregar tipo</button>
       </div>
     </div>
   </div>
@@ -1082,7 +1101,7 @@ input[type="file"]::file-selector-button{
 /* ════════════════════════════════════════════════════
    STATE & HELPERS
 ════════════════════════════════════════════════════ */
-let EQ=[],USR=[],LOANS=[],MANTS=[],DASH={};
+let EQ=[],USR=[],LOANS=[],MANTS=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -1151,7 +1170,7 @@ function nav(page){
   $('page-'+page).classList.add('active');
   $('pgTitle').textContent=PAGE_TITLES[page]||page;
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${page}'`))b.classList.add('active')});
-  if(page==='equipos')renderEq();
+  if(page==='equipos'){loadTiposEquipos();renderEq();}
   if(page==='mantenimientos')renderMant();
   if(page==='usuarios')renderUsr();
   if(page==='prestamos')renderLoan();
@@ -1217,6 +1236,55 @@ async function loadAll(){
     console.error('Fatal error in loadAll:',e);
     toast('Error fatal al cargar datos','err');
   }
+}
+
+// Cargar tipos de equipos disponibles
+async function loadTiposEquipos(){
+  try{
+    const res=await api('/api/tipos-equipos');
+    if(Array.isArray(res)){
+      TIPOS=res;
+      // Actualizar el select de filtro
+      const ftTipo=$('ftTipo');
+      const oldValue=ftTipo.value;
+      ftTipo.innerHTML='<option value="">Todos los tipos</option>';
+      TIPOS.forEach(t=>{
+        const opt=document.createElement('option');
+        opt.value=t.nombre;
+        opt.textContent=t.nombre;
+        ftTipo.appendChild(opt);
+      });
+      ftTipo.value=oldValue;
+    }
+  }catch(e){
+    console.error('Error loading tipos:',e);
+  }
+}
+
+// Cargar roles de empresa
+async function loadRoles(){
+  try{
+    const res=await api('/api/roles');
+    if(Array.isArray(res)){
+      ROLES=res;
+    }
+  }catch(e){
+    console.error('Error loading roles:',e);
+  }
+}
+
+// Actualizar select de tipos en modal de equipos
+function updateTiposInModal(){
+  const sel=$('eTipo');
+  const oldValue=sel.value;
+  sel.innerHTML='<option value="">Seleccionar…</option>';
+  TIPOS.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.nombre;
+    opt.textContent=t.nombre;
+    sel.appendChild(opt);
+  });
+  sel.value=oldValue;
 }
 
 function updateNavBadges(){
@@ -1409,6 +1477,10 @@ function renderEq(){
 
 function openEqModal(reset=true){
   if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno';$('eResponsable').value=''}
+  
+  // Actualizar tipos
+  updateTiposInModal();
+  
   // Cargar usuarios en el select
   const selResp=$('eResponsable');
   if(selResp.options.length<=1){
@@ -1441,6 +1513,48 @@ function editEq(id){
   $('eResponsable').value=e.usuario_id||'';
   open('ovEq');
 }
+
+// Agregar nuevo tipo de equipo
+function openAgregarTipo(){
+  $('newTipoNombre').value='';
+  $('newTipoDesc').value='';
+  open('ovAgregarTipo');
+}
+
+async function saveNewTipo(){
+  const nombre=$('newTipoNombre').value.trim();
+  const descripcion=$('newTipoDesc').value.trim();
+  
+  if(!nombre){
+    toast('El nombre del tipo no puede estar vacío','err');
+    return;
+  }
+  
+  if(TIPOS.some(t=>t.nombre.toLowerCase()===nombre.toLowerCase())){
+    toast(`El tipo "${nombre}" ya existe`,'err');
+    return;
+  }
+  
+  try{
+    const res=await api('/api/tipos-equipos','POST',{nombre,descripcion});
+    
+    if(res.nombre){
+      TIPOS.push(res);
+      TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      toast(`Tipo "${nombre}" agregado correctamente`,'ok');
+      close('ovAgregarTipo');
+      updateTiposInModal();
+      loadTiposEquipos();
+      setTimeout(()=>{$('eTipo').value=nombre;},100);
+    }else{
+      toast(res.error||'Error al agregar tipo','err');
+    }
+  }catch(e){
+    console.error('Error:',e);
+    toast('Error al agregar tipo','err');
+  }
+}
+
 async function saveEq(){
   const data={nombre:$('eNom').value.trim(),tipo:$('eTipo').value,estado:$('eEst').value,
     marca:$('eMarca').value,modelo:$('eModelo').value,serial:$('eSerial').value,

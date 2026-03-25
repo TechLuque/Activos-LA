@@ -383,14 +383,32 @@ def get_usuarios():
 def create_usuario():
     try:
         d = request.json
-        result = supabase_request('POST', 'usuarios', '', {
+        
+        # Resolver rol_id
+        rol_id = d.get('rol_id', None)
+        if not rol_id and d.get('rol_nombre'):
+            # Buscar rol por nombre
+            roles_result = supabase_request('GET', 'roles_empresa', f'?nombre=eq.{d["rol_nombre"]}')
+            if isinstance(roles_result, list) and len(roles_result) > 0:
+                rol_id = roles_result[0]['id']
+        
+        # Si aún no tiene rol, asignar "Usuario" por defecto
+        if not rol_id:
+            roles_result = supabase_request('GET', 'roles_empresa', '?nombre=eq.Usuario')
+            if isinstance(roles_result, list) and len(roles_result) > 0:
+                rol_id = roles_result[0]['id']
+        
+        usuario_data = {
             'nombre': d['nombre'],
             'email': d['email'],
             'cargo': d.get('cargo', ''),
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
-            'estado': d.get('estado', 'activo')
-        })
+            'estado': d.get('estado', 'activo'),
+            'rol_id': rol_id
+        }
+        
+        result = supabase_request('POST', 'usuarios', '', usuario_data)
         if isinstance(result, list) and len(result) > 0:
             return jsonify(result[0]), 201
         return jsonify(result), 201
@@ -403,14 +421,29 @@ def create_usuario():
 def update_usuario(id):
     try:
         d = request.json
-        result = supabase_request('PATCH', 'usuarios', f'?id=eq.{id}', {
+        
+        # Resolver rol_id
+        rol_id = d.get('rol_id', None)
+        if not rol_id and d.get('rol_nombre'):
+            # Buscar rol por nombre
+            roles_result = supabase_request('GET', 'roles_empresa', f'?nombre=eq.{d["rol_nombre"]}')
+            if isinstance(roles_result, list) and len(roles_result) > 0:
+                rol_id = roles_result[0]['id']
+        
+        update_data = {
             'nombre': d['nombre'],
             'email': d['email'],
             'cargo': d.get('cargo', ''),
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo')
-        })
+        }
+        
+        # Solo actualizar rol_id si fue proporcionado
+        if rol_id:
+            update_data['rol_id'] = rol_id
+        
+        result = supabase_request('PATCH', 'usuarios', f'?id=eq.{id}', update_data)
         return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -423,6 +456,9 @@ def delete_usuario(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Tipos de equipos ahora se cargan desde BD (tipos_equipos)
+# Ver endpoints /api/tipos-equipos para CRUD
+
 @app.route('/api/equipos', methods=['GET'])
 def get_equipos():
     try:
@@ -430,6 +466,73 @@ def get_equipos():
         if isinstance(result, list):
             return jsonify(result)
         return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tipos-equipos', methods=['GET'])
+def get_tipos_equipos():
+    """Obtener lista de tipos de equipos desde BD"""
+    try:
+        result = supabase_request('GET', 'tipos_equipos', '?order=nombre.asc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        debug_log(f"[ERROR] Error getting tipos_equipos: {e}")
+        return jsonify([]), 200
+
+@app.route('/api/tipos-equipos', methods=['POST'])
+def create_tipo_equipo():
+    """Crear nuevo tipo de equipo"""
+    try:
+        data = request.json
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '')
+        
+        if not nombre:
+            return jsonify({'error': 'El nombre es requerido'}), 400
+        
+        result = supabase_request('POST', 'tipos_equipos', '', {
+            'nombre': nombre,
+            'descripcion': descripcion
+        })
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 201
+        return jsonify(result), 201
+    except Exception as e:
+        if 'unique' in str(e).lower():
+            return jsonify({'error': 'Este tipo de equipo ya existe'}), 400
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tipos-equipos/<int:id>', methods=['PUT'])
+def update_tipo_equipo(id):
+    """Actualizar tipo de equipo"""
+    try:
+        data = request.json
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '')
+        
+        if not nombre:
+            return jsonify({'error': 'El nombre es requerido'}), 400
+        
+        result = supabase_request('PATCH', 'tipos_equipos', f'?id=eq.{id}', {
+            'nombre': nombre,
+            'descripcion': descripcion
+        })
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 200
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tipos-equipos/<int:id>', methods=['DELETE'])
+def delete_tipo_equipo(id):
+    """Eliminar tipo de equipo"""
+    try:
+        supabase_request('DELETE', 'tipos_equipos', f'?id=eq.{id}')
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -447,9 +550,19 @@ def get_equipo(id):
 def create_equipo():
     try:
         d = request.json
-        equipo_result = supabase_request('POST', 'equipos', '', {
+        tipo_nombre = d['tipo']
+        
+        # Buscar ID del tipo en tipos_equipos
+        tipos_result = supabase_request('GET', 'tipos_equipos', f'?nombre=eq.{tipo_nombre}')
+        tipo_id = None
+        if isinstance(tipos_result, list) and len(tipos_result) > 0:
+            tipo_id = tipos_result[0]['id']
+        
+        # Escribir AMBOS: tipo (texto) y tipo_id (ID) para compatibilidad durante migración
+        equipo_data = {
             'nombre': d['nombre'],
-            'tipo': d['tipo'],
+            'tipo': tipo_nombre,  # Mantener para compatibilidad
+            'tipo_id': tipo_id,    # Nuevos datos
             'marca': d.get('marca', ''),
             'modelo': d.get('modelo', ''),
             'serial': d.get('serial', ''),
@@ -458,7 +571,9 @@ def create_equipo():
             'fecha_adquisicion': d.get('fecha_adquisicion', ''),
             'valor': d.get('valor', 0),
             'descripcion': d.get('descripcion', '')
-        })
+        }
+        
+        equipo_result = supabase_request('POST', 'equipos', '', equipo_data)
         
         if isinstance(equipo_result, list) and len(equipo_result) > 0:
             equipo_id = equipo_result[0]['id']
@@ -483,9 +598,19 @@ def create_equipo():
 def update_equipo(id):
     try:
         d = request.json
-        result = supabase_request('PATCH', 'equipos', f'?id=eq.{id}', {
+        tipo_nombre = d['tipo']
+        
+        # Buscar ID del tipo en tipos_equipos
+        tipos_result = supabase_request('GET', 'tipos_equipos', f'?nombre=eq.{tipo_nombre}')
+        tipo_id = None
+        if isinstance(tipos_result, list) and len(tipos_result) > 0:
+            tipo_id = tipos_result[0]['id']
+        
+        # Actualizar AMBOS: tipo (texto) y tipo_id (ID)
+        update_data = {
             'nombre': d['nombre'],
-            'tipo': d['tipo'],
+            'tipo': tipo_nombre,  # Mantener para compatibilidad
+            'tipo_id': tipo_id,    # Nuevos datos
             'marca': d.get('marca', ''),
             'modelo': d.get('modelo', ''),
             'serial': d.get('serial', ''),
@@ -494,7 +619,9 @@ def update_equipo(id):
             'fecha_adquisicion': d.get('fecha_adquisicion', ''),
             'valor': d.get('valor', 0),
             'descripcion': d.get('descripcion', '')
-        })
+        }
+        
+        result = supabase_request('PATCH', 'equipos', f'?id=eq.{id}', update_data)
         return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -504,6 +631,75 @@ def delete_equipo(id):
     try:
         supabase_request('DELETE', 'equipos', f'?id=eq.{id}')
         return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== ROLES DE EMPRESA ==========
+@app.route('/api/roles', methods=['GET'])
+def get_roles():
+    """Obtener lista de roles"""
+    try:
+        result = supabase_request('GET', 'roles_empresa', '?order=nombre.asc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        debug_log(f"[ERROR] Error getting roles: {e}")
+        return jsonify([]), 200
+
+@app.route('/api/roles', methods=['POST'])
+def create_rol():
+    """Crear nuevo rol"""
+    try:
+        data = request.json
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '')
+        
+        if not nombre:
+            return jsonify({'error': 'El nombre es requerido'}), 400
+        
+        result = supabase_request('POST', 'roles_empresa', '', {
+            'nombre': nombre,
+            'descripcion': descripcion,
+            'permisos': '[]'
+        })
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 201
+        return jsonify(result), 201
+    except Exception as e:
+        if 'unique' in str(e).lower():
+            return jsonify({'error': 'Este rol ya existe'}), 400
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:id>', methods=['PUT'])
+def update_rol(id):
+    """Actualizar rol"""
+    try:
+        data = request.json
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '')
+        
+        if not nombre:
+            return jsonify({'error': 'El nombre es requerido'}), 400
+        
+        result = supabase_request('PATCH', 'roles_empresa', f'?id=eq.{id}', {
+            'nombre': nombre,
+            'descripcion': descripcion
+        })
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 200
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:id>', methods=['DELETE'])
+def delete_rol(id):
+    """Eliminar rol"""
+    try:
+        supabase_request('DELETE', 'roles_empresa', f'?id=eq.{id}')
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
