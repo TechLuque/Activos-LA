@@ -1429,31 +1429,87 @@ def get_calendario():
     try:
         events = []
         
+        # Fetch equipos, usuarios y tipos para mapeo
+        equipos = supabase_request('GET', 'equipos')
+        usuarios = supabase_request('GET', 'usuarios')
+        tipos = supabase_request('GET', 'tipos_equipos')
+        
+        eq_map = {}
+        if isinstance(equipos, list):
+            for eq in equipos:
+                eq_map[eq['id']] = {
+                    'nombre': eq.get('nombre', 'Equipo desconocido'),
+                    'tipo_id': eq.get('tipo_id')
+                }
+        
+        usr_map = {}
+        if isinstance(usuarios, list):
+            for u in usuarios:
+                usr_map[u['id']] = u.get('nombre', 'Usuario desconocido')
+        
+        tipos_map = {}
+        if isinstance(tipos, list):
+            for t in tipos:
+                tipos_map[t['id']] = t.get('nombre', 'Tipo desconocido')
+        
         # Mantenimientos
         mants = supabase_request('GET', 'mantenimientos', '?order=proxima_revision.asc')
         if isinstance(mants, list):
             for m in mants:
                 if m.get('proxima_revision'):
+                    eq_id = m.get('equipo_id')
+                    eq_nombre = eq_map.get(eq_id, {}).get('nombre', 'Equipo desconocido')
+                    tipo_id = eq_map.get(eq_id, {}).get('tipo_id')
+                    tipo_nombre = tipos_map.get(tipo_id, 'Tipo desconocido')
+                    
                     events.append({
                         'date': m['proxima_revision'],
                         'type': 'mantenimiento',
-                        'title': f"Equipo ID: {m['equipo_id']}",
-                        'sub': m['tipo'],
+                        'title': eq_nombre,
+                        'sub': f"{m['tipo'].capitalize()} · {tipo_nombre}",
                         'id': m['id'],
                         'estado': m['estado'],
                         'descripcion': m.get('descripcion', '')
                     })
         
-        # Préstamos
-        prestamos = supabase_request('GET', 'prestamos', '?estado=eq.activo&order=fecha_devolucion_esperada.asc')
+        # Préstamos - Mostrar TODOS con fe fechas relevantes
+        prestamos = supabase_request('GET', 'prestamos', '?order=fecha_devolucion_esperada.asc')
         if isinstance(prestamos, list):
             for p in prestamos:
+                eq_id = p.get('equipo_id')
+                usr_id = p.get('usuario_id')
+                eq_nombre = eq_map.get(eq_id, {}).get('nombre', 'Equipo desconocido')
+                tipo_id = eq_map.get(eq_id, {}).get('tipo_id')
+                tipo_nombre = tipos_map.get(tipo_id, 'Tipo desconocido')
+                usr_nombre = usr_map.get(usr_id, 'Usuario desconocido')
+                
+                # Mostrar fecha de devolución esperada (principal)
                 if p.get('fecha_devolucion_esperada'):
+                    estado_label = 'Para devolver'
+                    if p.get('estado') == 'devuelto':
+                        estado_label = 'Devuelto'
+                    elif p.get('estado') == 'firmado':
+                        estado_label = 'Pendiente firma'
+                    
                     events.append({
                         'date': p['fecha_devolucion_esperada'],
                         'type': 'prestamo',
-                        'title': f"Equipo ID: {p['equipo_id']}",
-                        'sub': f"Usuario ID: {p['usuario_id']}",
+                        'title': eq_nombre,
+                        'sub': f"{estado_label} · {tipo_nombre}",
+                        'detail': f"Responsable: {usr_nombre}",
+                        'id': p['id'],
+                        'estado': p['estado'],
+                        'notas': p.get('notas', '')
+                    })
+                
+                # Si no hay fecha esperada pero hay fecha de préstamo, mostrarla
+                elif p.get('fecha_prestamo'):
+                    events.append({
+                        'date': p['fecha_prestamo'],
+                        'type': 'prestamo',
+                        'title': eq_nombre,
+                        'sub': f"Préstamo iniciado · {tipo_nombre}",
+                        'detail': f"Responsable: {usr_nombre}",
                         'id': p['id'],
                         'estado': p['estado'],
                         'notas': p.get('notas', '')
@@ -1462,6 +1518,7 @@ def get_calendario():
         events.sort(key=lambda x: x['date'])
         return jsonify(events)
     except Exception as e:
+        debug_log(f"[ERROR] Error in get_calendario: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health')

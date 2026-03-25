@@ -2422,7 +2422,7 @@ async function renderCal(){
       <div class="cal-event-dot"></div>
       <div class="cal-event-body">
         <div class="cal-event-title">${e.type==='prestamo'?'🔁':'🔧'} ${e.title}</div>
-        <div class="cal-event-sub">${e.sub}${e.descripcion?' · '+e.descripcion.slice(0,40):e.notas?' · '+e.notas.slice(0,40):''}</div>
+        <div class="cal-event-sub">${e.sub}${e.detail?' · '+e.detail.slice(0,40):e.descripcion?' · '+e.descripcion.slice(0,40):e.notas?' · '+e.notas.slice(0,40):''}</div>
       </div>
       <div class="cal-event-date">${fmtDate(e.date)}${dl!==null&&!isOverdue?` (${dl}d)`:''}${isOverdue?' ⚠':''}</div>
     </div>`;
