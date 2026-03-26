@@ -1,6 +1,0 @@
-[2026-03-26T09:53:20.527213] 
-[INIT] Current working directory: C:\Users\Usuario Normal\Documents\activoseq
-[2026-03-26T09:53:20.537086] [INIT] load_dotenv returned: True
-[2026-03-26T09:53:20.543590] [INIT] SUPABASE_URL from env: https://rdrqizmgcwvvrznjhrkw.supabase.co
-[2026-03-26T09:53:20.556920] [INIT] SUPABASE_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...
-[2026-03-26T09:53:20.605208] [INIT] SUPABASE_SECRET_KEY from env: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd...

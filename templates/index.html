@@ -152,6 +152,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .card-title{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--text)}
 .card-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
 .card-body{padding:16px 20px 20px}
+.card-body-scrollable{max-height:320px;overflow-y:auto;overflow-x:hidden}
 
 /* ═══════════════ STAT CARDS ════════════ */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
@@ -2620,7 +2621,7 @@ function renderReportes(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
       <div class="card">
         <div class="card-header"><div class="card-title">Distribución por tipo</div></div>
-        <div class="card-body">${sorted.map(([t,c])=>`
+        <div class="card-body card-body-scrollable">${sorted.map(([t,c])=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
             <div style="display:flex;align-items:center;gap:8px">${TIPO_ICON[t]||'📦'} <span style="font-size:13px">${t}</span></div>
             <div style="display:flex;align-items:center;gap:10px">
