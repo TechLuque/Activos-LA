@@ -580,8 +580,16 @@ def update_tipo_equipo(id):
         if isinstance(result, dict) and result.get('error'):
             return jsonify(result), 400
         
+        # Si resultado es lista con datos, retornar el primero
         if isinstance(result, list) and len(result) > 0:
             return jsonify(result[0]), 200
+        
+        # Si resultado es lista vacía (PATCH exitoso pero no retorna datos),
+        # obtener los datos actualizados del tipo
+        if isinstance(result, list):
+            updated = supabase_request('GET', 'tipos_equipos', f'?id=eq.{id}')
+            if isinstance(updated, list) and len(updated) > 0:
+                return jsonify(updated[0]), 200
         
         return jsonify({'error': 'No se pudo actualizar el tipo'}), 400
     except Exception as e:
@@ -766,9 +774,20 @@ def update_rol(id):
         
         result = supabase_request('PATCH', 'roles_empresa', f'?id=eq.{id}', update_data)
         
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify(result), 400
+        
         if isinstance(result, list) and len(result) > 0:
             return jsonify(result[0]), 200
-        return jsonify(result), 200
+        
+        # Si resultado es lista vacía (PATCH exitoso pero no retorna datos),
+        # obtener los datos actualizados del rol
+        if isinstance(result, list):
+            updated = supabase_request('GET', 'roles_empresa', f'?id=eq.{id}')
+            if isinstance(updated, list) and len(updated) > 0:
+                return jsonify(updated[0]), 200
+        
+        return jsonify({'error': 'No se pudo actualizar el rol'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

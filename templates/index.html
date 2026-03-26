@@ -1766,7 +1766,9 @@ async function saveEditarTipo(){
   
   if(res.id){
     const idx=TIPOS.findIndex(t=>t.id===editTipoId);
-    TIPOS[idx]=res;
+    if(idx>=0){
+      TIPOS[idx]=res;
+    }
     TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     renderTipos();
     updateTiposInModal();
