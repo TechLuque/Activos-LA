@@ -844,7 +844,7 @@ input[type="file"]::file-selector-button{
           <select id="eEst"><option value="bueno">Bueno</option><option value="regular">Regular</option><option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option></select>
         </div>
         <div class="fg"><label>Disponibilidad</label>
-          <select id="eDisp"><option value="disponible">Disponible</option><option value="Retirado">Retirado</option></select>
+          <select id="eDisp"><option value="Disponible">Disponible</option><option value="Retirado">Retirado</option></select>
         </div>
         <div class="fg"><label>Responsable</label>
           <select id="eResponsable">
@@ -1582,10 +1582,10 @@ function renderEq(){
   }
   const rows=EQ.filter(e=>
     (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
-    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est)&&(!e.disponibilidad||e.disponibilidad==='disponible'));
+    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est)&&e.disponibilidad!=='Retirado');
   $('eqCount').textContent=`${rows.length} equipo(s)`;
   const tb=$('eqTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
   tb.innerHTML=rows.map(e=>{
     const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
     const tipoNombre = e.tipo_nombre || e.tipo || 'Sin tipo';
@@ -1599,7 +1599,7 @@ function renderEq(){
       <td data-label="Serial"><span class="mono">${e.serial||'—'}</span></td>
       <td data-label="Responsable"><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
       <td data-label="Estado"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
-      <td data-label="Disponibilidad"><span class="bs ${e.disponibilidad==='disponible'?'bs-activo':'bs-inactivo'}" style="font-size:11px;padding:4px 8px">${e.disponibilidad==='disponible'?'Disponible':'Retirado'}</span></td>
+      <td data-label="Disponibilidad"><span class="bs ${(!e.disponibilidad||e.disponibilidad==='Disponible')?'bs-activo':'bs-inactivo'}" style="font-size:11px;padding:4px 8px">${(!e.disponibilidad||e.disponibilidad==='Disponible')?'Disponible':'Retirado'}</span></td>
       <td data-label="Valor"><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-ghost btn-icon btn-sm" title="Hoja de vida" onclick="openHV(${e.id})">📋</button>
@@ -1611,7 +1611,7 @@ function renderEq(){
 }
 
 function openEqModal(reset=true){
-  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno';$('eDisp').value='disponible';$('eResponsable').value=''}
+  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno';$('eDisp').value='Disponible';$('eResponsable').value=''}
   
   // Actualizar tipos
   updateTiposInModal();
@@ -1631,7 +1631,7 @@ function openEqModal(reset=true){
 function editEq(id){
   const e=EQ.find(x=>x.id===id);if(!e)return;
   editEqId=id;$('eqModalTitle').textContent='Editar equipo';
-  $('eNom').value=e.nombre;$('eEst').value=e.estado;$('eDisp').value=e.disponibilidad||'disponible';
+  $('eNom').value=e.nombre;$('eEst').value=e.estado;$('eDisp').value=e.disponibilidad||'Disponible';
   $('eMarca').value=e.marca||'';$('eModelo').value=e.modelo||'';$('eSerial').value=e.serial||'';
   $('eFecha').value=e.fecha_adquisicion||'';
   $('eValor').value=e.valor||'';$('eDesc').value=e.descripcion||'';
