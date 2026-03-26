@@ -1278,13 +1278,13 @@ function nav(page){
   $('page-'+page).classList.add('active');
   $('pgTitle').textContent=PAGE_TITLES[page]||page;
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${page}'`))b.classList.add('active')});
-  if(page==='equipos'){loadTiposEquipos();renderEq();}
+  if(page==='equipos')renderEq();
   if(page==='mantenimientos')renderMant();
   if(page==='usuarios')renderUsr();
   if(page==='prestamos')renderLoan();
   if(page==='calendario')renderCal();
   if(page==='reportes')renderReportes();
-  if(page==='admin-tipos'){loadTiposEquipos();renderTipos();}
+  if(page==='admin-tipos')renderTipos();
   if(page==='admin-roles'){loadRoles();renderRoles();}
 }
 
@@ -1684,7 +1684,6 @@ async function saveNewTipo(){
       toast(`Tipo "${nombre}" agregado correctamente`,'ok');
       close('ovAgregarTipo');
       updateTiposInModal();
-      loadTiposEquipos();
       setTimeout(()=>{$('eTipo').value=nombre;},100);
     }else{
       toast(res.error||'Error al agregar tipo','err');
@@ -2525,7 +2524,7 @@ async function renderCal(){
 ════════════════════════════════════════════════════ */
 function renderReportes(){
   const totalValor=EQ.reduce((a,e)=>a+(e.valor||0),0);
-  const byTipo={};EQ.forEach(e=>{byTipo[e.tipo]=(byTipo[e.tipo]||0)+1});
+  const byTipo={};EQ.forEach(e=>{const tipoName=e.tipo_nombre||e.tipo||'Sin tipo';byTipo[tipoName]=(byTipo[tipoName]||0)+1});
   const sorted=Object.entries(byTipo).sort((a,b)=>b[1]-a[1]);
   const totalMantCost=MANTS.reduce((a,m)=>a+(m.costo||0),0);
 

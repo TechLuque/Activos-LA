@@ -345,8 +345,28 @@ def dashboard():
         todos_prestamos = supabase_request('GET', 'prestamos')
         prestamos_vencidos = []
         proximos_vencer = []
+        
+        # Obtener datos para mapeo (más eficiente que búsquedas individuales)
+        equipos_data = supabase_request('GET', 'equipos')
+        usuarios_data = supabase_request('GET', 'usuarios')
+        tipos_result = supabase_request('GET', 'tipos_equipos')
+        
+        # Crear mapas para búsquedas rápidas
+        equipos_map = {eq['id']: eq for eq in equipos_data} if isinstance(equipos_data, list) else {}
+        usuarios_map = {u['id']: u for u in usuarios_data} if isinstance(usuarios_data, list) else {}
+        tipos_map = {t['id']: t['nombre'] for t in tipos_result} if isinstance(tipos_result, list) else {}
+        
         if isinstance(todos_prestamos, list):
             for p in todos_prestamos:
+                # Enriquecer con información del equipo
+                if 'equipo_id' in p and p['equipo_id'] in equipos_map:
+                    eq = equipos_map[p['equipo_id']]
+                    p['equipo_nombre'] = eq.get('nombre', 'Equipo desconocido')
+                
+                # Enriquecer con información del usuario
+                if 'usuario_id' in p and p['usuario_id'] in usuarios_map:
+                    p['usuario_nombre'] = usuarios_map[p['usuario_id']].get('nombre', 'Usuario desconocido')
+                
                 if p.get('estado') != 'devuelto' and p.get('fecha_devolucion_esperada'):
                     fecha_dev = p['fecha_devolucion_esperada']
                     if fecha_dev < today:
