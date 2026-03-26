@@ -2182,17 +2182,20 @@ function updateDptoFromRol(){
 }
 
 async function saveUsr(){
+  const rolId=parseInt($('uRol').value);
+  const selectedRol=ROLES.find(r=>r.id===rolId);
+  
   const data={
     nombre:$('uNom').value.trim(),
     email:$('uEmail').value.trim(),
     password:$('uPass').value.trim(),
-    departamento:$('uDpto').value,
+    departamento:selectedRol?.departamento||'',
     telefono:$('uTel').value,
     estado:$('uEst').value,
-    rol_id:parseInt($('uRol').value)||null
+    rol_id:rolId||null
   };
   if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id||!data.departamento){
-    toast('Nombre, email, cargo y departamento son requeridos'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
+    toast('Nombre, email, cargo son requeridos'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
     return;
   }
   const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
