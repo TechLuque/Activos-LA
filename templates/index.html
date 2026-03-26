@@ -666,7 +666,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Equipo</th><th>Tipo</th><th>Serial</th><th>Responsable</th><th>Estado</th><th>Valor</th><th>Acciones</th>
+          <th>Equipo</th><th>Tipo</th><th>Serial</th><th>Responsable</th><th>Estado</th><th>Disponibilidad</th><th>Valor</th><th>Acciones</th>
         </tr></thead><tbody id="eqTbody"></tbody></table>
       </div>
     </section>
@@ -843,6 +843,9 @@ input[type="file"]::file-selector-button{
         <div class="fg"><label>Estado</label>
           <select id="eEst"><option value="bueno">Bueno</option><option value="regular">Regular</option><option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option></select>
         </div>
+        <div class="fg"><label>Disponibilidad</label>
+          <select id="eDisp"><option value="disponible">Disponible</option><option value="Retirado">Retirado</option></select>
+        </div>
         <div class="fg"><label>Responsable</label>
           <select id="eResponsable">
             <option value="">Seleccionar responsable…</option>
@@ -995,7 +998,13 @@ input[type="file"]::file-selector-button{
     </div>
     <div class="modal-body">
       <div class="form-grid c1">
-        <div class="fg"><label>Equipo *</label><select id="lEq"><option value="">Seleccionar equipo disponible…</option></select></div>
+        <div class="fg"><label>Equipo *</label>
+          <div style="position:relative">
+            <input type="text" id="lEqSearch" placeholder="Buscar equipo por nombre, marca o tipo…" style="width:100%" oninput="filterEquipos()">
+            <div id="lEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
+          </div>
+          <input type="hidden" id="lEq">
+        </div>
         <div class="fg"><label>Responsable *</label><select id="lUsr"><option value="">Seleccionar responsable…</option></select></div>
         <div class="fg"><label>Fecha de préstamo *</label><input type="date" id="lFecha" style="color:white"></div>
         <div class="fg"><label>Devolución esperada</label><input type="date" id="lDevol" style="color:white"></div>
@@ -1573,7 +1582,7 @@ function renderEq(){
   }
   const rows=EQ.filter(e=>
     (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
-    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est));
+    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est)&&(!e.disponibilidad||e.disponibilidad==='disponible'));
   $('eqCount').textContent=`${rows.length} equipo(s)`;
   const tb=$('eqTbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
@@ -1590,6 +1599,7 @@ function renderEq(){
       <td data-label="Serial"><span class="mono">${e.serial||'—'}</span></td>
       <td data-label="Responsable"><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
       <td data-label="Estado"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
+      <td data-label="Disponibilidad"><span class="bs ${e.disponibilidad==='disponible'?'bs-activo':'bs-inactivo'}" style="font-size:11px;padding:4px 8px">${e.disponibilidad==='disponible'?'Disponible':'Retirado'}</span></td>
       <td data-label="Valor"><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-ghost btn-icon btn-sm" title="Hoja de vida" onclick="openHV(${e.id})">📋</button>
@@ -1601,7 +1611,7 @@ function renderEq(){
 }
 
 function openEqModal(reset=true){
-  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno';$('eResponsable').value=''}
+  if(reset){editEqId=null;$('eqModalTitle').textContent='Nuevo equipo';['eNom','eMarca','eModelo','eSerial','eFecha','eValor','eDesc'].forEach(id=>$(id).value='');$('eTipo').value='';$('eEst').value='bueno';$('eDisp').value='disponible';$('eResponsable').value=''}
   
   // Actualizar tipos
   updateTiposInModal();
@@ -1621,7 +1631,7 @@ function openEqModal(reset=true){
 function editEq(id){
   const e=EQ.find(x=>x.id===id);if(!e)return;
   editEqId=id;$('eqModalTitle').textContent='Editar equipo';
-  $('eNom').value=e.nombre;$('eEst').value=e.estado;
+  $('eNom').value=e.nombre;$('eEst').value=e.estado;$('eDisp').value=e.disponibilidad||'disponible';
   $('eMarca').value=e.marca||'';$('eModelo').value=e.modelo||'';$('eSerial').value=e.serial||'';
   $('eFecha').value=e.fecha_adquisicion||'';
   $('eValor').value=e.valor||'';$('eDesc').value=e.descripcion||'';
@@ -1685,7 +1695,7 @@ async function saveNewTipo(){
 }
 
 async function saveEq(){
-  const data={nombre:$('eNom').value.trim(),tipo:$('eTipo').value,estado:$('eEst').value,
+  const data={nombre:$('eNom').value.trim(),tipo:$('eTipo').value,estado:$('eEst').value,disponibilidad:$('eDisp').value,
     marca:$('eMarca').value,modelo:$('eModelo').value,serial:$('eSerial').value,
     usuario_id:parseInt($('eResponsable').value)||null,
     fecha_adquisicion:$('eFecha').value,
@@ -2173,13 +2183,60 @@ function renderLoan(){
     </tr>`;}).join('');
 }
 function openLoanModal(){
-  const sel=$('lEq');
   const activos=LOANS.filter(p=>p.estado==='activo').map(p=>p.equipo_id);
-  sel.innerHTML='<option value="">Seleccionar equipo disponible…</option>'+EQ.filter(e=>!activos.includes(e.id)).map(e=>`<option value="${e.id}">${e.nombre} (${e.tipo_nombre||e.tipo})</option>`).join('');
+  window.equiposDisponibles=EQ.filter(e=>!activos.includes(e.id));
+  $('lEqSearch').value='';
+  $('lEq').value='';
+  filterEquipos();
   $('lUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
   $('lFecha').value=TODAY;$('lDevol').value='';$('lNotas').value='';
   open('ovLoan');
 }
+
+function filterEquipos(){
+  const q=$('lEqSearch').value.toLowerCase();
+  const list=$('lEqList');
+  const equipos=window.equiposDisponibles||[];
+  
+  const filtered=equipos.filter(e=>
+    e.nombre.toLowerCase().includes(q)||
+    (e.marca||'').toLowerCase().includes(q)||
+    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(q)
+  );
+  
+  if(!q){
+    list.style.display='none';
+    return;
+  }
+  
+  list.style.display='block';
+  if(filtered.length===0){
+    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
+  }else{
+    list.innerHTML=filtered.map(e=>`
+      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" 
+           onmouseover="this.style.background='var(--surface3)'" 
+           onmouseout="this.style.background='transparent'" 
+           onclick="selectEquipo(${e.id},'${e.nombre.replace(/'/g,"\\'")}')">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
+        <div style="font-size:11px;color:var(--text3)">${e.tipo_nombre||e.tipo}${e.marca?' • '+e.marca:''}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function selectEquipo(id,nombre){
+  $('lEq').value=id;
+  $('lEqSearch').value=nombre;
+  $('lEqList').style.display='none';
+}
+
+// Cerrar dropdown de equipos al hacer click fuera
+document.addEventListener('click',function(e){
+  if(e.target.id!=='lEqSearch'&&!e.target.closest('#lEqList')){
+    $('lEqList').style.display='none';
+  }
+});
 async function saveLoan(){
   const equipo_id=parseInt($('lEq').value);
   const usuario_id=parseInt($('lUsr').value);
