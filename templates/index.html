@@ -1582,15 +1582,16 @@ function renderEq(){
   }
   const rows=EQ.filter(e=>
     (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
-    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est)&&e.disponibilidad!=='Retirado');
+    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est));
   $('eqCount').textContent=`${rows.length} equipo(s)`;
   const tb=$('eqTbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
   tb.innerHTML=rows.map(e=>{
     const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
     const tipoNombre = e.tipo_nombre || e.tipo || 'Sin tipo';
+    const isRetirado = e.disponibilidad === 'Retirado';
     return `
-    <tr>
+    <tr ${isRetirado ? 'style="opacity:0.55;background:rgba(0,0,0,0.3)"' : ''}>
       <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[tipoNombre]||'📦'}</div>
         <div><div class="name">${e.nombre}</div><div class="sub">${[e.marca,e.modelo].filter(Boolean).join(' ')}</div></div>
