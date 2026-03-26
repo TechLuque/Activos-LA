@@ -1759,6 +1759,11 @@ async function saveEditarTipo(){
   
   const res=await api(`/api/tipos-equipos/${editTipoId}`,'PUT',{nombre,descripcion});
   
+  if(res.error){
+    toast(res.error,'err');
+    return;
+  }
+  
   if(res.id){
     const idx=TIPOS.findIndex(t=>t.id===editTipoId);
     TIPOS[idx]=res;
@@ -1766,10 +1771,10 @@ async function saveEditarTipo(){
     renderTipos();
     updateTiposInModal();
     close('ovEditarTipo');
-    toast(`Tipo "${nombre}" actualizado`,'ok');
+    toast(`Tipo "${nombre}" actualizado correctamente ✅`,'ok');
     editTipoId=null;
   }else{
-    toast(res.error||'Error al actualizar','err');
+    toast('Error al actualizar el tipo','err');
   }
 }
 
@@ -1851,6 +1856,11 @@ async function saveRol(){
   
   const res=await api(endpoint,method,{nombre,descripcion,departamento});
   
+  if(res.error){
+    toast(res.error,'err');
+    return;
+  }
+  
   if(res.id){
     if(editRolId){
       const idx=ROLES.findIndex(r=>r.id===editRolId);
@@ -1861,10 +1871,10 @@ async function saveRol(){
     ROLES.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     renderRoles();
     close('ovTipoRol');
-    toast(editRolId?'Rol actualizado':'Rol creado correctamente','ok');
+    toast(editRolId?'Rol actualizado correctamente ✅':'Rol creado correctamente ✅','ok');
     editRolId=null;
   }else{
-    toast(res.error||'Error al guardar rol','err');
+    toast('Error al guardar rol','err');
   }
 }
 

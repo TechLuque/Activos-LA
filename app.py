@@ -577,9 +577,13 @@ def update_tipo_equipo(id):
             'descripcion': descripcion
         })
         
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify(result), 400
+        
         if isinstance(result, list) and len(result) > 0:
             return jsonify(result[0]), 200
-        return jsonify(result), 200
+        
+        return jsonify({'error': 'No se pudo actualizar el tipo'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
