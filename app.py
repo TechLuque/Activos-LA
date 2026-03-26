@@ -7,6 +7,7 @@ import json
 import base64
 from functools import wraps
 from io import BytesIO
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Cargar variables de entorno
 load_dotenv()
@@ -200,7 +201,7 @@ def api_login():
         username = data.get('username', '').strip()
         password = data.get('password', '').strip()
         
-        print(f"[AUTH] Intento login - usuario: '{username}', password: '{password}'")
+        print(f"[AUTH] Intento login - usuario: '{username}'")
         
         if not username or not password:
             print(f"[AUTH] Error: campos vacíos")
@@ -224,11 +225,11 @@ def api_login():
         
         user = usuarios[0]
         print(f"[AUTH] Usuario encontrado: {user.get('nombre')} (ID: {user.get('id')})")
-        print(f"[AUTH] Password: '{user.get('password')}' vs '{password}'")
         print(f"[AUTH] Estado: {user.get('estado')}")
         
-        # Verificar contraseña
-        if user.get('password') != password:
+        # Verificar contraseña (comparar contra hash)
+        stored_password = user.get('password', '')
+        if not check_password_hash(stored_password, password):
             print(f"[AUTH] Contraseña incorrecta")
             return jsonify({'error': 'Usuario o contraseña incorrectos'}), 401
         
@@ -418,6 +419,7 @@ def get_usuarios():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/usuarios', methods=['POST'])
+@require_api_login
 def create_usuario():
     try:
         d = request.json
@@ -428,6 +430,11 @@ def create_usuario():
         # Validaciones
         if not d.get('departamento') or d.get('departamento') not in DEPARTAMENTOS_VALIDOS:
             return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
+        
+        # Validar contraseña
+        password = d.get('password', '').strip()
+        if not password or len(password) < 6:
+            return jsonify({'error': 'Contraseña requerida y debe tener al menos 6 caracteres'}), 400
         
         # Resolver rol_id
         rol_id = d.get('rol_id', None)
@@ -443,6 +450,7 @@ def create_usuario():
         usuario_data = {
             'nombre': d['nombre'],
             'email': d['email'],
+            'password': generate_password_hash(password),  # Hash la contraseña
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo'),
@@ -459,8 +467,14 @@ def create_usuario():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/usuarios/<int:id>', methods=['PUT'])
+@require_api_login
 def update_usuario(id):
     try:
+        # Validar que usuario existe
+        existing = supabase_request('GET', 'usuarios', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
         d = request.json
         
         # Departamentos permitidos
@@ -478,6 +492,12 @@ def update_usuario(id):
             if isinstance(roles_result, list) and len(roles_result) > 0:
                 rol_id = roles_result[0]['id']
         
+        # Validar rol_id si se proporcionó
+        if rol_id:
+            roles = supabase_request('GET', 'roles_empresa', f'?id=eq.{rol_id}')
+            if not isinstance(roles, list) or len(roles) == 0:
+                return jsonify({'error': f'Rol con ID {rol_id} no existe'}), 400
+        
         update_data = {
             'nombre': d['nombre'],
             'email': d['email'],
@@ -485,6 +505,13 @@ def update_usuario(id):
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo')
         }
+        
+        # Solo hashear contraseña si se proporcionó una nueva
+        if d.get('password', '').strip():
+            password = d.get('password', '').strip()
+            if len(password) < 6:
+                return jsonify({'error': 'Contraseña debe tener al menos 6 caracteres'}), 400
+            update_data['password'] = generate_password_hash(password)
         
         # Solo actualizar rol_id si fue proporcionado
         if rol_id:
@@ -496,8 +523,14 @@ def update_usuario(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_usuario(id):
     try:
+        # Validar que usuario existe
+        existing = supabase_request('GET', 'usuarios', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
         supabase_request('DELETE', 'usuarios', f'?id=eq.{id}')
         return jsonify({'ok': True})
     except Exception as e:
@@ -538,6 +571,7 @@ def get_tipos_equipos():
         return jsonify([]), 200
 
 @app.route('/api/tipos-equipos', methods=['POST'])
+@require_api_login
 def create_tipo_equipo():
     """Crear nuevo tipo de equipo"""
     try:
@@ -562,9 +596,15 @@ def create_tipo_equipo():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/tipos-equipos/<int:id>', methods=['PUT'])
+@require_api_login
 def update_tipo_equipo(id):
     """Actualizar tipo de equipo"""
     try:
+        # Validar que tipo existe
+        existing = supabase_request('GET', 'tipos_equipos', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Tipo de equipo no encontrado'}), 404
+        
         data = request.json
         nombre = data.get('nombre', '').strip()
         descripcion = data.get('descripcion', '')
@@ -596,9 +636,15 @@ def update_tipo_equipo(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/tipos-equipos/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_tipo_equipo(id):
     """Eliminar tipo de equipo"""
     try:
+        # Validar que tipo existe
+        existing = supabase_request('GET', 'tipos_equipos', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Tipo de equipo no encontrado'}), 404
+        
         supabase_request('DELETE', 'tipos_equipos', f'?id=eq.{id}')
         return jsonify({'ok': True}), 200
     except Exception as e:
@@ -615,6 +661,7 @@ def get_equipo(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/equipos', methods=['POST'])
+@require_api_login
 def create_equipo():
     try:
         d = request.json
@@ -663,20 +710,29 @@ def create_equipo():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/equipos/<int:id>', methods=['PUT'])
+@require_api_login
 def update_equipo(id):
     try:
+        # Validar que equipo existe
+        existing = supabase_request('GET', 'equipos', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Equipo no encontrado'}), 404
+        
         d = request.json
-        tipo_nombre = d['tipo']
+        tipo_nombre = d.get('tipo')
         
         # Buscar ID del tipo en tipos_equipos
-        tipos_result = supabase_request('GET', 'tipos_equipos', f'?nombre=eq.{tipo_nombre}')
         tipo_id = None
-        if isinstance(tipos_result, list) and len(tipos_result) > 0:
-            tipo_id = tipos_result[0]['id']
+        if tipo_nombre:
+            tipos_result = supabase_request('GET', 'tipos_equipos', f'?nombre=eq.{tipo_nombre}')
+            if isinstance(tipos_result, list) and len(tipos_result) > 0:
+                tipo_id = tipos_result[0]['id']
+            elif tipo_nombre:
+                return jsonify({'error': f'Tipo de equipo "{tipo_nombre}" no existe'}), 400
         
         # Actualizar solo tipo_id (la columna tipo no existe)
         update_data = {
-            'nombre': d['nombre'],
+            'nombre': d.get('nombre', ''),
             'tipo_id': tipo_id,
             'marca': d.get('marca', ''),
             'modelo': d.get('modelo', ''),
@@ -695,8 +751,14 @@ def update_equipo(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/equipos/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_equipo(id):
     try:
+        # Validar que equipo existe
+        existing = supabase_request('GET', 'equipos', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Equipo no encontrado'}), 404
+        
         supabase_request('DELETE', 'equipos', f'?id=eq.{id}')
         return jsonify({'ok': True})
     except Exception as e:
@@ -716,6 +778,7 @@ def get_roles():
         return jsonify([]), 200
 
 @app.route('/api/roles', methods=['POST'])
+@require_api_login
 def create_rol():
     """Crear nuevo rol"""
     try:
@@ -748,9 +811,15 @@ def create_rol():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/roles/<int:id>', methods=['PUT'])
+@require_api_login
 def update_rol(id):
     """Actualizar rol"""
     try:
+        # Validar que rol existe
+        existing = supabase_request('GET', 'roles_empresa', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Rol no encontrado'}), 404
+        
         data = request.json
         nombre = data.get('nombre', '').strip()
         descripcion = data.get('descripcion', '')
@@ -792,9 +861,15 @@ def update_rol(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/roles/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_rol(id):
     """Eliminar rol"""
     try:
+        # Validar que rol existe
+        existing = supabase_request('GET', 'roles_empresa', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Rol no encontrado'}), 404
+        
         supabase_request('DELETE', 'roles_empresa', f'?id=eq.{id}')
         return jsonify({'ok': True}), 200
     except Exception as e:
@@ -871,9 +946,19 @@ def get_mants_equipo(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/mantenimientos', methods=['POST'])
+@require_api_login
 def create_mantenimiento():
     try:
         d = request.json
+        
+        # Validar enums
+        TIPOS_MANTENIMIENTO = ['preventivo', 'correctivo', 'inspección']
+        ESTADOS_MANTENIMIENTO = ['pendiente', 'completado', 'cancelado', 'en_progreso']
+        
+        if d.get('tipo') not in TIPOS_MANTENIMIENTO:
+            return jsonify({'error': f'Tipo inválido. Debe ser uno de: {", ".join(TIPOS_MANTENIMIENTO)}'}), 400
+        if d.get('estado', 'completado') not in ESTADOS_MANTENIMIENTO:
+            return jsonify({'error': f'Estado inválido. Debe ser uno de: {", ".join(ESTADOS_MANTENIMIENTO)}'}), 400
         
         mant_result = supabase_request('POST', 'mantenimientos', '', {
             'equipo_id': d['equipo_id'],
@@ -896,15 +981,38 @@ def create_mantenimiento():
             'responsable': d.get('tecnico', '')
         })
         
-        return jsonify({'ok': True}), 201
+        # Retornar ID del mantenimiento creado
+        if isinstance(mant_result, list) and len(mant_result) > 0:
+            return jsonify({'id': mant_result[0].get('id'), 'ok': True}), 201
+        elif isinstance(mant_result, dict) and 'id' in mant_result:
+            return jsonify({'id': mant_result.get('id'), 'ok': True}), 201
+        else:
+            return jsonify({'ok': True}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/mantenimientos/<int:id>', methods=['PUT'])
+@require_api_login
 def update_mantenimiento(id):
     try:
+        # Validar que mantenimiento existe
+        existing = supabase_request('GET', 'mantenimientos', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Mantenimiento no encontrado'}), 404
+        
         d = request.json
-        supabase_request('PATCH', 'mantenimientos', f'?id=eq.{id}', {
+        
+        # Validar estados de mantenimiento
+        ESTADOS_MANTENIMIENTO = ['pendiente', 'completado', 'cancelado', 'en_progreso']
+        if d.get('estado') and d.get('estado') not in ESTADOS_MANTENIMIENTO:
+            return jsonify({'error': f'Estado inválido. Debe ser uno de: {", ".join(ESTADOS_MANTENIMIENTO)}'}), 400
+        
+        # Validar tipo de mantenimiento
+        TIPOS_MANTENIMIENTO = ['preventivo', 'correctivo', 'inspección']
+        if d.get('tipo') and d.get('tipo') not in TIPOS_MANTENIMIENTO:
+            return jsonify({'error': f'Tipo inválido. Debe ser uno de: {", ".join(TIPOS_MANTENIMIENTO)}'}), 400
+        
+        result = supabase_request('PATCH', 'mantenimientos', f'?id=eq.{id}', {
             'tipo': d['tipo'],
             'descripcion': d['descripcion'],
             'fecha': d['fecha'],
@@ -913,13 +1021,30 @@ def update_mantenimiento(id):
             'estado': d.get('estado', 'completado'),
             'proxima_revision': d.get('proxima_revision') or None
         })
-        return jsonify({'ok': True})
+        
+        # Retornar datos actualizados
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 200
+        
+        # Si resultado vacío, obtener datos actualizados
+        if isinstance(result, list):
+            updated = supabase_request('GET', 'mantenimientos', f'?id=eq.{id}')
+            if isinstance(updated, list) and len(updated) > 0:
+                return jsonify(updated[0]), 200
+        
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/mantenimientos/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_mantenimiento(id):
     try:
+        # Validar que mantenimiento existe
+        existing = supabase_request('GET', 'mantenimientos', f'?id=eq.{id}')
+        if not isinstance(existing, list) or len(existing) == 0:
+            return jsonify({'error': 'Mantenimiento no encontrado'}), 404
+        
         supabase_request('DELETE', 'mantenimientos', f'?id=eq.{id}')
         return jsonify({'ok': True})
     except Exception as e:
@@ -1085,6 +1210,7 @@ def get_prestamo(id):
 
 
 @app.route('/api/prestamos/<int:id>/detalle', methods=['GET'])
+@require_api_login
 def get_prestamo_detalle(id):
     """Get detailed loan information including timeline"""
     try:
@@ -1210,6 +1336,20 @@ def create_prestamo():
     try:
         d = request.json
         
+        # Validar que equipo existe
+        equipo = supabase_request('GET', 'equipos', f'?id=eq.{d["equipo_id"]}')
+        if not isinstance(equipo, list) or len(equipo) == 0:
+            return jsonify({'error': f'Equipo con ID {d["equipo_id"]} no encontrado'}), 400
+        
+        # Validar que usuario existe
+        usuario = supabase_request('GET', 'usuarios', f'?id=eq.{d["usuario_id"]}')
+        if not isinstance(usuario, list) or len(usuario) == 0:
+            return jsonify({'error': f'Usuario con ID {d["usuario_id"]} no encontrado'}), 400
+        
+        # Validar que equipo no está Retirado
+        if equipo[0].get('disponibilidad') == 'Retirado':
+            return jsonify({'error': 'No se pueden crear préstamos de equipos retirados'}), 400
+        
         # Verificar si el equipo ya tiene un préstamo no devuelto (solicitado, firmado o activo)
         existing = supabase_request('GET', 'prestamos', f'?equipo_id=eq.{d["equipo_id"]}&estado=ne.devuelto')
         if isinstance(existing, list) and len(existing) > 0:
@@ -1246,8 +1386,9 @@ def create_prestamo():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prestamos/<int:id>/firma', methods=['POST'])
+@require_api_login
 def save_loan_signature(id):
-    """Save signature and images for a loan to Supabase Storage - supports 'inicial' or 'devolucion'"""
+    """Save signature and images for a loan to Supabase Storage - supports 'inicial' or 'devolucion"""
     try:
         debug_log("\n" + "="*70)
         debug_log(f"[ENDPOINT] /api/prestamos/{id}/firma called")

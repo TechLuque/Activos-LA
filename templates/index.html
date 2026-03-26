@@ -976,6 +976,7 @@ input[type="file"]::file-selector-button{
       <div class="form-grid">
         <div class="fg s2"><label>Nombre completo *</label><input id="uNom" placeholder="Nombre y apellidos"></div>
         <div class="fg s2"><label>Email *</label><input type="email" id="uEmail" placeholder="correo@empresa.com"></div>
+        <div class="fg s2"><label id="uPassLabel">Contraseña * <span style="font-size:0.85em">(min. 6 caracteres)</span></label><input type="password" id="uPass" placeholder="Contraseña segura"></div>
         <div class="fg"><label>Cargo *</label><select id="uRol" onchange="updateDptoFromRol()"><option value="">Seleccionar cargo…</option></select></div>
         <div class="fg"><label>Departamento (automático)</label><input id="uDpto" type="text" readonly placeholder="Se asigna automáticamente"></div>
         <div class="fg"><label>Teléfono</label><input id="uTel" placeholder="300 123 4567"></div>
@@ -2085,7 +2086,9 @@ function renderUsr(){
 function openUsrModal(){
   editUsrId=null;
   $('usrModalTitle').textContent='Nuevo responsable';
-  ['uNom','uEmail','uDpto','uTel'].forEach(id=>$(id).value='');
+  ['uNom','uEmail','uPass','uDpto','uTel'].forEach(id=>$(id).value='');
+  $('uPassLabel').textContent='Contraseña * (min. 6 caracteres)';
+  $('uPass').required=true;
   $('uEst').value='activo';
   $('uRol').value='';
   
@@ -2110,6 +2113,9 @@ function editUsr(id){
   $('usrModalTitle').textContent='Editar responsable';
   $('uNom').value=u.nombre;
   $('uEmail').value=u.email;
+  $('uPass').value='';  // Empty password field - only update if provided
+  $('uPassLabel').textContent='Contraseña (dejar vacío para no cambiar)';
+  $('uPass').required=false;
   $('uDpto').value=u.departamento||'';
   $('uTel').value=u.telefono||'';
   $('uEst').value=u.estado;
@@ -2141,12 +2147,16 @@ async function saveUsr(){
   const data={
     nombre:$('uNom').value.trim(),
     email:$('uEmail').value.trim(),
+    password:$('uPass').value.trim(),
     departamento:$('uDpto').value,
     telefono:$('uTel').value,
     estado:$('uEst').value,
     rol_id:parseInt($('uRol').value)||null
   };
-  if(!data.nombre||!data.email||!data.rol_id||!data.departamento){toast('Nombre, email, cargo y departamento son requeridos','err');return}
+  if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id||!data.departamento){
+    toast('Nombre, email, cargo y departamento son requeridos'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
+    return;
+  }
   const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
   if(res.error){toast(res.error,'err');return}
   close('ovUsr');await loadAll();renderUsr();renderDashboard();
@@ -2195,8 +2205,10 @@ function renderLoan(){
     </tr>`;}).join('');
 }
 function openLoanModal(){
-  const activos=LOANS.filter(p=>p.estado==='activo').map(p=>p.equipo_id);
-  window.equiposDisponibles=EQ.filter(e=>!activos.includes(e.id));
+  // Excluir equipos que YA tienen préstamos NO devueltos (no solo 'activo')
+  // Debe incluir: activo, solicitado, firmado
+  const asignados=LOANS.filter(p=>p.estado!=='devuelto').map(p=>p.equipo_id);
+  window.equiposDisponibles=EQ.filter(e=>!asignados.includes(e.id)&&e.disponibilidad!=='Retirado');
   $('lEqSearch').value='';
   $('lEq').value='';
   filterEquipos();
