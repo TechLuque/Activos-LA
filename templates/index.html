@@ -311,6 +311,8 @@ input::placeholder{color:var(--text3)}
 input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);background:var(--surface3)}
 textarea{resize:vertical;min-height:70px}
 select option{background:var(--surface2)}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer;opacity:0.7}
+input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
 /* ═══════════════ AVATAR ═══════════════ */
@@ -995,8 +997,8 @@ input[type="file"]::file-selector-button{
       <div class="form-grid c1">
         <div class="fg"><label>Equipo *</label><select id="lEq"><option value="">Seleccionar equipo disponible…</option></select></div>
         <div class="fg"><label>Responsable *</label><select id="lUsr"><option value="">Seleccionar responsable…</option></select></div>
-        <div class="fg"><label>Fecha de préstamo *</label><input type="date" id="lFecha"></div>
-        <div class="fg"><label>Devolución esperada</label><input type="date" id="lDevol"></div>
+        <div class="fg"><label>Fecha de préstamo *</label><input type="date" id="lFecha" style="color:white"></div>
+        <div class="fg"><label>Devolución esperada</label><input type="date" id="lDevol" style="color:white"></div>
         <div class="fg"><label>Notas</label><textarea id="lNotas" placeholder="Motivo o condiciones del préstamo…"></textarea></div>
       </div>
       <div class="form-actions">
