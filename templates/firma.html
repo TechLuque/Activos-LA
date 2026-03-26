@@ -384,24 +384,18 @@
         async function initPage() {
             try {
                 const url = `/api/prestamos/${loanId}`;
-                console.log('[INIT] Cargando prestamo desde: ' + url);
-                console.log('[INIT] Tipo de firma: ' + tipoFirma);
                 
                 const res = await fetch(url, {credentials: 'include'});
-                console.log('[INIT] Response status: ' + res.status);
                 
                 if (!res.ok) {
                     const errText = await res.text();
-                    console.error('[ERROR] ' + res.status + ': ' + errText);
                     showAlert('Prestamo no encontrado (Error ' + res.status + ')', 'error');
                     return;
                 }
                 
                 loanData = await res.json();
-                console.log('[INIT] Datos cargados:', loanData);
                 
                 if (!loanData || !loanData.id) {
-                    console.error('[ERROR] Respuesta vacia o sin ID');
                     showAlert('Error: Datos invalidos del prestamo', 'error');
                     return;
                 }
@@ -421,15 +415,11 @@
                 const devol = loanData.fecha_devolucion_esperada || '—';
                 const notas = loanData.notas || 'Sin notas';
                 
-                console.log('[INIT] Asignando valores: equipo=' + equipo + ', responsable=' + responsable);
-                
                 $('infEquipo').textContent = equipo;
                 $('infResponsable').textContent = responsable;
                 $('infFecha').textContent = fecha;
                 $('infDevol').textContent = devol;
                 $('infNotas').textContent = notas;
-                
-                console.log('[INIT] Informacion cargada correctamente');
 
                 // Inicializar firma
                 initSignaturePad();
@@ -438,7 +428,6 @@
                   'Información cargada. Completa el formulario y presiona Confirmar Firma';
                 showAlert(msg, 'info');
             } catch (err) {
-                console.error('[ERROR] Exception en initPage:', err);
                 showAlert('Error al cargar datos: ' + err.message, 'error');
             }
         }
@@ -446,7 +435,6 @@
         function initSignaturePad() {
             const canvas = $('signaturePad');
             if (!canvas) {
-                console.error('[ERROR] Canvas elemento no encontrado en DOM');
                 showAlert('Error: No se pudo cargar el área de firma', 'error');
                 return;
             }
@@ -462,7 +450,6 @@
                     
                     const container = canvas.parentElement;
                     if (!container) {
-                        console.error('[ERROR] Contenedor del canvas no encontrado');
                         return;
                     }
                     
@@ -474,11 +461,8 @@
                     canvas.width = width;
                     canvas.height = height;
                     
-                    console.log('[DEBUG] Canvas dimesiones:', width, 'x', height);
-                    
                     // Verificar que SignaturePad esté disponible
                     if (typeof SignaturePad === 'undefined') {
-                        console.error('[ERROR] SignaturePad library no cargada');
                         showAlert('Error: Librería de firma no disponible', 'error');
                         return;
                     }
@@ -509,12 +493,9 @@
                     
                     // Soporte para touch
                     canvas.style.touchAction = 'none';
-                    
-                    console.log('[DEBUG] SignaturePad inicializado correctamente');
                     updateSignatureStatus();
                     showAlert('✅ Área de firma lista - comienza a firmar', 'info');
                 } catch (err) {
-                    console.error('[ERROR] Error al inicializar SignaturePad:', err);
                     showAlert('Error: ' + err.message, 'error');
                 }
             }, 150);
@@ -609,17 +590,12 @@
                     throw new Error('Firma inválida o no se capturó correctamente');
                 }
                 
-                console.log('[DEBUG] Firma capturada, tamaño:', firmaDataURL.length, 'bytes');
-                console.log('[DEBUG] Imagen1:', img1File.name, 'Imagen2:', img2File.name);
-                
                 // Crear FormData
                 const formData = new FormData();
                 formData.append('firma_data', firmaDataURL);
                 formData.append('imagen1', img1File);
                 formData.append('imagen2', img2File);
                 formData.append('tipo', tipoFirma);  // 'inicial' o 'devolucion'
-                
-                console.log('[DEBUG] Enviando POST a /api/prestamos/' + loanId + '/firma con tipo: ' + tipoFirma);
                 
                 // Enviar al servidor
                 const response = await fetch(`/api/prestamos/${loanId}/firma`, {
@@ -634,7 +610,6 @@
                 }
                 
                 const result = await response.json();
-                console.log('[DEBUG] Respuesta del servidor:', result);
                 
                 if (result.error) {
                     throw new Error(result.error);
@@ -666,10 +641,7 @@
                     </div>
                 `;
                 
-                console.log('[DEBUG] Firma completada exitosamente');
-                
             } catch (err) {
-                console.error('[ERROR] Error al guardar firma:', err);
                 document.querySelector('.loading').style.display = 'none';
                 $('alertBox').style.display = 'block';
                 showAlert('❌ Error: ' + err.message, 'error');

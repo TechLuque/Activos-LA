@@ -260,6 +260,10 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 .btn-danger:hover{background:rgba(248,113,113,.2)}
 .btn-teal{background:var(--teal-soft);color:var(--teal);border:none}
 .btn-teal:hover{background:rgba(45,212,191,.2)}
+.btn-success{background:var(--green-soft);color:var(--green);border:none}
+.btn-success:hover{background:rgba(52,211,153,.2)}
+.btn-info{background:var(--blue-soft);color:var(--blue);border:none}
+.btn-info:hover{background:rgba(79,142,247,.2)}
 .btn-sm{padding:6px 12px;font-size:12px}
 .btn-xs{padding:4px 9px;font-size:11px;border-radius:var(--radius-xs)}
 .btn-icon{padding:7px;border-radius:var(--radius-xs);font-size:14px}
@@ -831,7 +835,7 @@ input[type="file"]::file-selector-button{
             <select id="eTipo" style="flex:1">
               <option value="">Seleccionar…</option>
             </select>
-            <button type="button" class="btn btn-sm" onclick="openAgregarTipo()" title="Agregar nuevo tipo" style="padding:8px 12px">➕</button>
+            <button type="button" class="btn btn-sm" onclick="openAgregarTipo()" title="Agregar nuevo tipo" style="padding:8px 12px;color:white">➕</button>
           </div>
         </div>
         <div class="fg"><label>Estado</label>
@@ -1206,13 +1210,10 @@ const api=async(url,m='GET',b=null)=>{
     const r=await fetch(url,{method:m,credentials:'include',headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null});
     const data=await r.json();
     if(!r.ok){
-      console.error(`API Error [${r.status}](${url}):`,data);
       return {error:data.error||'API Error'};
     }
-    console.log(`✓ API ${m} ${url}:`,data.length?`${data.length} items`:'success');
     return data;
   }catch(e){
-    console.error(`Network Error (${url}):`,e);
     return {error:e.message};
   }
 };
@@ -1280,8 +1281,6 @@ function nav(page){
    INIT
 ════════════════════════════════════════════════════ */
 async function init(){
-  console.log('🚀 Initializing app...');
-  
   // Obtener información del usuario
   try{
     const user=await api('/api/user');
@@ -1291,16 +1290,13 @@ async function init(){
       $('pgDate').textContent=`Hola, ${user.nombre||'Administrador'} · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
     }
   }catch(e){
-    console.error('Error fetching user:', e);
   }
   
   // Check backend health
   const health=await api('/api/health');
   if(health.error){
-    console.error('❌ Backend health check failed:',health.error);
     toast('No se puede conectar al servidor','err');
   }else{
-    console.log('✓ Backend healthy:',health.message);
   }
   
   // Cargar tipos PRIMERO para que estén disponibles cuando se carguen otros datos
@@ -1311,7 +1307,6 @@ async function init(){
 }
 
 async function loadAll(){
-  console.log('📂 Loading all data from backend...');
   try{
     const [eq,usr,loans,mants]=await Promise.all([
       api('/api/equipos'),
@@ -1322,19 +1317,15 @@ async function loadAll(){
     
     // Check for errors in any response
     if(eq.error||usr.error||loans.error||mants.error){
-      console.error('Data load errors:',{eq:eq.error,usr:usr.error,loans:loans.error,mants:mants.error});
       toast('Error loading data from server','err');
       return;
     }
     
     EQ=eq; USR=usr; LOANS=loans; MANTS=mants;
-    console.log(`✓ All data loaded: ${EQ.length} equipos, ${USR.length} usuarios, ${LOANS.length} prestamos, ${MANTS.length} mantenimientos`);
     
     DASH=await api('/api/dashboard');
-    if(!DASH.error)console.log('✓ Dashboard data loaded');
     updateNavBadges();
   }catch(e){
-    console.error('Fatal error in loadAll:',e);
     toast('Error fatal al cargar datos','err');
   }
 }
@@ -1358,7 +1349,6 @@ async function loadTiposEquipos(){
       ftTipo.value=oldValue;
     }
   }catch(e){
-    console.error('Error loading tipos:',e);
   }
 }
 
@@ -1370,7 +1360,6 @@ async function loadRoles(){
       ROLES=res;
     }
   }catch(e){
-    console.error('Error loading roles:',e);
   }
 }
 
@@ -1401,7 +1390,6 @@ function updateNavBadges(){
 ════════════════════════════════════════════════════ */
 function renderDashboard(){
   const d=DASH;
-  console.log('📊 Dashboard data:',d);
   
   // Stats
   const valorM=d.valor_total?(d.valor_total/1000000).toFixed(1):'0';
@@ -1690,7 +1678,6 @@ async function saveNewTipo(){
       toast(res.error||'Error al agregar tipo','err');
     }
   }catch(e){
-    console.error('Error:',e);
     toast('Error al agregar tipo','err');
   }
 }
@@ -2212,22 +2199,16 @@ async function saveLoan(){
   };
   
   const res=await api('/api/prestamos','POST',data);
-  console.log('Create loan response:', res);
   
   if(res.error){
     toast(res.error,'err');
-    console.error('Error creating loan:', res);
     return;
   }
   
   // Obtener el ID del préstamo creado
   let newLoanId=res.id;
   
-  console.log('New loan ID:', newLoanId);
-  
-  // Si por alguna razón no viene el ID, no continuar
   if(!newLoanId){
-    console.error('No se obtuvo el ID del préstamo',res);
     toast('Error: No se pudo obtener el ID del préstamo','err');
     return;
   }
@@ -2617,26 +2598,26 @@ function openSignatureForm(loanId, tipo='inicial'){
 }
 
 function showSignatureLinkModal(loanId){
-  console.log('showSignatureLinkModal called with loanId:', loanId);
+
   if(!loanId){
     toast('Error: ID de prestamo invalido','err');
     return;
   }
   const sigUrl=`${window.location.origin}/firma/${loanId}`;
-  console.log('Generated URL:', sigUrl);
+
   $('sigLinkUrl').value=sigUrl;
   $('sigLinkQR').innerHTML='';
   open('ovSignLink');
 }
 
 function showReturnLinkModal(loanId){
-  console.log('showReturnLinkModal called with loanId:', loanId);
+
   if(!loanId){
     toast('Error: ID de prestamo invalido','err');
     return;
   }
   const returnUrl=`${window.location.origin}/firma/${loanId}?tipo=devolucion`;
-  console.log('Generated return URL:', returnUrl);
+
   $('returnLinkUrl').value=returnUrl;
   open('ovReturnLink');
 }
@@ -2646,7 +2627,6 @@ function copySignatureLink(){
   navigator.clipboard.writeText(url).then(()=>{
     toast('Link copiado al portapapeles ✅','ok');
   }).catch(err=>{
-    console.error('Error copying:',err);
     toast('Error al copiar','err');
   });
 }
@@ -2656,7 +2636,6 @@ function copyReturnLink(){
   navigator.clipboard.writeText(url).then(()=>{
     toast('Link copiado al portapapeles ✅','ok');
   }).catch(err=>{
-    console.error('Error copying:',err);
     toast('Error al copiar','err');
   });
 }
@@ -2776,7 +2755,6 @@ async function submitSignatureForm(){
       nav('prestamos');
     }
   }catch(err){
-    console.error('Error:',err);
     toast('Error al procesar firma','err');
   }
 }
