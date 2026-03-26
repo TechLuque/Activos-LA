@@ -475,7 +475,10 @@ def update_usuario(id):
         if not isinstance(existing, list) or len(existing) == 0:
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
-        d = request.json
+        d = request.json or {}
+        
+        if not isinstance(d, dict):
+            return jsonify({'error': 'Datos inválidos'}), 400
         
         # Departamentos permitidos
         DEPARTAMENTOS_VALIDOS = ['Finanzas', 'Plataformas', 'Producción', 'Academia', 'Contenido', 'Gerencia']
@@ -499,8 +502,8 @@ def update_usuario(id):
                 return jsonify({'error': f'Rol con ID {rol_id} no existe'}), 400
         
         update_data = {
-            'nombre': d['nombre'],
-            'email': d['email'],
+            'nombre': d.get('nombre', ''),
+            'email': d.get('email', ''),
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo')
@@ -605,7 +608,11 @@ def update_tipo_equipo(id):
         if not isinstance(existing, list) or len(existing) == 0:
             return jsonify({'error': 'Tipo de equipo no encontrado'}), 404
         
-        data = request.json
+        data = request.json or {}
+        
+        if not isinstance(data, dict):
+            return jsonify({'error': 'Datos inválidos'}), 400
+        
         nombre = data.get('nombre', '').strip()
         descripcion = data.get('descripcion', '')
         
@@ -718,7 +725,11 @@ def update_equipo(id):
         if not isinstance(existing, list) or len(existing) == 0:
             return jsonify({'error': 'Equipo no encontrado'}), 404
         
-        d = request.json
+        d = request.json or {}
+        
+        if not isinstance(d, dict):
+            return jsonify({'error': 'Datos inválidos'}), 400
+        
         tipo_nombre = d.get('tipo')
         
         # Buscar ID del tipo en tipos_equipos
@@ -820,7 +831,11 @@ def update_rol(id):
         if not isinstance(existing, list) or len(existing) == 0:
             return jsonify({'error': 'Rol no encontrado'}), 404
         
-        data = request.json
+        data = request.json or {}
+        
+        if not isinstance(data, dict):
+            return jsonify({'error': 'Datos inválidos'}), 400
+        
         nombre = data.get('nombre', '').strip()
         descripcion = data.get('descripcion', '')
         departamento = data.get('departamento', '')
@@ -1000,7 +1015,10 @@ def update_mantenimiento(id):
         if not isinstance(existing, list) or len(existing) == 0:
             return jsonify({'error': 'Mantenimiento no encontrado'}), 404
         
-        d = request.json
+        d = request.json or {}
+        
+        if not isinstance(d, dict):
+            return jsonify({'error': 'Datos inválidos'}), 400
         
         # Validar estados de mantenimiento
         ESTADOS_MANTENIMIENTO = ['pendiente', 'completado', 'cancelado', 'en_progreso']
