@@ -143,7 +143,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* ═══════════════ PAGES ══════════════════ */
 .page{display:none;animation:fadeUp .3s ease}
-.page.active{display:block}
+.page.active{display:block;display:flex;flex-direction:column;height:100%}
+#page-equipos,#page-mantenimientos,#page-usuarios,#page-prestamos{display:flex !important;flex-direction:column;height:100%}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ═══════════════ CARD ═══════════════════ */
@@ -218,7 +219,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .mli-right{font-family:var(--font-d);font-size:18px;font-weight:800}
 
 /* ═══════════════ TABLE ════════════════ */
-.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;max-height:calc(100vh - 280px)}
+.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;max-height:calc(100vh - 200px);flex:1;min-height:300px}
 table{width:100%;border-collapse:collapse;background:var(--surface)}
 thead tr{background:var(--surface2)}
 th{padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-bottom:1px solid var(--border)}
