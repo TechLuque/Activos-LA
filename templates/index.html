@@ -151,8 +151,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .card-header{padding:18px 20px 0;display:flex;justify-content:space-between;align-items:flex-start}
 .card-title{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--text)}
 .card-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
-.card-body{padding:16px 20px 20px}
-.card-body-scrollable{max-height:320px;overflow-y:auto;overflow-x:hidden}
+.card-body{padding:16px 20px 20px;display:block}
+.card-body-scrollable{max-height:320px;overflow-y:auto;overflow-x:hidden;padding:16px 20px 20px;display:block}
+.card-body-scrollable::-webkit-scrollbar{width:6px}
+.card-body-scrollable::-webkit-scrollbar-track{background:transparent}
+.card-body-scrollable::-webkit-scrollbar-thumb{background:var(--text3);border-radius:3px}
+.card-body-scrollable::-webkit-scrollbar-thumb:hover{background:var(--text2)}
 
 /* ═══════════════ STAT CARDS ════════════ */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
