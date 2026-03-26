@@ -1772,33 +1772,34 @@ async function saveEditarTipo(){
   
   if(!nombre){toast('El nombre no puede estar vacío','err');return;}
   
-  const res=await api(`/api/tipos-equipos/${editTipoId}`,'PUT',{nombre,descripcion});
-  
-  if(res.error){
-    toast(res.error,'err');
-    return;
-  }
-  
-  if(res.id || res.nombre){
-    // Actualizar array local con respuesta completa
+  try {
+    const res=await api(`/api/tipos-equipos/${editTipoId}`,'PUT',{nombre,descripcion});
+    
+    // Si hay error explícito, mostrar
+    if(res.error){
+      toast(res.error,'err');
+      return;
+    }
+    
+    // Actualizar array local (usar respuesta o al menos actualizar propiedades básicas)
     const idx=TIPOS.findIndex(t=>t.id===editTipoId);
     if(idx>=0){
-      TIPOS[idx]={...TIPOS[idx], ...res};
+      TIPOS[idx]={
+        ...TIPOS[idx],
+        id: res.id || editTipoId,
+        nombre: res.nombre || nombre,
+        descripcion: res.descripcion !== undefined ? res.descripcion : descripcion
+      };
     }
+    
     TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     renderTipos();
     updateTiposInModal();
     close('ovEditarTipo');
     toast(`Tipo "${nombre}" actualizado correctamente ✅`,'ok');
     editTipoId=null;
-  }else{
-    // Si respuesta está vacía pero sin error, recargar datos
-    await loadAll();
-    renderTipos();
-    updateTiposInModal();
-    close('ovEditarTipo');
-    toast(`Tipo "${nombre}" actualizado correctamente ✅`,'ok');
-    editTipoId=null;
+  } catch(e) {
+    toast('Error al actualizar tipo: '+e.message,'err');
   }
 }
 
@@ -1878,32 +1879,43 @@ async function saveRol(){
   const method=editRolId?'PUT':'POST';
   const endpoint=editRolId?`/api/roles/${editRolId}`:'/api/roles';
   
-  const res=await api(endpoint,method,{nombre,descripcion,departamento});
-  
-  if(res.error){
-    toast(res.error,'err');
-    return;
-  }
-  
-  if(res.id || res.nombre){
+  try {
+    const res=await api(endpoint,method,{nombre,descripcion,departamento});
+    
+    // Si hay error explícito, mostrar
+    if(res.error){
+      toast(res.error,'err');
+      return;
+    }
+    
+    // Actualizar array local
     if(editRolId){
       const idx=ROLES.findIndex(r=>r.id===editRolId);
-      ROLES[idx]={...ROLES[idx], ...res};
+      if(idx>=0){
+        ROLES[idx]={
+          ...ROLES[idx],
+          id: res.id || editRolId,
+          nombre: res.nombre || nombre,
+          descripcion: res.descripcion !== undefined ? res.descripcion : descripcion,
+          departamento: res.departamento || departamento
+        };
+      }
     }else{
-      ROLES.push(res);
+      ROLES.push({
+        id: res.id,
+        nombre: res.nombre || nombre,
+        descripcion: res.descripcion || descripcion,
+        departamento: res.departamento || departamento
+      });
     }
+    
     ROLES.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     renderRoles();
     close('ovTipoRol');
     toast(editRolId?'Rol actualizado correctamente ✅':'Rol creado correctamente ✅','ok');
     editRolId=null;
-  }else{
-    // Si respuesta está vacía pero sin error, recargar datos
-    await loadAll();
-    renderRoles();
-    close('ovTipoRol');
-    toast(editRolId?'Rol actualizado correctamente ✅':'Rol creado correctamente ✅','ok');
-    editRolId=null;
+  } catch(e) {
+    toast('Error al guardar rol: '+e.message,'err');
   }
 }
 
