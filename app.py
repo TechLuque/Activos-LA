@@ -3,17 +3,14 @@ import os
 import requests
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
-import json
 import base64
 from functools import wraps
-from io import BytesIO
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Cargar variables de entorno
 load_dotenv()
 
 import sys
-import platform
 
 # Detectar si estamos en Vercel (read-only filesystem)
 IS_VERCEL = 'VERCEL' in os.environ or os.getenv('VERCEL_ENV') == 'production'
@@ -27,24 +24,8 @@ def debug_log(msg):
     # Output to stdout (visible in Vercel logs)
     print(formatted_msg, file=sys.stdout)
     sys.stdout.flush()
-    
-    # Try to write to file for local development (Vercel will fail, but that's OK)
-    if not IS_VERCEL:
-        try:
-            with open('debug.log', 'a', encoding='utf-8') as f:
-                f.write(formatted_msg + "\n")
-                f.flush()
-        except:
-            # Silently fail on read-only systems (Vercel)
-            pass
 
 # Verificar que las variables se cargaron
-import dotenv
-debug_log(f"\n[INIT] Current working directory: {os.getcwd()}")
-debug_log(f"[INIT] load_dotenv returned: {load_dotenv()}")
-debug_log(f"[INIT] SUPABASE_URL from env: {os.getenv('SUPABASE_URL')}")
-debug_log(f"[INIT] SUPABASE_KEY from env: {os.getenv('SUPABASE_KEY')[:50] if os.getenv('SUPABASE_KEY') else 'NOT SET'}...")
-debug_log(f"[INIT] SUPABASE_SECRET_KEY from env: {os.getenv('SUPABASE_SECRET_KEY')[:50] if os.getenv('SUPABASE_SECRET_KEY') else 'NOT SET'}...")
 
 app = Flask(
     __name__,
@@ -77,10 +58,6 @@ def supabase_storage_upload(file_content, file_path):
         public_url: string URL to access the file publicly
     """
     try:
-        debug_log(f"\n[STORAGE] ═════════════════════════════════════")
-        debug_log(f"[STORAGE] Uploading file: {file_path}")
-        debug_log(f"[STORAGE] Content size: {len(file_content)} bytes")
-        
         # Ensure file_content is bytes
         if not isinstance(file_content, bytes):
             file_content = bytes(file_content)
@@ -88,19 +65,8 @@ def supabase_storage_upload(file_content, file_path):
         storage_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}/{file_path}"
         
         # Validate credentials are loaded
-        if not SUPABASE_URL:
-            debug_log(f"[ERROR] SUPABASE_URL is not set!")
+        if not SUPABASE_URL or not SUPABASE_KEY or not SUPABASE_SECRET_KEY:
             return None
-        if not SUPABASE_KEY:
-            debug_log(f"[ERROR] SUPABASE_KEY is not set!")
-            return None
-        if not SUPABASE_SECRET_KEY:
-            debug_log(f"[ERROR] SUPABASE_SECRET_KEY is not set!")
-            return None
-        
-        debug_log(f"[STORAGE] SUPABASE_URL: {SUPABASE_URL[:50]}...")
-        debug_log(f"[STORAGE] SUPABASE_KEY len: {len(SUPABASE_KEY)}")
-        debug_log(f"[STORAGE] SUPABASE_SECRET_KEY len: {len(SUPABASE_SECRET_KEY)}")
         
         # Headers with Authorization using Service Role Key
         headers = {
@@ -109,27 +75,15 @@ def supabase_storage_upload(file_content, file_path):
             'Content-Type': 'application/octet-stream'
         }
         
-        debug_log(f"[STORAGE] Storage URL: {storage_url}")
-        debug_log(f"[STORAGE] Making POST request...")
-        
         resp = requests.post(storage_url, headers=headers, data=file_content, timeout=10)
-        
-        debug_log(f"[STORAGE] Response status: {resp.status_code}")
-        debug_log(f"[STORAGE] Response body: {resp.text[:500]}")
         
         if resp.status_code in [200, 201]:
             # Generar URL pública
             public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}/{file_path}"
-            debug_log(f"[STORAGE] SUCCESS - File uploaded: {file_path}")
             return public_url
         else:
-            debug_log(f"[STORAGE] FAILED - Status {resp.status_code}: {resp.text}")
             return None
     except Exception as e:
-        debug_log(f"[STORAGE] EXCEPTION: {e}")
-        debug_log(f"[STORAGE] Exception type: {type(e).__name__}")
-        import traceback
-        debug_log(traceback.format_exc())
         return None
 
 def supabase_request(method, table, query='', data=None):
@@ -201,49 +155,34 @@ def api_login():
         username = data.get('username', '').strip()
         password = data.get('password', '').strip()
         
-        print(f"[AUTH] Intento login - usuario: '{username}'")
-        
         if not username or not password:
-            print(f"[AUTH] Error: campos vacíos")
             return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
         
         # Buscar usuario en BD por email (primero)
-        print(f"[AUTH] Buscando por email: {username}")
         usuarios = supabase_request('GET', 'usuarios', f'?email=eq.{username}')
-        print(f"[AUTH] Respuesta email: {type(usuarios)} - {str(usuarios)[:100]}")
         
         if not isinstance(usuarios, list) or len(usuarios) == 0:
             # Si no existe por email, buscar por nombre (case-insensitive)
-            # Supabase soporta ilike para case-insensitive
-            print(f"[AUTH] No encontrado por email, buscando por nombre: {username}")
             usuarios = supabase_request('GET', 'usuarios', f'?nombre=ilike.{username}')
-            print(f"[AUTH] Respuesta nombre: {type(usuarios)} - {str(usuarios)[:100]}")
         
         if not isinstance(usuarios, list) or len(usuarios) == 0:
-            print(f"[AUTH] Usuario no encontrado")
             return jsonify({'error': 'Usuario o contraseña incorrectos'}), 401
         
         user = usuarios[0]
-        print(f"[AUTH] Usuario encontrado: {user.get('nombre')} (ID: {user.get('id')})")
-        print(f"[AUTH] Estado: {user.get('estado')}")
         
         # Verificar contraseña (comparar contra hash)
         stored_password = user.get('password', '')
         if not check_password_hash(stored_password, password):
-            print(f"[AUTH] Contraseña incorrecta")
             return jsonify({'error': 'Usuario o contraseña incorrectos'}), 401
         
         # Verificar que el usuario esté activo
         if user.get('estado') != 'activo':
-            print(f"[AUTH] Usuario no está activo")
             return jsonify({'error': 'Usuario inactivo'}), 403
         
         # Crear sesión
         session['user_id'] = user.get('id')
         session['username'] = user.get('nombre')
         session['email'] = user.get('email')
-        
-        print(f"[AUTH] ✅ Usuario {user.get('nombre')} (ID: {user.get('id')}) autenticado exitosamente")
         
         return jsonify({
             'ok': True,
@@ -256,15 +195,12 @@ def api_login():
         }), 200
         
     except Exception as e:
-        print(f"[ERROR] Error en login: {str(e)}")
         return jsonify({'error': f'Error al autenticar: {str(e)}'}), 500
 
 @app.route('/logout', methods=['GET'])
 def logout():
     """Cerrar sesión"""
-    username = session.get('username', 'Usuario')
     session.clear()
-    print(f"[AUTH] {username} cerró sesión")
     return redirect(url_for('login_page'))
 
 @app.route('/api/user', methods=['GET'])
@@ -292,32 +228,23 @@ def index():
 @require_api_login
 def dashboard():
     try:
-        debug_log(f"\n[DASHBOARD] ══════════════════════════════════════")
         today = date.today().isoformat()
         in7 = (date.today() + timedelta(days=7)).isoformat()
         
         # Total equipos
-        debug_log(f"[DASHBOARD] Obteniendo equipos...")
         equipos = supabase_request('GET', 'equipos')
-        debug_log(f"[DASHBOARD] Respuesta equipos: {type(equipos)} → {str(equipos)[:150] if isinstance(equipos, dict) else f'{len(equipos)} items'}")
         total_equipos = len(equipos) if isinstance(equipos, list) else 0
         
         # Total usuarios activos
-        debug_log(f"[DASHBOARD] Obteniendo usuarios activos...")
         usuarios = supabase_request('GET', 'usuarios', '?estado=eq.activo')
-        debug_log(f"[DASHBOARD] Respuesta usuarios: {type(usuarios)} → {str(usuarios)[:150] if isinstance(usuarios, dict) else f'{len(usuarios)} items'}")
         total_usuarios = len(usuarios) if isinstance(usuarios, list) else 0
         
         # Préstamos activos
-        debug_log(f"[DASHBOARD] Obteniendo préstamos activos...")
         prestamos_act = supabase_request('GET', 'prestamos', '?estado=neq.devuelto')
-        debug_log(f"[DASHBOARD] Respuesta préstamos: {type(prestamos_act)} → {str(prestamos_act)[:150] if isinstance(prestamos_act, dict) else f'{len(prestamos_act)} items'}")
         prestamos_activos = len(prestamos_act) if isinstance(prestamos_act, list) else 0
         
         # Mantenimientos en proceso
-        debug_log(f"[DASHBOARD] Obteniendo mantenimientos en proceso...")
         mant_proc = supabase_request('GET', 'mantenimientos', '?estado=neq.completado')
-        debug_log(f"[DASHBOARD] Respuesta mantenimientos: {type(mant_proc)} → {str(mant_proc)[:150] if isinstance(mant_proc, dict) else f'{len(mant_proc)} items'}")
         mant_en_proceso = len(mant_proc) if isinstance(mant_proc, list) else 0
         
         # Estados de equipos
@@ -395,13 +322,6 @@ def dashboard():
             'proximos_vencer': proximos_vencer,
             'prestamos_vencidos': prestamos_vencidos,
         }
-        debug_log(f"[DASHBOARD] ✓ Resultado final:")
-        debug_log(f"[DASHBOARD]   - Total equipos: {total_equipos}")
-        debug_log(f"[DASHBOARD]   - Total usuarios: {total_usuarios}")
-        debug_log(f"[DASHBOARD]   - Préstamos activos: {prestamos_activos}")
-        debug_log(f"[DASHBOARD]   - Mantenimientos en proceso: {mant_en_proceso}")
-        debug_log(f"[DASHBOARD]   - Préstamos vencidos: {len(prestamos_vencidos)}")
-        debug_log(f"[DASHBOARD]   - Revisiones vencidas: {preventivos_vencidos}")
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1209,16 +1129,9 @@ def get_prestamo(id):
         # ═══════════════════════════════════════════════════════════════
         print(f"[LOAN_FETCH] ✅ Respuesta final completa:")
         print(f"  - ID: {loan.get('id')}")
-        print(f"  - Equipo: {loan.get('equipo_nombre')}")
-        print(f"  - Usuario: {loan.get('usuario_nombre')}")
-        print(f"  - Estado: {loan.get('estado')}")
-        
         return jsonify(loan)
         
     except Exception as e:
-        print(f"[ERROR] Exception en get_prestamo: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': f"Error al obtener préstamo: {str(e)}"}), 500
 
 
@@ -1403,19 +1316,11 @@ def create_prestamo():
 def save_loan_signature(id):
     """Save signature and images for a loan to Supabase Storage - supports 'inicial' or 'devolucion"""
     try:
-        debug_log("\n" + "="*70)
-        debug_log(f"[ENDPOINT] /api/prestamos/{id}/firma called")
-        debug_log(f"[ENVIRONMENT] IS_VERCEL={IS_VERCEL}")
-        debug_log("="*70)
-        
         # Obtener archivos y parámetro de tipo
         imagen1 = request.files.get('imagen1')
         imagen2 = request.files.get('imagen2')
         firma_data = request.form.get('firma_data', '')
         tipo_firma = request.form.get('tipo', 'inicial')  # 'inicial' o 'devolucion'
-        
-        debug_log(f"[DEBUG] imagen1: {imagen1.filename if imagen1 else 'None'}")
-        debug_log(f"[DEBUG] imagen2: {imagen2.filename if imagen2 else 'None'}")
         
         # Read files in memory only (no disk I/O)
         try:
@@ -1428,19 +1333,9 @@ def save_loan_signature(id):
             else:
                 img2_content_test = b''
         except Exception as e:
-            debug_log(f"[ERROR] Error reading files from request: {e}")
             return jsonify({'error': f'Error al leer archivos: {str(e)}'}), 400
         
-        debug_log(f"[DEBUG] imagen1 size: {len(img1_content_test)} bytes")
-        debug_log(f"[DEBUG] imagen2 size: {len(img2_content_test)} bytes")
-        debug_log(f"[DEBUG] firma_data length: {len(firma_data)}")
-        debug_log(f"[DEBUG] tipo_firma: {tipo_firma}")
-        debug_log(f"[DEBUG] SUPABASE_URL: {SUPABASE_URL[:50] if SUPABASE_URL else 'NOT SET'}...")
-        debug_log(f"[DEBUG] SUPABASE_KEY: {'SET' if SUPABASE_KEY else 'NOT SET'}")
-        debug_log(f"[DEBUG] SUPABASE_SECRET_KEY: {'SET' if SUPABASE_SECRET_KEY else 'NOT SET'}")
-        
         if not imagen1 or not imagen2:
-            debug_log(f"[ERROR] Missing files: imagen1={bool(imagen1)}, imagen2={bool(imagen2)}")
             return jsonify({'error': 'Se requieren 2 imágenes'}), 400
         
         # Validar que los archivos no estén vacíos
@@ -1476,26 +1371,14 @@ def save_loan_signature(id):
                 header, encoded = firma_data.split(',', 1)
                 img_data = base64.b64decode(encoded)
                 
-                debug_log(f"[DEBUG] Firma base64 decoded: {len(img_data)} bytes")
-                debug_log(f"[DEBUG] Uploading firma to path: {firma_path}")
-                
                 # Subir a Supabase Storage
-                debug_log(f"[DEBUG] Calling supabase_storage_upload()...")
                 firma_url = supabase_storage_upload(img_data, firma_path)
                 
-                debug_log(f"[DEBUG] supabase_storage_upload() returned: {firma_url is not None}")
-                
                 if not firma_url:
-                    debug_log(f"[ERROR] supabase_storage_upload returned None for firmware {tipo_firma}")
                     return jsonify({'error': 'Error al guardar firma en Storage'}), 500
-                
-                debug_log(f"[SUCCESS] Firma URL: {firma_url}")
             else:
                 return jsonify({'error': 'Firma no es un dataURL válido'}), 400
         except Exception as e:
-            debug_log(f"[ERROR] Error procesando firma: {e}")
-            import traceback
-            debug_log(traceback.format_exc())
             return jsonify({'error': f'Error al procesar firma: {str(e)}'}), 500
         
         # ═══════════════════════════════════════════════════════════════
@@ -1590,47 +1473,6 @@ def devolver_prestamo(id):
         return jsonify({'error': str(e)}), 500
 
 # ========== DEBUG ENDPOINT ==========
-@app.route('/api/debug/storage-test', methods=['POST'])
-def debug_storage_test():
-    """Test endpoint to debug Storage uploads"""
-    try:
-        print("\n" + "="*70)
-        print("DEBUG: Storage Upload Test")
-        print("="*70)
-        
-        # Create test data
-        test_content = b"TEST FILE CONTENT - " + bytes(str(datetime.now()), 'utf-8')
-        test_path = f"debug/test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        
-        print(f"\n[DEBUG] Testing upload to: {test_path}")
-        print(f"[DEBUG] Content size: {len(test_content)} bytes")
-        print(f"[DEBUG] SUPABASE_URL: {SUPABASE_URL}")
-        print(f"[DEBUG] SUPABASE_KEY exists: {bool(SUPABASE_KEY)}")
-        print(f"[DEBUG] SUPABASE_SECRET_KEY exists: {bool(SUPABASE_SECRET_KEY)}")
-        
-        # Call storage upload
-        result_url = supabase_storage_upload(test_content, test_path)
-        
-        print(f"\n[DEBUG] Upload result: {result_url}")
-        
-        if result_url:
-            return jsonify({
-                'ok': True,
-                'message': 'Storage upload successful',
-                'url': result_url
-            }), 200
-        else:
-            return jsonify({
-                'ok': False,
-                'message': 'Storage upload failed - check server logs'
-            }), 500
-            
-    except Exception as e:
-        print(f"\n[ERROR] Debug test error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/prestamos/<int:id>', methods=['DELETE'])
 def delete_prestamo(id):
     try:

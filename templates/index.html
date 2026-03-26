@@ -1254,7 +1254,19 @@ function toast(msg,type='info'){
 }
 
 const fmt=n=>n?'$'+Number(n).toLocaleString('es-CO'):'—';
-const fmtDate=d=>{if(!d)return'—';const[y,mo,dd]=d.split('-');return`${dd}/${mo}/${y}`};
+const fmtDate=d=>{
+  if(!d)return'—';
+  // Manejar ISO timestamps (2026-03-26T15:09:57.237541)
+  if(d.includes('T')){
+    const[datePart,timePart]=d.split('T');
+    const[y,mo,dd]=datePart.split('-');
+    const[hh,mm]=timePart.split(':');
+    return`${dd}/${mo}/${y} ${hh}:${mm}`;
+  }
+  // Si solo es YYYY-MM-DD
+  const[y,mo,dd]=d.split('-');
+  return`${dd}/${mo}/${y}`;
+};
 const daysLeft=d=>{if(!d)return null;const diff=Math.ceil((new Date(d)-new Date(TODAY))/(1000*60*60*24));return diff};
 
 const TIPO_ICON={Computador:'💻',Teclado:'⌨️',Mouse:'🖱️',Monitor:'🖥️',UPS:'🔋',Impresora:'🖨️',Tablet:'📱','Teléfono':'☎️',Tripode:'📷',Silla:'🪑','Pantalla led':'📺',Servidor:'🗄️',Router:'📡',Switch:'🔀',Otro:'📦'};
