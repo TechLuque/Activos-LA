@@ -1427,7 +1427,6 @@ def save_signature_complete(id):
 
 
 @app.route('/api/prestamos/<int:id>/firma', methods=['POST'])
-@require_api_login
 def save_loan_signature(id):
     """Save signature and images for a loan to Supabase Storage - supports 'inicial' or 'devolucion"""
     try:
