@@ -1322,7 +1322,6 @@ def create_prestamo():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prestamos/<int:id>/upload-image', methods=['POST'])
-@require_api_login
 def upload_single_image(id):
     """Upload a single image (minimal processing)"""
     try:
@@ -1363,7 +1362,6 @@ def upload_single_image(id):
 
 
 @app.route('/api/prestamos/<int:id>/save-signature', methods=['POST'])
-@require_api_login
 def save_signature_complete(id):
     """Save signature and update loan record"""
     try:
