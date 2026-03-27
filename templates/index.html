@@ -745,7 +745,11 @@ input[type="file"]::file-selector-button{
         <div class="filter-row">
           <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable…" oninput="renderLoan()">
           <select id="ftLoanEst" onchange="renderLoan()">
-            <option value="">Todos</option><option value="activo">Activo</option><option value="devuelto">Devuelto</option>
+            <option value="">Todos los estados</option>
+            <option value="solicitado">Solicitado</option>
+            <option value="firmado">Firmado</option>
+            <option value="activo">Activo</option>
+            <option value="devuelto">Devuelto</option>
           </select>
         </div>
         <span class="count-badge" id="loanCount"></span>
@@ -1414,6 +1418,20 @@ function updateTiposInModal(){
   sel.value=oldValue;
 }
 
+function updateTiposFilter(){
+  const tipos=[...new Set(EQ.map(e=>e.tipo_nombre||e.tipo).filter(t=>t))].sort();
+  const sel=$('ftTipo');
+  const current=sel.value;
+  sel.innerHTML='<option value="">Todos los tipos</option>';
+  tipos.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t;
+    opt.textContent=t;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+}
+
 function updateNavBadges(){
   const nbMant=$('nb-mant'), nbLoan=$('nb-loan');
   const enProceso=MANTS.filter(m=>m.estado==='en_proceso').length;
@@ -1421,6 +1439,7 @@ function updateNavBadges(){
   nbMant.style.display=enProceso>0?'flex':'none'; nbMant.textContent=enProceso;
   nbLoan.style.display=alertLoans>0?'flex':'none'; nbLoan.textContent=alertLoans;
   updateDptosSelect();
+  updateTiposFilter();
 }
 
 /* ════════════════════════════════════════════════════
@@ -1599,15 +1618,12 @@ function renderDashboard(){
    EQUIPOS
 ════════════════════════════════════════════════════ */
 function renderEq(){
+  updateTiposFilter();
   const q=($('srchEq')?.value||'').toLowerCase();
   const tipo=$('ftTipo')?.value||'';
   const est=$('ftEst')?.value||'';
   const ordenSerial=$('ftSerial')?.value||'';
-  // Populate tipo filter
-  const ft=$('ftTipo');
-  if(ft&&ft.options.length<=1){
-    [...new Set(EQ.map(e=>e.tipo_nombre||e.tipo))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o)});
-  }
+  
   let rows=EQ.filter(e=>
     (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
     (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est));
@@ -2229,8 +2245,8 @@ async function saveUsr(){
     estado:$('uEst').value,
     rol_id:rolId||null
   };
-  if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id||!data.departamento){
-    toast('Nombre, email, cargo son requeridos'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
+  if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id){
+    toast('Nombre, email y cargo son requeridos'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
     return;
   }
   const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
