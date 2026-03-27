@@ -719,6 +719,9 @@ input[type="file"]::file-selector-button{
       <div class="tbl-toolbar">
         <div class="filter-row">
           <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="renderUsr()">
+          <select id="ftUsrDpto" onchange="renderUsr()">
+            <option value="">Todos los departamentos</option>
+          </select>
           <select id="ftUsrEst" onchange="renderUsr()">
             <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
           </select>
@@ -1417,6 +1420,7 @@ function updateNavBadges(){
   const alertLoans=(DASH.prestamos_vencidos||[]).length+(DASH.proximos_vencer||[]).length;
   nbMant.style.display=enProceso>0?'flex':'none'; nbMant.textContent=enProceso;
   nbLoan.style.display=alertLoans>0?'flex':'none'; nbLoan.textContent=alertLoans;
+  updateDptosSelect();
 }
 
 /* ════════════════════════════════════════════════════
@@ -2112,10 +2116,24 @@ async function saveHVEvent(){
 /* ════════════════════════════════════════════════════
    USUARIOS
 ════════════════════════════════════════════════════ */
+function updateDptosSelect(){
+  const dptos=[...new Set(USR.map(u=>u.departamento).filter(d=>d))].sort();
+  const sel=$('ftUsrDpto');
+  const current=sel.value;
+  sel.innerHTML='<option value="">Todos los departamentos</option>';
+  dptos.forEach(d=>{
+    const opt=document.createElement('option');
+    opt.value=d;
+    opt.textContent=d;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+}
 function renderUsr(){
   const q=($('srchUsr')?.value||'').toLowerCase();
+  const dpto=$('ftUsrDpto')?.value||'';
   const est=$('ftUsrEst')?.value||'';
-  const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!est||u.estado===est));
+  const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!dpto||u.departamento===dpto)&&(!est||u.estado===est));
   $('usrCount').textContent=`${rows.length} usuario(s)`;
   const tb=$('usrTbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
