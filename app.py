@@ -33,6 +33,7 @@ app = Flask(
     template_folder='templates'
 )
 app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-marzo-2026')
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # Máximo 20 MB para uploads
 
 # Credenciales de Supabase
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -1328,37 +1329,35 @@ def save_loan_signature(id):
         # Obtener archivos y parámetro de tipo
         imagen1 = request.files.get('imagen1')
         imagen2 = request.files.get('imagen2')
-        firma_data = request.form.get('firma_data', '')
+        firma_file = request.files.get('firma_data')  # Ahora es un archivo en lugar de dataURL
         tipo_firma = request.form.get('tipo', 'inicial')  # 'inicial' o 'devolucion'
+        
+        # Validar que todos los archivos existan
+        if not imagen1 or not imagen2 or not firma_file:
+            return jsonify({'error': 'Se requieren firma digital y 2 imágenes'}), 400
         
         # Read files in memory only (no disk I/O)
         try:
-            img1_content_test = imagen1.read() if imagen1 else b''
-            if imagen1:
-                imagen1.seek(0)  # Reset file pointer after reading size
-            if imagen2:
-                img2_content_test = imagen2.read()
-                imagen2.seek(0)  # Reset file pointer
-            else:
-                img2_content_test = b''
+            img1_content = imagen1.read()
+            imagen1.seek(0)  # Reset file pointer
+            
+            img2_content = imagen2.read()
+            imagen2.seek(0)  # Reset file pointer
+            
+            firma_content = firma_file.read()
+            firma_file.seek(0)  # Reset file pointer
         except Exception as e:
             return jsonify({'error': f'Error al leer archivos: {str(e)}'}), 400
         
-        if not imagen1 or not imagen2:
-            return jsonify({'error': 'Se requieren 2 imágenes'}), 400
-        
         # Validar que los archivos no estén vacíos
-        if not img1_content_test:
-            debug_log(f"[ERROR] imagen1 is empty!")
+        if not img1_content:
             return jsonify({'error': 'La imagen 1 está vacía'}), 400
         
-        if not img2_content_test:
-            debug_log(f"[ERROR] imagen2 is empty!")
+        if not img2_content:
             return jsonify({'error': 'La imagen 2 está vacía'}), 400
         
-        if not firma_data:
-            debug_log(f"[ERROR] Missing firma_data")
-            return jsonify({'error': 'Se requiere la firma digital'}), 400
+        if not firma_content:
+            return jsonify({'error': 'La firma digital está vacía'}), 400
         
         # Generar timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -1367,26 +1366,18 @@ def save_loan_signature(id):
         loan_folder = f"loan_{id}"
         
         # ═══════════════════════════════════════════════════════════════
-        # GUARDAR FIRMA a Supabase Storage como PNG
+        # GUARDAR FIRMA a Supabase Storage como JPG
         # ═══════════════════════════════════════════════════════════════
         prefix = 'firma' if tipo_firma == 'inicial' else 'firma_devolucion'
-        firma_filename = f"{prefix}_{timestamp}.png"
+        firma_filename = f"{prefix}_{timestamp}.jpg"
         firma_path = f"{loan_folder}/{firma_filename}"
         
         try:
-            # Extraer datos base64 del dataURL
-            if firma_data.startswith('data:image'):
-                # formato: data:image/png;base64,iVBORw0KGgo...
-                header, encoded = firma_data.split(',', 1)
-                img_data = base64.b64decode(encoded)
-                
-                # Subir a Supabase Storage
-                firma_url = supabase_storage_upload(img_data, firma_path)
-                
-                if not firma_url:
-                    return jsonify({'error': 'Error al guardar firma en Storage'}), 500
-            else:
-                return jsonify({'error': 'Firma no es un dataURL válido'}), 400
+            # Subir firma directamente como blob JPEG
+            firma_url = supabase_storage_upload(firma_content, firma_path)
+            
+            if not firma_url:
+                return jsonify({'error': 'Error al guardar firma en Storage'}), 500
         except Exception as e:
             return jsonify({'error': f'Error al procesar firma: {str(e)}'}), 500
         
@@ -1402,27 +1393,14 @@ def save_loan_signature(id):
         img1_path = f"{loan_folder}/{img1_filename}"
         img2_path = f"{loan_folder}/{img2_filename}"
         
-        # Leer contenido de archivos y subir a Storage
+        # Subir imágenes a Storage
         try:
-            img1_content = imagen1.read()
-            img2_content = imagen2.read()
-            
-            debug_log(f"[DEBUG] imagen1 size: {len(img1_content)} bytes")
-            debug_log(f"[DEBUG] imagen2 size: {len(img2_content)} bytes")
-            
             img1_url = supabase_storage_upload(img1_content, img1_path)
             img2_url = supabase_storage_upload(img2_content, img2_path)
             
             if not img1_url or not img2_url:
-                debug_log(f"[ERROR] One of images upload failed: img1={img1_url is not None}, img2={img2_url is not None}")
                 return jsonify({'error': 'Error al guardar imágenes en Storage'}), 500
-            
-            debug_log(f"[SUCCESS] Imagen1 ({tipo_firma}) guardada: {img1_path}")
-            debug_log(f"[SUCCESS] Imagen2 ({tipo_firma}) guardada: {img2_path}")
         except Exception as e:
-            debug_log(f"[ERROR] Error guardando imágenes: {e}")
-            import traceback
-            debug_log(traceback.format_exc())
             return jsonify({'error': f'Error al guardar imágenes: {str(e)}'}), 500
         
         # ═══════════════════════════════════════════════════════════════
@@ -1448,25 +1426,20 @@ def save_loan_signature(id):
             }
         
         result = supabase_request('PATCH', 'prestamos', f'?id=eq.{id}', update_data)
-        debug_log(f"[DEBUG] Supabase update result: {result}")
         
         if isinstance(result, dict) and result.get('error'):
             return jsonify({'error': f'Error al guardar en BD: {result.get("error")}'}), 500
         
-        debug_log("\n[SUCCESS] ==================== FIRMA COMPLETADA ====================")
         return jsonify({
             'ok': True,
             'firma_url': firma_url,
             'img1_url': img1_url,
             'img2_url': img2_url,
             'tipo': tipo_firma,
-            'message': f'Firma de {tipo_firma} y documentos guardados correctamente en Supabase Storage'
+            'message': f'Firma de {tipo_firma} y documentos guardados correctamente'
         }), 201
         
     except Exception as e:
-        debug_log(f"\n[ERROR] save_loan_signature exception: {e}")
-        import traceback
-        debug_log(traceback.format_exc())
         return jsonify({'error': f'Error al procesar firma: {str(e)}'}), 500
 
 @app.route('/api/prestamos/<int:id>/devolver', methods=['PUT'])
