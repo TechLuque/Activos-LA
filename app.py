@@ -1321,104 +1321,79 @@ def create_prestamo():
         print(f"Create prestamo error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/prestamos/<int:id>/firma-images', methods=['POST'])
+@app.route('/api/prestamos/<int:id>/upload-image', methods=['POST'])
 @require_api_login
-def save_loan_images(id):
-    """Save only images for a loan (first step of split upload)"""
+def upload_single_image(id):
+    """Upload a single image (minimal processing)"""
     try:
-        imagen1 = request.files.get('imagen1')
-        imagen2 = request.files.get('imagen2')
+        imagen = request.files.get('imagen')
+        numero = request.form.get('numero', '1')
         tipo_firma = request.form.get('tipo', 'inicial')
         
-        if not imagen1 or not imagen2:
-            return jsonify({'error': 'Se requieren 2 imágenes'}), 400
+        if not imagen:
+            return jsonify({'error': 'No image provided'}), 400
         
-        # Leer contenido
-        img1_content = imagen1.read()
-        img2_content = imagen2.read()
+        img_content = imagen.read()
+        if not img_content or len(img_content) == 0:
+            return jsonify({'error': 'Image is empty'}), 400
         
-        if not img1_content or not img2_content:
-            return jsonify({'error': 'Las imágenes están vacías'}), 400
-        
+        # Generar path único
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        prefix = 'imagen' + numero if tipo_firma == 'inicial' else f'imagen{numero}_dev'
         loan_folder = f"loan_{id}"
+        img_filename = f"{prefix}_{timestamp}.jpg"
+        img_path = f"{loan_folder}/{img_filename}"
         
-        # Guardar imágenes en Storage
-        prefix_img = 'imagen1' if tipo_firma == 'inicial' else 'imagen1_dev'
-        prefix_img2 = 'imagen2' if tipo_firma == 'inicial' else 'imagen2_dev'
-        
-        img1_filename = f"{prefix_img}_{timestamp}.jpg"
-        img2_filename = f"{prefix_img2}_{timestamp}.jpg"
-        
-        img1_path = f"{loan_folder}/{img1_filename}"
-        img2_path = f"{loan_folder}/{img2_filename}"
-        
+        # Subir directamente a Storage
         try:
-            img1_url = supabase_storage_upload(img1_content, img1_path)
-            img2_url = supabase_storage_upload(img2_content, img2_path)
-            
-            if not img1_url or not img2_url:
-                return jsonify({'error': 'Error al guardar imágenes'}), 500
+            img_url = supabase_storage_upload(img_content, img_path)
+            if not img_url:
+                return jsonify({'error': 'Storage upload failed'}), 500
         except Exception as e:
-            return jsonify({'error': f'Error al guardar imágenes: {str(e)}'}), 500
+            return jsonify({'error': f'Storage error: {str(e)}'}), 500
         
-        # Guardar URLs en sesión/cache para la siguiente llamada
-        session[f'loan_{id}_images'] = {
-            'img1_url': img1_url,
-            'img2_url': img2_url,
-            'tipo': tipo_firma,
-            'timestamp': timestamp
-        }
+        # Guardar URL en sesión
+        session_key = f'loan_{id}_img{numero}'
+        session[session_key] = img_url
         
-        return jsonify({
-            'ok': True,
-            'img1_url': img1_url,
-            'img2_url': img2_url,
-            'message': 'Imágenes guardadas correctamente'
-        }), 201
+        return jsonify({'ok': True, 'url': img_url}), 201
         
     except Exception as e:
         return jsonify({'error': f'Error: {str(e)}'}), 500
 
 
-@app.route('/api/prestamos/<int:id>/firma-sign', methods=['POST'])
+@app.route('/api/prestamos/<int:id>/save-signature', methods=['POST'])
 @require_api_login
-def save_loan_signature_only(id):
-    """Save signature and complete the loan signature (second step of split upload)"""
+def save_signature_complete(id):
+    """Save signature and update loan record"""
     try:
-        firma_file = request.files.get('firma_data')
+        firma_file = request.files.get('firma')
         tipo_firma = request.form.get('tipo', 'inicial')
+        img1_url = request.form.get('img1_url')
+        img2_url = request.form.get('img2_url')
         
-        if not firma_file:
-            return jsonify({'error': 'Se requiere firma digital'}), 400
+        if not firma_file or not img1_url or not img2_url:
+            return jsonify({'error': 'Missing required data'}), 400
         
         firma_content = firma_file.read()
-        if not firma_content:
-            return jsonify({'error': 'La firma está vacía'}), 400
-        
-        # Obtener imágenes guardadas en sesión
-        images_data = session.get(f'loan_{id}_images', {})
-        if not images_data:
-            return jsonify({'error': 'Las imágenes no fueron guardadas. Intenta de nuevo.'}), 400
-        
-        timestamp = images_data.get('timestamp', datetime.now().strftime('%Y%m%d_%H%M%S'))
-        loan_folder = f"loan_{id}"
-        img1_url = images_data.get('img1_url')
-        img2_url = images_data.get('img2_url')
+        if not firma_content or len(firma_content) == 0:
+            return jsonify({'error': 'Signature is empty'}), 400
         
         # Guardar firma
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         prefix = 'firma' if tipo_firma == 'inicial' else 'firma_devolucion'
+        loan_folder = f"loan_{id}"
         firma_filename = f"{prefix}_{timestamp}.jpg"
         firma_path = f"{loan_folder}/{firma_filename}"
         
         try:
             firma_url = supabase_storage_upload(firma_content, firma_path)
             if not firma_url:
-                return jsonify({'error': 'Error al guardar firma'}), 500
+                return jsonify({'error': 'Storage upload failed'}), 500
         except Exception as e:
-            return jsonify({'error': f'Error al guardar firma: {str(e)}'}), 500
+            return jsonify({'error': f'Storage error: {str(e)}'}), 500
         
-        # Actualizar registro en BD
+        # Actualizar BD
         if tipo_firma == 'inicial':
             update_data = {
                 'firma_url': firma_url,
@@ -1427,7 +1402,7 @@ def save_loan_signature_only(id):
                 'estado': 'firmado',
                 'fecha_firma': datetime.now().isoformat()
             }
-        else:  # 'devolucion'
+        else:
             update_data = {
                 'firma_devolucion_url': firma_url,
                 'imagen1_devolucion_url': img1_url,
@@ -1439,19 +1414,14 @@ def save_loan_signature_only(id):
         result = supabase_request('PATCH', 'prestamos', f'?id=eq.{id}', update_data)
         
         if isinstance(result, dict) and result.get('error'):
-            return jsonify({'error': f'Error en BD: {result.get("error")}'}), 500
-        
-        # Limpiar sesión
-        if f'loan_{id}_images' in session:
-            del session[f'loan_{id}_images']
+            return jsonify({'error': str(result.get('error'))}), 500
         
         return jsonify({
             'ok': True,
             'firma_url': firma_url,
             'img1_url': img1_url,
             'img2_url': img2_url,
-            'tipo': tipo_firma,
-            'message': 'Firma y documentos guardados correctamente'
+            'message': f'Firma de {tipo_firma} completada'
         }), 201
         
     except Exception as e:

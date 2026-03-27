@@ -2867,13 +2867,13 @@ function previewImage(num){
   const fileSizeMB=Math.round(file.size/1024/1024*10)/10;
   const reader=new FileReader();
   reader.onload=function(e){
-    preview.innerHTML='<img src="'+e.target.result+'" alt="Imagen '+num+'" style="max-width:100%;max-height:150px"><div class="img-status" style="margin-top:4px;font-size:11px;color:var(--text3)">'+fileSizeMB+'MB → ~50-150KB</div>';
+    preview.innerHTML='<img src="'+e.target.result+'" alt="Imagen '+num+'" style="max-width:100%;max-height:150px"><div class="img-status" style="margin-top:4px;font-size:11px;color:var(--text3)">'+fileSizeMB+'MB → ~15-40KB</div>';
   };
   reader.readAsDataURL(file);
 }
 
-// Comprimir imagen - ULTRA AGRESIVO para móvil
-async function compressImage(file,maxWidth=600,maxHeight=600,quality=0.3){
+// Comprimir imagen - COMPRESIÓN EXTREMA
+async function compressImage(file,maxWidth=400,maxHeight=400,quality=0.15){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.onload=function(event){
@@ -2903,17 +2903,17 @@ async function compressImage(file,maxWidth=600,maxHeight=600,quality=0.3){
         ctx.fillRect(0,0,width,height);
         ctx.drawImage(img,0,0,width,height);
         
-        // JPEG ultra-comprimido
+        // JPEG extremadamente comprimido
         canvas.toBlob(blob=>{
           const sizeKB=Math.round(blob.size/1024);
-          console.log(`Imagen comprimida: ${sizeKB}KB (${width}x${height} @ ${Math.round(quality*100)}%)`);
+          console.log(`🖼️ Comprimida: ${sizeKB}KB (${width}x${height})`);
           resolve(blob);
         },'image/jpeg',quality);
       };
-      img.onerror=()=>reject(new Error('No se pudo cargar la imagen'));
+      img.onerror=()=>reject(new Error('No se pudo cargar imagen'));
       img.src=event.target.result;
     };
-    reader.onerror=()=>reject(new Error('Error al leer el archivo'));
+    reader.onerror=()=>reject(new Error('Error al leer archivo'));
     reader.readAsDataURL(file);
   });
 }
@@ -2933,7 +2933,7 @@ function dataURLtoBlob(dataurl){
 
 async function submitSignatureForm(){
   const loanId=window.currentLoanId;
-  const tipoFirma=window.tipoFirma||'inicial';  // 'inicial' o 'devolucion'
+  const tipoFirma=window.tipoFirma||'inicial';
   
   if(!loanId){
     toast('ID de préstamo no encontrado','err');
@@ -2954,103 +2954,98 @@ async function submitSignatureForm(){
     return;
   }
   
-  toast('Comprimiendo archivos (esto toma unos segundos)...','info');
+  toast('Comprimiendo imágenes...','info');
   
   try{
-    // Comprimir imágenes de forma ULTRA agresiva
-    console.log(`Img1 original: ${Math.round(img1File.size/1024/1024*10)/10}MB`);
-    console.log(`Img2 original: ${Math.round(img2File.size/1024/1024*10)/10}MB`);
+    // COMPRESIÓN EXTREMA: 400x400 @ 0.15 quality
+    const img1Compressed=await compressImage(img1File,400,400,0.15);
+    const img2Compressed=await compressImage(img2File,400,400,0.15);
     
-    const img1Compressed=await compressImage(img1File,600,600,0.25);
-    const img2Compressed=await compressImage(img2File,600,600,0.25);
-    
-    console.log(`Img1 comprimida: ${Math.round(img1Compressed.size/1024)}KB`);
-    console.log(`Img2 comprimida: ${Math.round(img2Compressed.size/1024)}KB`);
-    
-    // Firma: canvas a JPEG ultra-comprimido
     const firmaCanvas=signPad.canvas;
-    const firmaDataURL=firmaCanvas.toDataURL('image/jpeg',0.4);
+    const firmaDataURL=firmaCanvas.toDataURL('image/jpeg',0.3);
     const firmaBlob=dataURLtoBlob(firmaDataURL);
     
-    console.log(`Firma comprimida: ${Math.round(firmaBlob.size/1024)}KB`);
+    const size1KB=Math.round(img1Compressed.size/1024);
+    const size2KB=Math.round(img2Compressed.size/1024);
+    const sigKB=Math.round(firmaBlob.size/1024);
     
-    // ═════════════════════════════════════════════════════════
-    // ENVIAR EN REQUESTS SEPARADOS PARA REDUCIR TAMAÑO
-    // ═════════════════════════════════════════════════════════
+    console.log(`📦 Img1: ${size1KB}KB | Img2: ${size2KB}KB | Firma: ${sigKB}KB`);
     
-    // 1️⃣ ENVIAR IMÁGENES PRIMERO
-    toast(`Enviando imágenes (${Math.round((img1Compressed.size+img2Compressed.size)/1024)}KB)...`,'info');
+    // 1️⃣ ENVIAR IMAGEN 1
+    toast(`📤 Img 1 (${size1KB}KB)...`,'info');
+    const form1=new FormData();
+    form1.append('imagen',img1Compressed);
+    form1.append('numero',1);
+    form1.append('tipo',tipoFirma);
     
-    const imgFormData=new FormData();
-    imgFormData.append('imagen1',img1Compressed,'img1.jpg');
-    imgFormData.append('imagen2',img2Compressed,'img2.jpg');
-    imgFormData.append('tipo',tipoFirma);
-    
-    const imgResponse=await fetch(`/api/prestamos/${loanId}/firma-images`,{
+    const res1=await fetch(`/api/prestamos/${loanId}/upload-image`,{
       method:'POST',
       credentials:'include',
-      body:imgFormData
+      body:form1
     });
     
-    if(imgResponse.status===413){
-      toast('⚠️ Las imágenes son muy grandes. Intenta con fotos en mejor iluminación.','err');
+    if(res1.status===413){
+      toast('❌ Img 1 demasiado grande','err');
       return;
     }
+    if(!res1.ok) throw new Error(`Img1 HTTP ${res1.status}`);
+    const data1=await res1.json();
+    if(data1.error) throw new Error(data1.error);
     
-    if(!imgResponse.ok){
-      const errText=await imgResponse.text();
-      throw new Error(`Error en imágenes: HTTP ${imgResponse.status}`);
-    }
+    // 2️⃣ ENVIAR IMAGEN 2
+    toast(`📤 Img 2 (${size2KB}KB)...`,'info');
+    const form2=new FormData();
+    form2.append('imagen',img2Compressed);
+    form2.append('numero',2);
+    form2.append('tipo',tipoFirma);
     
-    const imgRes=await imgResponse.json();
-    if(imgRes.error){
-      toast(`Error en imágenes: ${imgRes.error}`,'err');
-      return;
-    }
-    
-    // 2️⃣ ENVIAR FIRMA DESPUÉS
-    toast(`Enviando firma (${Math.round(firmaBlob.size/1024)}KB)...`,'info');
-    
-    const sigFormData=new FormData();
-    sigFormData.append('firma_data',firmaBlob,'firma.jpg');
-    sigFormData.append('tipo',tipoFirma);
-    
-    const sigResponse=await fetch(`/api/prestamos/${loanId}/firma-sign`,{
+    const res2=await fetch(`/api/prestamos/${loanId}/upload-image`,{
       method:'POST',
       credentials:'include',
-      body:sigFormData
+      body:form2
     });
     
-    if(sigResponse.status===413){
-      toast('⚠️ Error al enviar firma. Intenta de nuevo.','err');
+    if(res2.status===413){
+      toast('❌ Img 2 demasiado grande','err');
       return;
     }
+    if(!res2.ok) throw new Error(`Img2 HTTP ${res2.status}`);
+    const data2=await res2.json();
+    if(data2.error) throw new Error(data2.error);
     
-    if(!sigResponse.ok){
-      const errText=await sigResponse.text();
-      throw new Error(`Error en firma: HTTP ${sigResponse.status}`);
-    }
+    // 3️⃣ ENVIAR FIRMA
+    toast(`📤 Firma (${sigKB}KB)...`,'info');
+    const form3=new FormData();
+    form3.append('firma',firmaBlob);
+    form3.append('tipo',tipoFirma);
+    form3.append('img1_url',data1.url);
+    form3.append('img2_url',data2.url);
     
-    const sigRes=await sigResponse.json();
-    if(sigRes.error){
-      toast(`Error en firma: ${sigRes.error}`,'err');
+    const res3=await fetch(`/api/prestamos/${loanId}/save-signature`,{
+      method:'POST',
+      credentials:'include',
+      body:form3
+    });
+    
+    if(res3.status===413){
+      toast('❌ Firma demasiado grande','err');
       return;
     }
+    if(!res3.ok) throw new Error(`Firma HTTP ${res3.status}`);
+    const data3=await res3.json();
+    if(data3.error) throw new Error(data3.error);
     
     close('ovSignatureForm');
-    toast(`Firma de ${tipoFirma} recibida ✅`,'ok');
+    toast(`✅ Firma de ${tipoFirma} guardada`,'ok');
     
-    // Recargar datos y mostrar actualización
     await loadAll();
     renderLoan();
     renderDashboard();
     
-    // Si fue devolución, ir a préstamos
-    if(tipoFirma==='devolucion'){
-      nav('prestamos');
-    }
+    if(tipoFirma==='devolucion') nav('prestamos');
   }catch(err){
-    toast('Error al procesar firma','err');
+    toast(`Error: ${err.message}`,'err');
+    console.error(err);
   }
 }
 
