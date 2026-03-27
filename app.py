@@ -347,10 +347,6 @@ def create_usuario():
         # Departamentos permitidos
         DEPARTAMENTOS_VALIDOS = ['Finanzas', 'Plataformas', 'Producción', 'Academia', 'Contenido', 'Gerencia']
         
-        # Validaciones
-        if not d.get('departamento') or d.get('departamento') not in DEPARTAMENTOS_VALIDOS:
-            return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
-        
         # Validar contraseña
         password = d.get('password', '').strip()
         if not password or len(password) < 6:
@@ -367,11 +363,24 @@ def create_usuario():
         if not rol_id:
             return jsonify({'error': 'Rol es requerido'}), 400
         
+        # Obtener información del rol para asignar departamento
+        rol_result = supabase_request('GET', 'roles_empresa', f'?id=eq.{rol_id}')
+        rol_dept = ''
+        if isinstance(rol_result, list) and len(rol_result) > 0:
+            rol_dept = rol_result[0].get('departamento', '')
+        
+        # Usar departamento del rol si no se proporciona
+        departamento = d.get('departamento', '').strip() or rol_dept
+        
+        # Validar departamento
+        if not departamento or departamento not in DEPARTAMENTOS_VALIDOS:
+            return jsonify({'error': f'Departamento inválido. Deben ser: {", ".join(DEPARTAMENTOS_VALIDOS)}'}), 400
+        
         usuario_data = {
             'nombre': d['nombre'],
             'email': d['email'],
             'password': generate_password_hash(password),  # Hash la contraseña
-            'departamento': d.get('departamento', ''),
+            'departamento': departamento,
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo'),
             'rol_id': rol_id

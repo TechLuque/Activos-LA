@@ -2245,8 +2245,8 @@ async function saveUsr(){
     estado:$('uEst').value,
     rol_id:rolId||null
   };
-  if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id){
-    toast('Nombre, email y cargo son requeridos'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
+  if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id||!data.departamento){
+    toast('Completa todos los campos. El departamento se asigna automáticamente desde el cargo'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
     return;
   }
   const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
