@@ -1699,11 +1699,25 @@ def assign_licencia_to_equipo(equipo_id):
 @app.route('/api/equipos/<int:equipo_id>/licencias/<int:licencia_id>', methods=['DELETE'])
 @require_api_login
 def remove_licencia_from_equipo(equipo_id, licencia_id):
-    """Desasignar una licencia de un equipo"""
+    """Desasignar una licencia de un equipo (método antiguo - por compatibilidad)"""
     try:
-        supabase_request('DELETE', 'equipos_licencias', f'?equipo_id=eq.{equipo_id}&licencia_id=eq.{licencia_id}')
+        result = supabase_request('DELETE', 'equipos_licencias', f'?equipo_id=eq.{equipo_id}&licencia_id=eq.{licencia_id}')
+        debug_log(f"[OK] Licencia {licencia_id} removida de equipo {equipo_id}")
         return jsonify({'ok': True})
     except Exception as e:
+        debug_log(f"[ERROR] Error removiendo licencia: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos-licencias/<int:asignacion_id>', methods=['DELETE'])
+@require_api_login
+def delete_equipos_licencias(asignacion_id):
+    """Desasignar una licencia de un equipo por ID de asignación"""
+    try:
+        result = supabase_request('DELETE', 'equipos_licencias', f'?id=eq.{asignacion_id}')
+        debug_log(f"[OK] Asignación {asignacion_id} eliminada")
+        return jsonify({'ok': True})
+    except Exception as e:
+        debug_log(f"[ERROR] Error eliminando asignación: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # ========== CALENDARIO ==========

@@ -674,6 +674,9 @@ input[type="file"]::file-selector-button{
             <option value="asc">Serial A-Z</option>
             <option value="desc">Serial Z-A</option>
           </select>
+          <select id="ftDueno" onchange="renderEq()">
+            <option value="">Todos los dueños</option>
+          </select>
         </div>
         <span class="count-badge" id="eqCount"></span>
       </div>
@@ -1109,10 +1112,9 @@ input[type="file"]::file-selector-button{
         <div class="fg s2"><label>Nombre *</label><input id="lName" placeholder="Nombre de la licencia…"></div>
         <div class="fg"><label>Tipo *</label>
           <select id="lTipo">
-            <option value="Software">Software</option>
-            <option value="Hardware">Hardware</option>
-            <option value="Comercial">Comercial</option>
-            <option value="Otro">Otro</option>
+            <option value="Sist. Operativo">Sist. Operativo</option>
+            <option value="Suscripciones">Suscripciones</option>
+            <option value="Office">Office</option>
           </select>
         </div>
         <div class="fg"><label>Fecha inicio *</label><input type="date" id="lStart"></div>
@@ -1926,14 +1928,28 @@ async function cambiarResponsable(eqId){
 ════════════════════════════════════════════════════ */
 function renderEq(){
   updateTiposFilter();
+  
+  // Actualizar filtro de dueño
+  const ftDueno = $('ftDueno');
+  if(ftDueno && ftDueno.children.length <= 1){
+    USR.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = u.nombre;
+      ftDueno.appendChild(opt);
+    });
+  }
+  
   const q=($('srchEq')?.value||'').toLowerCase();
   const tipo=$('ftTipo')?.value||'';
   const est=$('ftEst')?.value||'';
   const ordenSerial=$('ftSerial')?.value||'';
+  const dueno=$('ftDueno')?.value||'';
   
   let rows=EQ.filter(e=>
     (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
-    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est));
+    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est)&&
+    (!dueno||e.usuario_id==dueno));
   
   // Ordenar por serial si se seleccionó
   if(ordenSerial==='asc'){
@@ -2160,15 +2176,15 @@ async function removeEquipoLicense(asignacionId,eqId){
   if(!confirm('¿Remover esta licencia del equipo?'))return;
   
   try{
-    const res=await api(`/api/equipos/${eqId}/licencias/${asignacionId}`,'DELETE');
+    const res=await api(`/api/equipos-licencias/${asignacionId}`,'DELETE');
     if(res.error){
-      toast('Error al remover licencia','err');
+      toast('Error al remover licencia: '+res.error,'err');
       return;
     }
     await loadEqLicenses(eqId);
     toast('Licencia removida','ok');
   }catch(e){
-    toast('Error al remover licencia','err');
+    toast('Error al remover licencia: '+e.message,'err');
   }
 }
 
@@ -2952,9 +2968,9 @@ function openLicenseModal(license_id=null){
     $('lNotes').value=lic.notas||'';
   }else{
     $('licenseModalTitle').textContent='Nueva licencia';
-    $('licenseModalSub').textContent='Registrar licencia de software o hardware';
+    $('licenseModalSub').textContent='Registrar nueva licencia';
     $('lName').value='';
-    $('lTipo').value='Software';
+    $('lTipo').value='Sist. Operativo';
     $('lStart').value=TODAY;
     $('lExpiry').value='';
     $('lProvider').value='';
