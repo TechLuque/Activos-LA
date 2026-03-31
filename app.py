@@ -1561,13 +1561,20 @@ def create_licencia():
             'estado': 'activa'
         })
         
+        # Verificar si hay error en la respuesta
+        if isinstance(result, dict) and result.get('error'):
+            debug_log(f"[ERROR] Supabase error creating licencia: {result.get('error')}")
+            return jsonify({'error': f"Error en Supabase: {result.get('error')}"}), 500
+        
         if isinstance(result, list) and len(result) > 0:
             return jsonify({'id': result[0].get('id'), 'ok': True}), 201
         elif isinstance(result, dict) and 'id' in result:
             return jsonify({'id': result.get('id'), 'ok': True}), 201
         else:
-            return jsonify({'error': 'Error al crear licencia'}), 500
+            debug_log(f"[WARN] Unexpected response from Supabase: {result}")
+            return jsonify({'error': 'Respuesta inesperada de Supabase', 'details': str(result)}), 500
     except Exception as e:
+        debug_log(f"[ERROR] Exception in create_licencia: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/licencias/<int:id>', methods=['PUT'])
@@ -1608,10 +1615,13 @@ def update_licencia(id):
         result = supabase_request('PATCH', 'licencias', f'?id=eq.{id}', update_data)
         
         if isinstance(result, dict) and result.get('error'):
-            return jsonify({'error': 'No se pudo actualizar la licencia: ' + str(result.get('error'))}), 500
+            debug_log(f"[ERROR] Supabase error updating licencia {id}: {result.get('error')}")
+            return jsonify({'error': f"Error en Supabase: {result.get('error')}"}), 500
         
+        debug_log(f"[OK] Licencia {id} actualizada exitosamente")
         return jsonify({'ok': True, 'id': id}), 200
     except Exception as e:
+        debug_log(f"[ERROR] Exception in update_licencia: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/licencias/<int:id>', methods=['DELETE'])
