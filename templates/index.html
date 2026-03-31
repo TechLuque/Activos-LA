@@ -585,7 +585,7 @@ input[type="file"]::file-selector-button{
     </div>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
-      <input id="gSearch" type="text" placeholder="Buscar equipos, usuarios…" oninput="gSearchFn(this.value)">
+      <input id="gSearch" type="text" placeholder="Buscar equipos, usuarios…" oninput="" disabled style="opacity:0.5;cursor:not-allowed">
     </div>
     <div class="user-pill" onclick="toggleUserMenu()" style="cursor:pointer;position:relative">
       <div class="user-av">A</div>
@@ -595,7 +595,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div id="userMenu" style="display:none;position:absolute;top:100%;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:8px;min-width:200px;box-shadow:0 10px 25px rgba(0,0,0,0.3);z-index:1000">
         <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3)">
-          <div id="uEmail" style="margin-bottom:4px">email@example.com</div>
+          <div id="userEmail" style="margin-bottom:4px">email@example.com</div>
         </div>
         <button onclick="location.href='/logout'" style="display:block;width:100%;text-align:left;padding:12px 16px;border:none;background:none;color:var(--red);cursor:pointer;font-size:14px;font-weight:500;border-radius:0">🚪 Cerrar Sesión</button>
       </div>
@@ -1415,7 +1415,8 @@ function toast(msg,type='info'){
   const t=document.createElement('div');
   t.className=`toast ${type}`;
   t.textContent=`${icons[type]||'ℹ️'} ${msg}`;
-  $('toastWrap').appendChild(t);
+  t.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;';
+  document.body.appendChild(t);
   setTimeout(()=>t.remove(),3500);
 }
 
@@ -1487,7 +1488,7 @@ async function init(){
     const user=await api('/api/user');
     if(user && !user.error){
       $('uName').textContent=user.nombre||'Administrador';
-      $('uEmail').textContent=user.email||'email@example.com';
+      $('userEmail').textContent=user.email||'email@example.com';
       $('pgDate').textContent=`Hola, ${user.nombre||'Administrador'} · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
     }
   }catch(e){
@@ -2772,7 +2773,20 @@ function renderUsr(){
 function openUsrModal(){
   editUsrId=null;
   $('usrModalTitle').textContent='Nuevo responsable';
-  ['uNom','uEmail','uPass','uDpto','uTel'].forEach(id=>$(id).value='');
+  
+  // Limpiar TODOS los campos explícitamente
+  const uNom = $('uNom');
+  const uEmail = $('uEmail');
+  const uPass = $('uPass');
+  const uDpto = $('uDpto');
+  const uTel = $('uTel');
+  
+  if(uNom) uNom.value='';
+  if(uEmail) uEmail.value='';
+  if(uPass) uPass.value='';
+  if(uDpto) uDpto.value='';
+  if(uTel) uTel.value='';
+  
   $('uPassLabel').textContent='Contraseña * (min. 6 caracteres)';
   $('uPass').required=true;
   $('uEst').value='activo';
@@ -2787,7 +2801,6 @@ function openUsrModal(){
     opt.textContent=r.nombre;
     rolSel.appendChild(opt);
   });
-  $('uDpto').value='';
   
   open('ovUsr');
 }
@@ -2832,14 +2845,20 @@ function updateDptoFromRol(){
 async function saveUsr(){
   if(isSubmitting) return;
   
-  const nombre = $('uNom').value.trim();
-  const email = $('uEmail').value.trim();
-  const password = $('uPass').value.trim();
-  const rolId = parseInt($('uRol').value);
+  // Debug: mostrar estado de los inputs
+  const emailInput = document.getElementById('uEmail');
+  console.log('DEBUG - Email input exists:', !!emailInput);
+  console.log('DEBUG - Email input type:', emailInput?.type);
+  console.log('DEBUG - Email input value:', emailInput?.value);
+  
+  const nombre = document.getElementById('uNom')?.value.trim() || '';
+  const email = document.getElementById('uEmail')?.value.trim() || '';
+  const password = document.getElementById('uPass')?.value.trim() || '';
+  const rolId = parseInt(document.getElementById('uRol')?.value || '0');
   const selectedRol = ROLES.find(r=>r.id===rolId);
   const departamento = selectedRol?.departamento || '';
   
-  console.log('DEBUG saveUsr:', {nombre, email, password: password?'***':'', rolId, departamento, editUsrId});
+  console.log('DEBUG saveUsr FULL:', {nombre, email, password: password?'***':'', rolId, departamento, editUsrId});
   
   // Validaciones
   if(!nombre) { toast('❌ Falta: Nombre completo','err'); return; }
@@ -2851,13 +2870,13 @@ async function saveUsr(){
   const data = {
     nombre, email, password,
     departamento,
-    telefono: $('uTel').value.trim(),
-    estado: $('uEst').value,
+    telefono: document.getElementById('uTel')?.value.trim() || '',
+    estado: document.getElementById('uEst')?.value || 'activo',
     rol_id: rolId
   };
   
   isSubmitting = true;
-  const btn = $('saveUsrBtn');
+  const btn = document.getElementById('saveUsrBtn');
   btn.disabled = true;
   btn.textContent = editUsrId ? 'Actualizando...' : 'Guardando...';
   
