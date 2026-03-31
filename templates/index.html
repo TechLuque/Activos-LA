@@ -1084,12 +1084,12 @@ input[type="file"]::file-selector-button{
     </div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="fg s2"><label>Nombre completo *</label><input id="uNom" placeholder="Nombre y apellidos"></div>
-        <div class="fg s2"><label>Email *</label><input type="email" id="uEmail" placeholder="correo@empresa.com"></div>
-        <div class="fg s2"><label id="uPassLabel">Contraseña * <span style="font-size:0.85em">(min. 6 caracteres)</span></label><input type="password" id="uPass" placeholder="Contraseña segura"></div>
+        <div class="fg s2"><label>Nombre completo *</label><input id="uNom" type="text" placeholder="Ej: Juan García López" autocomplete="off"></div>
+        <div class="fg s2"><label>Email *</label><input id="uEmail" type="email" placeholder="Ej: juan.garcia@empresa.com" autocomplete="off"></div>
+        <div class="fg s2"><label id="uPassLabel">Contraseña * <span style="font-size:0.85em">(min. 6 caracteres)</span></label><input id="uPass" type="password" placeholder="Ej: MiContraseña123" autocomplete="off"></div>
         <div class="fg"><label>Cargo *</label><select id="uRol" onchange="updateDptoFromRol()"><option value="">Seleccionar cargo…</option></select></div>
         <div class="fg"><label>Departamento (automático)</label><input id="uDpto" type="text" readonly placeholder="Se asigna automáticamente"></div>
-        <div class="fg"><label>Teléfono</label><input id="uTel" placeholder="300 123 4567"></div>
+        <div class="fg"><label>Teléfono</label><input id="uTel" type="tel" placeholder="Ej: 300 123 4567" autocomplete="off"></div>
         <div class="fg"><label>Estado</label><select id="uEst"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
       </div>
       <div class="form-actions">
@@ -2830,11 +2830,7 @@ function updateDptoFromRol(){
 }
 
 async function saveUsr(){
-  // Prevenir múltiples clics
-  if(isSubmitting){
-    toast('Por favor espera a que termine el proceso','info');
-    return;
-  }
+  if(isSubmitting) return;
   
   const nombre = $('uNom').value.trim();
   const email = $('uEmail').value.trim();
@@ -2842,65 +2838,51 @@ async function saveUsr(){
   const rolId = parseInt($('uRol').value);
   const selectedRol = ROLES.find(r=>r.id===rolId);
   const departamento = selectedRol?.departamento || '';
-  const telefono = $('uTel').value.trim();
-  const estado = $('uEst').value;
   
-  // Debug: mostrar en consola
-  console.log('Validación saveUsr:', {nombre, email, password, rolId, departamento, editUsrId});
+  console.log('DEBUG saveUsr:', {nombre, email, password: password?'***':'', rolId, departamento, editUsrId});
   
-  // Validación simple
-  if(!nombre) {
-    toast('❌ Nombre: requerido','err');
-    return;
-  }
-  if(!email) {
-    toast('❌ Email: requerido','err');
-    return;
-  }
-  if(!editUsrId && !password) {
-    toast('❌ Contraseña: requerida para nuevos usuarios (min. 6 caracteres)','err');
-    return;
-  }
-  if(!rolId || isNaN(rolId)) {
-    toast('❌ Cargo: selecciona uno del dropdown','err');
-    console.log('rolId error:', rolId, typeof rolId);
-    return;
-  }
-  if(!departamento) {
-    toast('❌ Departamento: el cargo no tiene departamento','err');
-    return;
-  }
+  // Validaciones
+  if(!nombre) { toast('❌ Falta: Nombre completo','err'); return; }
+  if(!email) { toast('❌ Falta: Email','err'); return; }
+  if(!editUsrId && !password) { toast('❌ Falta: Contraseña (mín 6 caracteres)','err'); return; }
+  if(!rolId) { toast('❌ Falta: Cargo','err'); return; }
+  if(!departamento) { toast('❌ El cargo no tiene departamento','err'); return; }
   
-  const data={
-    nombre: nombre,
-    email: email,
-    password: password,
-    departamento: departamento,
-    telefono: telefono,
-    estado: estado,
+  const data = {
+    nombre, email, password,
+    departamento,
+    telefono: $('uTel').value.trim(),
+    estado: $('uEst').value,
     rol_id: rolId
   };
   
-  // Establecer flag y deshabilitar botón
-  isSubmitting=true;
-  const btn=$('saveUsrBtn');
-  btn.disabled=true;
-  const btnText=editUsrId?'Actualizando...':'Guardando...';
-  btn.textContent=btnText;
+  isSubmitting = true;
+  const btn = $('saveUsrBtn');
+  btn.disabled = true;
+  btn.textContent = editUsrId ? 'Actualizando...' : 'Guardando...';
   
-  try{
-    const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
-    if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovUsr');await loadAll();renderUsr();renderDashboard();
-    toast(editUsrId?'Usuario actualizado':'Usuario creado','ok');editUsrId=null;
-    isSubmitting=false;
-    btn.disabled=false;
-    btn.textContent='Guardar';
-  }catch(e){
-    console.error('Error en saveUsr:', e);
-    isSubmitting=false;
-    btn.disabled=false;
-    btn.textContent='Guardar';
+  try {
+    const res = editUsrId ? 
+      await api('/api/usuarios/'+editUsrId, 'PUT', data) :
+      await api('/api/usuarios', 'POST', data);
+    
+    if(res.error) {
+      toast('❌ ' + res.error, 'err');
+    } else {
+      close('ovUsr');
+      await loadAll();
+      renderUsr();
+      renderDashboard();
+      toast(editUsrId ? '✅ Usuario actualizado' : '✅ Usuario creado', 'ok');
+      editUsrId = null;
+    }
+  } catch(e) {
+    console.error('Error saveUsr:', e);
+    toast('❌ Error: ' + e.message, 'err');
+  } finally {
+    isSubmitting = false;
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
   }
 }
 
