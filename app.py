@@ -1438,11 +1438,242 @@ def devolver_prestamo(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/prestamos/<int:id>', methods=['PUT'])
+@require_api_login
+def update_prestamo(id):
+    """Editar un préstamo existente"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener préstamo existente
+        prestamo = supabase_request('GET', 'prestamos', f'?id=eq.{id}')
+        if not isinstance(prestamo, list) or len(prestamo) == 0:
+            return jsonify({'error': 'Préstamo no encontrado'}), 404
+        
+        prestamo_actual = prestamo[0]
+        
+        # Validar que equipo existe (en caso de cambiar)
+        nuevo_equipo_id = d.get('equipo_id', prestamo_actual.get('equipo_id'))
+        equipo = supabase_request('GET', 'equipos', f'?id=eq.{nuevo_equipo_id}')
+        if not isinstance(equipo, list) or len(equipo) == 0:
+            return jsonify({'error': f'Equipo con ID {nuevo_equipo_id} no encontrado'}), 400
+        
+        # Validar que usuario existe (en caso de cambiar)
+        nuevo_usuario_id = d.get('usuario_id', prestamo_actual.get('usuario_id'))
+        usuario = supabase_request('GET', 'usuarios', f'?id=eq.{nuevo_usuario_id}')
+        if not isinstance(usuario, list) or len(usuario) == 0:
+            return jsonify({'error': f'Usuario con ID {nuevo_usuario_id} no encontrado'}), 400
+        
+        # Validar que equipo no está Retirado
+        if equipo[0].get('disponibilidad') == 'Retirado':
+            return jsonify({'error': 'No se pueden editar préstamos a equipos retirados'}), 400
+        
+        # Si se cambia el equipo, verificar que no hay otro préstamo no devuelto
+        if nuevo_equipo_id != prestamo_actual.get('equipo_id'):
+            existing = supabase_request('GET', 'prestamos', f'?equipo_id=eq.{nuevo_equipo_id}&estado=ne.devuelto&id=neq.{id}')
+            if isinstance(existing, list) and len(existing) > 0:
+                return jsonify({'error': 'El nouveau equipo ya tiene un prestamo no devuelto'}), 400
+        
+        # Actualizar préstamo
+        update_data = {
+            'equipo_id': nuevo_equipo_id,
+            'usuario_id': nuevo_usuario_id,
+            'fecha_prestamo': d.get('fecha_prestamo', prestamo_actual.get('fecha_prestamo')),
+            'fecha_devolucion_esperada': d.get('fecha_devolucion_esperada') or None,
+            'notas': d.get('notas', '')
+        }
+        
+        result = supabase_request('PATCH', 'prestamos', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': 'No se pudo actualizar el préstamo: ' + str(result.get('error'))}), 500
+        
+        return jsonify({'ok': True, 'id': id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ========== DEBUG ENDPOINT ==========
 @app.route('/api/prestamos/<int:id>', methods=['DELETE'])
 def delete_prestamo(id):
     try:
         supabase_request('DELETE', 'prestamos', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== LICENCIAS ==========
+@app.route('/api/licencias', methods=['GET'])
+@require_api_login
+def get_licencias():
+    """Obtener todas las licencias"""
+    try:
+        result = supabase_request('GET', 'licencias', '?order=fecha_caducidad.asc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/licencias/<int:id>', methods=['GET'])
+@require_api_login
+def get_licencia(id):
+    """Obtener una licencia específica"""
+    try:
+        result = supabase_request('GET', 'licencias', f'?id=eq.{id}')
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 200
+        return jsonify({'error': 'Licencia no encontrada'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/licencias', methods=['POST'])
+@require_api_login
+def create_licencia():
+    """Crear una nueva licencia"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        if not d.get('nombre') or not d.get('tipo') or not d.get('fecha_inicio') or not d.get('fecha_caducidad'):
+            return jsonify({'error': 'nombre, tipo, fecha_inicio y fecha_caducidad son requeridos'}), 400
+        
+        result = supabase_request('POST', 'licencias', '', {
+            'nombre': d['nombre'].strip(),
+            'tipo': d['tipo'],
+            'fecha_inicio': d['fecha_inicio'],
+            'fecha_caducidad': d['fecha_caducidad'],
+            'proveedor': d.get('proveedor', ''),
+            'costo': float(d.get('costo', 0)) or 0,
+            'descripcion': d.get('descripcion', ''),
+            'notas': d.get('notas', ''),
+            'estado': 'activa'
+        })
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify({'id': result[0].get('id'), 'ok': True}), 201
+        elif isinstance(result, dict) and 'id' in result:
+            return jsonify({'id': result.get('id'), 'ok': True}), 201
+        else:
+            return jsonify({'error': 'Error al crear licencia'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/licencias/<int:id>', methods=['PUT'])
+@require_api_login
+def update_licencia(id):
+    """Editar una licencia existente"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener licencia existente
+        licencia = supabase_request('GET', 'licencias', f'?id=eq.{id}')
+        if not isinstance(licencia, list) or len(licencia) == 0:
+            return jsonify({'error': 'Licencia no encontrada'}), 404
+        
+        update_data = {
+            'nombre': d.get('nombre', licencia[0].get('nombre')).strip(),
+            'tipo': d.get('tipo', licencia[0].get('tipo')),
+            'fecha_inicio': d.get('fecha_inicio', licencia[0].get('fecha_inicio')),
+            'fecha_caducidad': d.get('fecha_caducidad', licencia[0].get('fecha_caducidad')),
+            'proveedor': d.get('proveedor', licencia[0].get('proveedor', '')),
+            'costo': float(d.get('costo', licencia[0].get('costo', 0))) or 0,
+            'descripcion': d.get('descripcion', licencia[0].get('descripcion', '')),
+            'notas': d.get('notas', licencia[0].get('notas', '')),
+            'estado': d.get('estado', licencia[0].get('estado', 'activa'))
+        }
+        
+        result = supabase_request('PATCH', 'licencias', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': 'No se pudo actualizar la licencia: ' + str(result.get('error'))}), 500
+        
+        return jsonify({'ok': True, 'id': id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/licencias/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_licencia(id):
+    """Eliminar una licencia"""
+    try:
+        supabase_request('DELETE', 'licencias', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ════════════════════════════════════════════════════════════════
+# ASIGNACIÓN DE LICENCIAS A EQUIPOS (Relación muchos-a-muchos)
+# ════════════════════════════════════════════════════════════════
+
+@app.route('/api/equipos/<int:equipo_id>/licencias', methods=['GET'])
+@require_api_login
+def get_equipo_licencias(equipo_id):
+    """Obtener todas las licencias asignadas a un equipo"""
+    try:
+        result = supabase_request('GET', 'equipos_licencias', f'?equipo_id=eq.{equipo_id}&order=fecha_asignacion.desc')
+        if isinstance(result, list):
+            # Obtener detalles de las licencias
+            licencias_info = []
+            for item in result:
+                lic_result = supabase_request('GET', 'licencias', f'?id=eq.{item.get("licencia_id")}')
+                if isinstance(lic_result, list) and len(lic_result) > 0:
+                    lic_data = lic_result[0]
+                    lic_data['asignacion_id'] = item['id']
+                    lic_data['fecha_asignacion'] = item.get('fecha_asignacion')
+                    lic_data['notas_asignacion'] = item.get('notas', '')
+                    licencias_info.append(lic_data)
+            return jsonify(licencias_info)
+        return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:equipo_id>/licencias', methods=['POST'])
+@require_api_login
+def assign_licencia_to_equipo(equipo_id):
+    """Asignar una licencia a un equipo"""
+    try:
+        d = request.json
+        if not d or 'licencia_id' not in d:
+            return jsonify({'error': 'licencia_id es requerido'}), 400
+        
+        # Verificar que el equipo existe
+        equipo_check = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}')
+        if not isinstance(equipo_check, list) or len(equipo_check) == 0:
+            return jsonify({'error': 'Equipo no encontrado'}), 404
+        
+        # Verificar que la licencia existe
+        licencia_check = supabase_request('GET', 'licencias', f'?id=eq.{d["licencia_id"]}')
+        if not isinstance(licencia_check, list) or len(licencia_check) == 0:
+            return jsonify({'error': 'Licencia no encontrada'}), 404
+        
+        # Crear la asignación
+        assignment_data = {
+            'equipo_id': equipo_id,
+            'licencia_id': d['licencia_id'],
+            'fecha_asignacion': d.get('fecha_asignacion', date.today().isoformat()),
+            'notas': d.get('notas', '')
+        }
+        
+        result = supabase_request('POST', 'equipos_licencias', '', assignment_data)
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 201
+        return jsonify(result), 201
+    except Exception as e:
+        if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+            return jsonify({'error': 'Esta licencia ya está asignada a este equipo'}), 400
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/equipos/<int:equipo_id>/licencias/<int:licencia_id>', methods=['DELETE'])
+@require_api_login
+def remove_licencia_from_equipo(equipo_id, licencia_id):
+    """Desasignar una licencia de un equipo"""
+    try:
+        supabase_request('DELETE', 'equipos_licencias', f'?equipo_id=eq.{equipo_id}&licencia_id=eq.{licencia_id}')
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1575,6 +1806,258 @@ def health():
 #     """Serve uploaded files from uploads directory - DISABLED in Vercel (read-only FS)"""
 #     # All files are now in Supabase Storage, not local uploads/
 #     return send_from_directory('uploads', filename)
+
+# ========== BÚSQUEDA GLOBAL AVANZADA ==========
+@app.route('/api/busqueda-global', methods=['GET'])
+@require_api_login
+def busqueda_global():
+    """Búsqueda global en equipos, usuarios y préstamos"""
+    try:
+        query = request.args.get('q', '').lower().strip()
+        filtro_tipo = request.args.get('tipo', 'todos')  # todos, equipos, usuarios, prestamos
+        limite = int(request.args.get('limit', 20))
+        
+        if not query or len(query) < 2:
+            return jsonify({'error': 'Búsqueda muy corta (mínimo 2 caracteres)'}), 400
+        
+        resultados = {
+            'equipos': [],
+            'usuarios': [],
+            'prestamos': [],
+            'mantenimientos': []
+        }
+        
+        # Búsqueda en equipos
+        if filtro_tipo in ['todos', 'equipos']:
+            equipos = supabase_request('GET', 'equipos')
+            if isinstance(equipos, list) and equipos:
+                for eq in equipos:
+                    if isinstance(eq, dict) and (
+                        query in (eq.get('nombre', '') or '').lower() or
+                        query in (eq.get('serial', '') or '').lower() or
+                        query in (eq.get('marca', '') or '').lower()):
+                        resultados['equipos'].append({
+                            'id': eq.get('id'),
+                            'tipo': 'equipo',
+                            'nombre': eq.get('nombre'),
+                            'serial': eq.get('serial'),
+                            'marca': eq.get('marca'),
+                            'estado': eq.get('estado')
+                        })
+        
+        # Búsqueda en usuarios
+        if filtro_tipo in ['todos', 'usuarios']:
+            usuarios = supabase_request('GET', 'usuarios')
+            if isinstance(usuarios, list) and usuarios:
+                for usr in usuarios:
+                    if isinstance(usr, dict) and (
+                        query in (usr.get('nombre', '') or '').lower() or
+                        query in (usr.get('email', '') or '').lower()):
+                        resultados['usuarios'].append({
+                            'id': usr.get('id'),
+                            'tipo': 'usuario',
+                            'nombre': usr.get('nombre'),
+                            'email': usr.get('email'),
+                            'departamento': usr.get('departamento')
+                        })
+        
+        # Búsqueda en préstamos
+        if filtro_tipo in ['todos', 'prestamos']:
+            prestamos = supabase_request('GET', 'prestamos')
+            if isinstance(prestamos, list) and prestamos:
+                for p in prestamos:
+                    if isinstance(p, dict):
+                        equipo_nombre = p.get('equipo_nombre', '') or ''
+                        usuario_nombre = p.get('usuario_nombre', '') or ''
+                        if (query in equipo_nombre.lower() or 
+                            query in usuario_nombre.lower()):
+                            resultados['prestamos'].append({
+                                'id': p.get('id'),
+                                'tipo': 'prestamo',
+                                'equipo': equipo_nombre,
+                                'responsable': usuario_nombre,
+                                'estado': p.get('estado')
+                            })
+        
+        # Limitar resultados
+        for key in resultados:
+            resultados[key] = resultados[key][:limite]
+        
+        return jsonify(resultados), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== HISTORIAL DE RESPONSABLES ==========
+@app.route('/api/equipos/<int:id>/historial-responsables', methods=['GET'])
+@require_api_login
+def get_historial_responsables(id):
+    """Obtener historial de cambios de responsable de un equipo"""
+    try:
+        # Obtener equipo actual
+        eq = supabase_request('GET', 'equipos', f'?id=eq.{id}')
+        if not isinstance(eq, list) or len(eq) == 0:
+            return jsonify({'error': 'Equipo no encontrado'}), 404
+        
+        equipo = eq[0]
+        
+        # Obtener eventos de cambio de responsable de hoja_vida
+        hvs = supabase_request('GET', 'hoja_vida', f'?equipo_id=eq.{id}&tipo=eq.cambio_responsable&order=fecha.desc')
+        
+        historial = []
+        
+        # Evento actual
+        if equipo.get('usuario_id'):
+            usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{equipo["usuario_id"]}')
+            usuario_actual = usuarios[0]['nombre'] if isinstance(usuarios, list) and len(usuarios) > 0 else 'Desconocido'
+            fecha_asignacion = equipo.get('fecha_asignacion')
+            if not fecha_asignacion:
+                fecha_asignacion = date.today().isoformat()
+            historial.append({
+                'fecha': fecha_asignacion,
+                'responsable': usuario_actual,
+                'usuario_id': equipo.get('usuario_id'),
+                'estado': 'actual',
+                'notas': 'Responsable actual'
+            })
+        
+        # Eventos históricos - validar que hvs sea lista
+        if isinstance(hvs, list) and hvs:
+            for hv in hvs:
+                if isinstance(hv, dict):
+                    historial.append({
+                        'fecha': hv.get('fecha'),
+                        'responsable': hv.get('responsable', 'Desconocido'),
+                        'estado': 'historico',
+                        'notas': hv.get('descripcion', '')
+                    })
+        
+        return jsonify(historial), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== MATRIZ DE RESPONSABILIDAD ==========
+@app.route('/api/estadisticas/matriz-responsabilidad')
+@require_api_login
+def matriz_responsabilidad():
+    """Estadísticas: quién tiene cuántos equipos"""
+    try:
+        equipos = supabase_request('GET', 'equipos')
+        usuarios = supabase_request('GET', 'usuarios')
+        
+        # Crear mapa de usuarios - validar que sea lista
+        usr_map = {}
+        if isinstance(usuarios, list) and usuarios:
+            for u in usuarios:
+                if isinstance(u, dict) and u.get('id'):
+                    usr_map[u['id']] = {
+                        'nombre': u.get('nombre'),
+                        'departamento': u.get('departamento'),
+                        'equipos': [],
+                        'total': 0
+                    }
+        
+        # Contar equipos por usuario - validar que sea lista
+        if isinstance(equipos, list) and equipos:
+            for eq in equipos:
+                if isinstance(eq, dict) and eq.get('usuario_id') and eq.get('usuario_id') in usr_map:
+                    usr_map[eq['usuario_id']]['equipos'].append({
+                        'id': eq.get('id'),
+                        'nombre': eq.get('nombre'),
+                        'estado': eq.get('estado')
+                    })
+                    usr_map[eq['usuario_id']]['total'] += 1
+        
+        # Convertir a lista ordenada
+        matriz = []
+        for usr_id, datos in usr_map.items():
+            if datos['total'] > 0:
+                matriz.append({
+                    'usuario_id': usr_id,
+                    'nombre': datos['nombre'],
+                    'departamento': datos['departamento'],
+                    'total_equipos': datos['total'],
+                    'equipos': datos['equipos']
+                })
+        
+        # Ordenar por total descendente
+        matriz.sort(key=lambda x: x['total_equipos'], reverse=True)
+        
+        return jsonify(matriz), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== REGISTRAR CAMBIO DE RESPONSABLE ==========
+@app.route('/api/equipos/<int:id>/cambiar-responsable', methods=['POST'])
+@require_api_login
+def cambiar_responsable(id):
+    """Cambiar responsable de un equipo y registrar en hoja_vida"""
+    try:
+        # Validar que request.json existe
+        if not request.json:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener equipo actual
+        eq = supabase_request('GET', 'equipos', f'?id=eq.{id}')
+        if not isinstance(eq, list) or len(eq) == 0:
+            return jsonify({'error': 'Equipo no encontrado'}), 404
+        
+        equipo = eq[0]
+        d = request.json
+        
+        nuevo_usuario_id = d.get('nuevo_usuario_id')
+        motivo = d.get('motivo', 'Cambio de asignación')
+        
+        if not nuevo_usuario_id:
+            return jsonify({'error': 'Nuevo usuario requerido'}), 400
+        
+        # Obtener info del usuario anterior
+        usuario_anterior_id = equipo.get('usuario_id')
+        usuario_anterior_nombre = 'Desconocido'
+        
+        if usuario_anterior_id:
+            usr_ant = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_anterior_id}')
+            if isinstance(usr_ant, list) and len(usr_ant) > 0:
+                usuario_anterior_nombre = usr_ant[0].get('nombre', 'Desconocido')
+        
+        # Obtener info del usuario nuevo
+        usr_nuevo = supabase_request('GET', 'usuarios', f'?id=eq.{nuevo_usuario_id}')
+        if not isinstance(usr_nuevo, list) or len(usr_nuevo) == 0:
+            return jsonify({'error': 'Usuario nuevo no encontrado'}), 400
+        
+        usuario_nuevo_nombre = usr_nuevo[0].get('nombre', 'Desconocido')
+        
+        # Actualizar equipo
+        today = date.today().isoformat()
+        update_result = supabase_request('PATCH', 'equipos', f'?id=eq.{id}', {
+            'usuario_id': nuevo_usuario_id,
+            'fecha_asignacion': today
+        })
+        
+        # Validar actualización
+        if isinstance(update_result, dict) and update_result.get('error'):
+            return jsonify({'error': 'No se pudo actualizar el equipo: ' + str(update_result.get('error'))}), 500
+        
+        # Registrar en hoja_vida
+        titulo = f"Cambio de responsable: {usuario_anterior_nombre} → {usuario_nuevo_nombre}"
+        hv_result = supabase_request('POST', 'hoja_vida', '', {
+            'equipo_id': id,
+            'tipo': 'cambio_responsable',
+            'titulo': titulo,
+            'descripcion': motivo,
+            'fecha': today,
+            'responsable': session.get('username', 'Sistema')
+        })
+        
+        # Log pero no fallar si hoja_vida no se puede registrar
+        if isinstance(hv_result, dict) and hv_result.get('error'):
+            debug_log(f"Warning: Could not register in hoja_vida: {hv_result.get('error')}")
+        
+        return jsonify({
+            'ok': True,
+            'mensaje': f'Responsable cambiado de {usuario_anterior_nombre} a {usuario_nuevo_nombre}'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

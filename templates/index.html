@@ -551,6 +551,9 @@ input[type="file"]::file-selector-button{
       <button class="nav-btn" onclick="nav('mantenimientos')">
         <div class="nav-icon">🔧</div> Mantenimientos <span class="nav-badge" id="nb-mant" style="display:none">0</span>
       </button>
+      <button class="nav-btn" onclick="nav('licencias')">
+        <div class="nav-icon">📜</div> Licencias
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Operaciones</div>
@@ -707,6 +710,39 @@ input[type="file"]::file-selector-button{
         <table><thead><tr>
           <th>Equipo</th><th>Tipo</th><th>Descripción</th><th>Fecha</th><th>Técnico</th><th>Costo</th><th>Estado</th><th>Próx. revisión</th><th>Acciones</th>
         </tr></thead><tbody id="mantTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ LICENCIAS ════ -->
+    <section class="page" id="page-licencias">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Licencias</h2><p>Gestión de licencias de software y hardware</p></div>
+        <button class="btn btn-primary" onclick="openLicenseModal()">+ Nueva licencia</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="renderLicenses()">
+          <select id="ftLicenseTipo" onchange="renderLicenses()">
+            <option value="">Todos los tipos</option>
+            <option value="Software">Software</option>
+            <option value="Hardware">Hardware</option>
+            <option value="Comercial">Comercial</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <select id="ftLicenseEst" onchange="renderLicenses()">
+            <option value="">Todos los estados</option>
+            <option value="activa">Activa</option>
+            <option value="por_vencer">Por vencer</option>
+            <option value="vencida">Vencida</option>
+            <option value="inactiva">Inactiva</option>
+          </select>
+        </div>
+        <span class="count-badge" id="licenseCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Tipo</th><th>Inicio</th><th>Caducidad</th><th>Proveedor</th><th>Costo</th><th>Estado</th><th>Acciones</th>
+        </tr></thead><tbody id="licenseTbody"></tbody></table>
       </div>
     </section>
 
@@ -875,9 +911,63 @@ input[type="file"]::file-selector-button{
         <div class="fg"><label>Valor (COP)</label><input type="number" id="eValor" placeholder="0"></div>
         <div class="fg s2"><label>Descripción / Observaciones</label><textarea id="eDesc" placeholder="Notas…"></textarea></div>
       </div>
+      <!-- SECCIÓN DE LICENCIAS ASIGNADAS -->
+      <div style="margin-top:30px;padding-top:20px;border-top:1px solid var(--border)">
+        <h4 style="margin-bottom:15px;display:flex;justify-content:space-between;align-items:center">
+          <span>📋 Licencias asignadas</span>
+          <button type="button" class="btn btn-sm btn-primary" onclick="openAssignLicenseModal()" id="addLicenseBtnEq">+ Agregar licencia</button>
+        </h4>
+        <div id="eqLicensesContainer" style="display:none">
+          <table style="width:100%;font-size:13px">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border)">
+                <th style="text-align:left;padding:8px">Licencia</th>
+                <th style="text-align:left;padding:8px">Tipo</th>
+                <th style="text-align:left;padding:8px">Vencimiento</th>
+                <th style="width:40px;text-align:center;padding:8px">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="eqLicensesList"></tbody>
+          </table>
+        </div>
+        <div id="eqLicensesEmpty" style="text-align:center;padding:20px;color:var(--text3);font-size:13px">
+          <div style="font-size:24px;margin-bottom:8px">📭</div>
+          Sin licencias asignadas
+        </div>
+      </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovEq')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveEq()">Guardar equipo</button>
+        <button id="saveEqBtn" class="btn btn-primary" onclick="saveEq()">Guardar equipo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ASIGNAR LICENCIA A EQUIPO -->
+<div class="overlay" id="ovAssignLicense">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Asignar licencia</h3><p id="assignLicenseSubtitle">Selecciona una licencia para asignar</p></div>
+      <button class="m-close" onclick="close('ovAssignLicense')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:15px">
+        <label style="display:block;margin-bottom:8px;font-weight:500">Licencia disponible *</label>
+        <select id="availableLicenseSelect" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px">
+          <option value="">Cargando licencias…</option>
+        </select>
+      </div>
+      <div style="margin-bottom:15px">
+        <label style="display:block;margin-bottom:8px;font-weight:500">Fecha de asignación</label>
+        <input type="date" id="licenseAssignDate" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:8px;font-weight:500">Notas (opcional)</label>
+        <textarea id="licenseAssignNotes" placeholder="Observaciones sobre la asignación…" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;min-height:60px;font-family:inherit"></textarea>
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" onclick="close('ovAssignLicense')">Cancelar</button>
+        <button id="confirmAssignLicenseBtn" class="btn btn-primary" onclick="confirmAssignLicense()">Asignar</button>
       </div>
     </div>
   </div>
@@ -976,7 +1066,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovMant')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveMant()">Registrar mantenimiento</button>
+        <button id="saveMantBtn" class="btn btn-primary" onclick="saveMant()">Registrar mantenimiento</button>
       </div>
     </div>
   </div>
@@ -1001,7 +1091,40 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovUsr')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveUsr()">Guardar</button>
+        <button id="saveUsrBtn" class="btn btn-primary" onclick="saveUsr()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LICENCIAS MODAL -->
+<div class="overlay" id="ovLicense">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="licenseModalTitle">Nueva licencia</h3><p id="licenseModalSub">Registrar licencia de software o hardware</p></div>
+      <button class="m-close" onclick="close('ovLicense')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Nombre *</label><input id="lName" placeholder="Nombre de la licencia…"></div>
+        <div class="fg"><label>Tipo *</label>
+          <select id="lTipo">
+            <option value="Software">Software</option>
+            <option value="Hardware">Hardware</option>
+            <option value="Comercial">Comercial</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="fg"><label>Fecha inicio *</label><input type="date" id="lStart"></div>
+        <div class="fg"><label>Fecha caducidad *</label><input type="date" id="lExpiry"></div>
+        <div class="fg"><label>Proveedor</label><input id="lProvider" placeholder="Nombre del proveedor"></div>
+        <div class="fg"><label>Costo (COP)</label><input type="number" id="lCost" placeholder="0"></div>
+        <div class="fg s2"><label>Descripción</label><textarea id="lDesc" placeholder="Detalles de la licencia…"></textarea></div>
+        <div class="fg s2"><label>Notas</label><textarea id="lNotes" placeholder="Notas adicionales…"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovLicense')">Cancelar</button>
+        <button id="saveLicenseBtn" class="btn btn-primary" onclick="saveLicense()">Registrar licencia</button>
       </div>
     </div>
   </div>
@@ -1011,7 +1134,7 @@ input[type="file"]::file-selector-button{
 <div class="overlay" id="ovLoan">
   <div class="modal">
     <div class="modal-head">
-      <div><h3>Nuevo préstamo</h3><p>Asigna un equipo a un responsable</p></div>
+      <div><h3 id="loanModalTitle">Nuevo préstamo</h3><p id="loanModalSub">Asigna un equipo a un responsable</p></div>
       <button class="m-close" onclick="close('ovLoan')">✕</button>
     </div>
     <div class="modal-body">
@@ -1030,7 +1153,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovLoan')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveLoan()">Registrar préstamo</button>
+        <button id="saveLoanBtn" class="btn btn-primary" onclick="saveLoan()">Registrar préstamo</button>
       </div>
     </div>
   </div>
@@ -1056,7 +1179,8 @@ input[type="file"]::file-selector-button{
         <div id="sigLinkQR" style="margin:8px 0"></div>
       </div>
       <div class="form-actions">
-        <button class="btn btn-primary" onclick="close('ovSignLink')">Listo</button>
+        <button class="btn btn-ghost" onclick="close('ovSignLink')">Cancelar</button>
+        <button class="btn btn-primary" onclick="close('ovSignLink')">✅ Listo</button>
       </div>
     </div>
   </div>
@@ -1078,7 +1202,8 @@ input[type="file"]::file-selector-button{
         </div>
       </div>
       <div class="form-actions">
-        <button class="btn btn-primary" onclick="close('ovReturnLink')">Listo</button>
+        <button class="btn btn-ghost" onclick="close('ovReturnLink')">Cancelar</button>
+        <button class="btn btn-primary" onclick="close('ovReturnLink')">✅ Listo</button>
       </div>
     </div>
   </div>
@@ -1226,12 +1351,40 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
+<!-- HISTORIAL DE RESPONSABLES -->
+<div class="overlay" id="ovHistorialResponsables">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Historial de responsables</h3><p id="histResponsablesEquipo">Cambios de asignación del equipo</p></div>
+      <button class="m-close" onclick="close('ovHistorialResponsables')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="histResponsablesContent" style="display:flex;flex-direction:column;gap:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BÚSQUEDA GLOBAL RESULTADOS -->
+<div class="overlay" id="ovSearchResults">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Resultados de búsqueda</h3><p id="searchQueryDisplay">Búsqueda global</p></div>
+      <button class="m-close" onclick="close('ovSearchResults')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="searchResultsEquipos" style="margin-bottom:20px"></div>
+      <div id="searchResultsUsuarios" style="margin-bottom:20px"></div>
+      <div id="searchResultsPrestamos" style="margin-bottom:20px"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ════════════════════════════════════════════════════
    STATE & HELPERS
 ════════════════════════════════════════════════════ */
-let EQ=[],USR=[],LOANS=[],MANTS=[],DASH={},TIPOS=[],ROLES=[];
-let editEqId=null, editUsrId=null, editMantId=null, curHVId=null;
+let EQ=[],USR=[],LOANS=[],MANTS=[],LICENCIAS=[],DASH={},TIPOS=[],ROLES=[];
+let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
 const api=async(url,m='GET',b=null)=>{
@@ -1248,7 +1401,11 @@ const api=async(url,m='GET',b=null)=>{
 };
 
 const open=id=>document.getElementById(id).classList.add('open');
-const close=id=>document.getElementById(id).classList.remove('open');
+const close=id=>{
+  document.getElementById(id).classList.remove('open');
+  // Resetear flag de envío si el modal se cierra
+  isSubmitting=false;
+};
 const $=id=>document.getElementById(id);
 
 function toast(msg,type='info'){
@@ -1300,7 +1457,7 @@ function bsLabel(s){
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
-  usuarios:'Responsables',prestamos:'Préstamos',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
+  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
 
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1312,6 +1469,7 @@ function nav(page){
   if(page==='mantenimientos')renderMant();
   if(page==='usuarios')renderUsr();
   if(page==='prestamos')renderLoan();
+  if(page==='licencias')renderLicenses();
   if(page==='calendario')renderCal();
   if(page==='reportes')renderReportes();
   if(page==='admin-tipos')renderTipos();
@@ -1349,20 +1507,21 @@ async function init(){
 
 async function loadAll(){
   try{
-    const [eq,usr,loans,mants]=await Promise.all([
+    const [eq,usr,loans,mants,lics]=await Promise.all([
       api('/api/equipos'),
       api('/api/usuarios'),
       api('/api/prestamos'),
-      api('/api/mantenimientos')
+      api('/api/mantenimientos'),
+      api('/api/licencias')
     ]);
     
     // Check for errors in any response
-    if(eq.error||usr.error||loans.error||mants.error){
+    if(eq.error||usr.error||loans.error||mants.error||lics.error){
       toast('Error loading data from server','err');
       return;
     }
     
-    EQ=eq; USR=usr; LOANS=loans; MANTS=mants;
+    EQ=eq; USR=usr; LOANS=loans; MANTS=mants; LICENCIAS=lics||[];
     
     DASH=await api('/api/dashboard');
     updateNavBadges();
@@ -1615,6 +1774,154 @@ function renderDashboard(){
 }
 
 /* ════════════════════════════════════════════════════
+   BÚSQUEDA GLOBAL
+════════════════════════════════════════════════════ */
+async function gSearchFn(q){
+  if(!q || q.length<2){
+    $('gSearch').placeholder='Buscar equipos, usuarios…';
+    close('ovSearchResults');
+    return;
+  }
+  
+  try{
+    const res=await api(`/api/busqueda-global?q=${encodeURIComponent(q)}&limit=15`);
+    if(res.error){
+      close('ovSearchResults');
+      return;
+    }
+    
+    const {equipos=[],usuarios=[],prestamos=[],mantenimientos=[]}=res;
+    const total=equipos.length+usuarios.length+prestamos.length;
+    
+    if(total===0){
+      toast('No se encontraron resultados','info');
+      return;
+    }
+    
+    // Mostrar modal con resultados
+    let html='';
+    
+    if(equipos.length>0){
+      html+=`<div style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:10px">💻 Equipos (${equipos.length})</div>
+        <div style="display:flex;flex-direction:column;gap:8px">`;
+      equipos.forEach(e=>{
+        html+=`<div style="padding:12px;background:var(--surface2);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent" onclick="nav('equipos'); close('ovSearchResults')" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="flex:1">
+              <div style="font-weight:600;color:var(--text)">${e.nombre}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Serial: <strong>${e.serial||'—'}</strong> · Marca: <strong>${e.marca||'—'}</strong></div>
+            </div>
+            <span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span>
+          </div>
+        </div>`;
+      });
+      html+='</div></div>';
+    }
+    
+    if(usuarios.length>0){
+      html+=`<div style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:10px">👥 Responsables (${usuarios.length})</div>
+        <div style="display:flex;flex-direction:column;gap:8px">`;
+      usuarios.forEach(u=>{
+        html+=`<div style="padding:12px;background:var(--surface2);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent" onclick="nav('usuarios'); close('ovSearchResults')" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+          <div style="font-weight:600;color:var(--text)">${u.nombre}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${u.email} · ${u.departamento||'Sin departamento'}</div>
+        </div>`;
+      });
+      html+='</div></div>';
+    }
+    
+    if(prestamos.length>0){
+      html+=`<div style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:10px">🔁 Préstamos (${prestamos.length})</div>
+        <div style="display:flex;flex-direction:column;gap:8px">`;
+      prestamos.forEach(p=>{
+        html+=`<div style="padding:12px;background:var(--surface2);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent" onclick="nav('prestamos'); close('ovSearchResults')" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="flex:1">
+              <div style="font-weight:600;color:var(--text)">${p.equipo}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Responsable: <strong>${p.responsable}</strong></div>
+            </div>
+            <span class="bs ${bsClass(p.estado)}">${bsLabel(p.estado)}</span>
+          </div>
+        </div>`;
+      });
+      html+='</div></div>';
+    }
+    
+    $('searchQueryDisplay').textContent=`Búsqueda: "${q}" • ${total} resultado(s)`;
+    $('searchResultsEquipos').innerHTML=html;
+    $('searchResultsUsuarios').innerHTML='';
+    $('searchResultsPrestamos').innerHTML='';
+    open('ovSearchResults');
+  }catch(e){
+    toast('Error en búsqueda: '+e.message,'err');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   HISTORIAL DE RESPONSABLES
+════════════════════════════════════════════════════ */
+async function showHistorialResponsables(eqId){
+  try{
+    const res=await api(`/api/equipos/${eqId}/historial-responsables`);
+    if(res.error){
+      toast('Error al cargar historial: '+res.error,'err');
+      return;
+    }
+    
+    const eq=EQ.find(e=>e.id===eqId);
+    if(!eq) return;
+    
+    $('histResponsablesEquipo').textContent=`${eq.nombre} (${eq.serial})`;
+    
+    let html='';
+    res.forEach((item,idx)=>{
+      const isActual=item.estado==='actual';
+      html+=`<div style="padding:14px;background:${isActual?'var(--surface2)':'var(--surface)'};border:1px solid ${isActual?'var(--blue)':'var(--border)'};border-radius:8px;border-left:3px solid ${isActual?'var(--blue)':'var(--text3)'};display:flex;gap:12px;position:relative">
+        <div style="width:6px;height:6px;border-radius:50%;background:${isActual?'var(--green)':'var(--text3)'};margin-top:4px;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-weight:600;color:var(--text)">${item.responsable}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;margin-bottom:6px">Desde: ${fmtDate(item.fecha)}</div>
+          ${item.notas?`<div style="font-size:12px;background:var(--surface3);padding:6px 8px;border-radius:4px;color:var(--text2)">${item.notas}</div>`:''}
+        </div>
+        ${isActual?`<div style="background:var(--green-soft);color:var(--green);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;height:fit-content">ACTUAL</div>`:''}
+      </div>`;
+    });
+    
+    $('histResponsablesContent').innerHTML=html||'<div style="text-align:center;padding:20px;color:var(--text3)">Sin historial</div>';
+    open('ovHistorialResponsables');
+  }catch(e){
+    toast('Error al cargar historial: '+e.message,'err');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   CAMBIAR RESPONSABLE
+════════════════════════════════════════════════════ */
+async function cambiarResponsable(eqId){
+  const eq=EQ.find(e=>e.id===eqId);
+  if(!eq) return;
+  
+  const nuevoUsrId=prompt(`Cambiar responsable de "${eq.nombre}" - Ingresa ID del nuevo usuario:`);
+  if(!nuevoUsrId) return;
+  
+  const res=await api(`/api/equipos/${eqId}/cambiar-responsable`, 'POST', {
+    nuevo_usuario_id: parseInt(nuevoUsrId),
+    motivo: 'Cambio de asignación manual - Sistema'
+  });
+  
+  if(res.error){
+    toast('Error: '+res.error,'err');
+  }else{
+    toast(res.mensaje,'ok');
+    await loadAll();
+    renderEq();
+  }
+}
+
+/* ════════════════════════════════════════════════════
    EQUIPOS
 ════════════════════════════════════════════════════ */
 function renderEq(){
@@ -1636,9 +1943,21 @@ function renderEq(){
   }
   
   $('eqCount').textContent=`${rows.length} equipo(s)`;
+  
+  // Paginación
+  const {data:pageData,totalPages,currentPage}=paginateArray(rows,'eq');
+  
   const tb=$('eqTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;return}
-  tb.innerHTML=rows.map(e=>{
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;
+    // Limpiar pagination
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="eq"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tb.innerHTML=pageData.map(e=>{
     const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
     const tipoNombre = e.tipo_nombre || e.tipo || 'Sin tipo';
     const isRetirado = e.disponibilidad === 'Retirado';
@@ -1656,11 +1975,30 @@ function renderEq(){
       <td data-label="Valor"><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-ghost btn-icon btn-sm" title="Hoja de vida" onclick="openHV(${e.id})">📋</button>
+        <button class="btn btn-ghost btn-icon btn-sm" title="Historial de responsables" onclick="showHistorialResponsables(${e.id})">📜</button>
         <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editEq(${e.id})">✏️</button>
         <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delEq(${e.id})">🗑️</button>
       </div></td>
     </tr>
     `}).join('');
+  
+  // Agregar/actualizar controles de paginación si hay múltiples páginas
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="eq"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','eq');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(currentPage,totalPages,'eq');
+  }else{
+    // Remover pagination si no es necesaria
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="eq"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
 }
 
 function openEqModal(reset=true){
@@ -1704,7 +2042,134 @@ function editEq(id){
     });
   }
   $('eResponsable').value=e.usuario_id||'';
+  
+  // Cargar licencias asignadas al equipo
+  loadEqLicenses(id);
+  
   open('ovEq');
+}
+
+// ═══════════════════════════════════════════════════════════
+// FUNCIONES DE GESTIÓN DE LICENCIAS EN EQUIPOS
+// ═══════════════════════════════════════════════════════════
+
+async function loadEqLicenses(eqId){
+  try{
+    const result=await api(`/api/equipos/${eqId}/licencias`);
+    const licenses=result instanceof Array?result:[];
+    
+    const container=$('eqLicensesContainer');
+    const emptyMsg=$('eqLicensesEmpty');
+    const list=$('eqLicensesList');
+    
+    if(licenses.length===0){
+      container.style.display='none';
+      emptyMsg.style.display='block';
+    }else{
+      container.style.display='block';
+      emptyMsg.style.display='none';
+      list.innerHTML=licenses.map(lic=>{
+        const hoy=TODAY;
+        const vencida=lic.fecha_caducidad<hoy;
+        const color=vencida?'color:var(--red)':lic.fecha_caducidad<=new Date(new Date().setDate(new Date().getDate()+30)).toISOString().split('T')[0]?'color:var(--amber)':'';
+        return`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px">${lic.nombre}</td>
+          <td style="padding:8px;font-size:12px;color:var(--text3)">${lic.tipo}</td>
+          <td style="padding:8px;${color}" class="mono">${fmtDate(lic.fecha_caducidad)}</td>
+          <td style="text-align:center;padding:8px">
+            <button class="btn btn-danger btn-icon btn-xs" onclick="removeEquipoLicense(${lic.asignacion_id},${eqId})" title="Remover">🗑️</button>
+          </td>
+        </tr>`;}).join('');
+    }
+  }catch(e){
+    console.error('Error loading equipment licenses:',e);
+    $('eqLicensesList').innerHTML='<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--red)">Error cargando licencias</td></tr>';
+  }
+}
+
+function openAssignLicenseModal(){
+  if(!editEqId){
+    toast('Por favor guarda el equipo primero','err');
+    return;
+  }
+  
+  // Limpiar modal
+  $('licenseAssignDate').value=TODAY;
+  $('licenseAssignNotes').value='';
+  $('availableLicenseSelect').value='';
+  $('assignLicenseSubtitle').textContent='Selecciona una licencia para asignar al equipo';
+  
+  // Obtener licencias ya asignadas
+  const assignedIds=new Set();
+  const eqLicRows=$('eqLicensesList')?.querySelectorAll('tr')||[];
+  eqLicRows.forEach(row=>{
+    const delBtn=row.querySelector('.btn-danger');
+    if(delBtn){
+      const onclick=delBtn.getAttribute('onclick');
+      const match=onclick.match(/removeEquipoLicense\((\d+)/);
+      if(match) assignedIds.add(parseInt(match[1]));
+    }
+  });
+  
+  // Poblar select con licencias disponibles
+  const select=$('availableLicenseSelect');
+  select.innerHTML='<option value="">Seleccionar licencia…</option>'+LICENCIAS.filter(lic=>lic.estado==='activa'||lic.estado==='por_vencer').map(lic=>`<option value="${lic.id}">${lic.nombre} (${lic.tipo}) - Vence: ${fmtDate(lic.fecha_caducidad)}</option>`).join('');
+  
+  open('ovAssignLicense');
+}
+
+async function confirmAssignLicense(){
+  const licId=$('availableLicenseSelect').value;
+  if(!licId){
+    toast('Selecciona una licencia','err');
+    return;
+  }
+  
+  const btn=$('confirmAssignLicenseBtn');
+  btn.disabled=true;
+  btn.textContent='Asignando…';
+  
+  try{
+    const data={
+      licencia_id:parseInt(licId),
+      fecha_asignacion:$('licenseAssignDate').value,
+      notas:$('licenseAssignNotes').value
+    };
+    
+    const res=await api(`/api/equipos/${editEqId}/licencias`,'POST',data);
+    if(res.error){
+      toast(res.error,'err');
+      btn.disabled=false;
+      btn.textContent='Asignar';
+      return;
+    }
+    
+    close('ovAssignLicense');
+    await loadEqLicenses(editEqId);
+    toast('Licencia asignada correctamente','ok');
+    btn.disabled=false;
+    btn.textContent='Asignar';
+  }catch(e){
+    toast('Error al asignar licencia','err');
+    btn.disabled=false;
+    btn.textContent='Asignar';
+  }
+}
+
+async function removeEquipoLicense(asignacionId,eqId){
+  if(!confirm('¿Remover esta licencia del equipo?'))return;
+  
+  try{
+    const res=await api(`/api/equipos/${eqId}/licencias/${asignacionId}`,'DELETE');
+    if(res.error){
+      toast('Error al remover licencia','err');
+      return;
+    }
+    await loadEqLicenses(eqId);
+    toast('Licencia removida','ok');
+  }catch(e){
+    toast('Error al remover licencia','err');
+  }
 }
 
 // Agregar nuevo tipo de equipo
@@ -1747,20 +2212,105 @@ async function saveNewTipo(){
 }
 
 async function saveEq(){
+  // Prevenir múltiples clics
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
   const data={nombre:$('eNom').value.trim(),tipo:$('eTipo').value,estado:$('eEst').value,disponibilidad:$('eDisp').value,
     marca:$('eMarca').value,modelo:$('eModelo').value,serial:$('eSerial').value,
     usuario_id:parseInt($('eResponsable').value)||null,
     fecha_adquisicion:$('eFecha').value,
     valor:parseFloat($('eValor').value)||0,descripcion:$('eDesc').value};
   if(!data.nombre||!data.tipo){toast('Nombre y tipo son requeridos','err');return}
-  const res=editEqId?await api('/api/equipos/'+editEqId,'PUT',data):await api('/api/equipos','POST',data);
-  if(res.error){toast(res.error,'err');return}
-  close('ovEq');await loadAll();renderEq();renderDashboard();
-  toast(editEqId?'Equipo actualizado':'Equipo registrado correctamente','ok');editEqId=null;
+  
+  // Establecer flag y deshabilitar botón
+  isSubmitting=true;
+  const btn=$('saveEqBtn');
+  btn.disabled=true;
+  const btnText=editEqId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editEqId?await api('/api/equipos/'+editEqId,'PUT',data):await api('/api/equipos','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovEq');await loadAll();renderEq();renderDashboard();
+    toast(editEqId?'Equipo actualizado':'Equipo registrado correctamente','ok');editEqId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Guardar equipo';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Guardar equipo';
+  }
 }
 async function delEq(id){
   if(!confirm('¿Eliminar este equipo? Esta acción no se puede deshacer.'))return;
   await api('/api/equipos/'+id,'DELETE');await loadAll();renderEq();renderDashboard();toast('Equipo eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   PAGINACIÓN
+════════════════════════════════════════════════════ */
+let currentPage={eq:1,usu:1,loan:1,mant:1,license:1};
+let isSubmitting=false;
+const ITEMS_PER_PAGE={eq:10,usu:15,loan:15,mant:10,license:15};
+
+function createPaginationControls(currentP,totalPages,entityType){
+  if(totalPages<=1)return'';
+  let html=`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;padding:12px;background:var(--surface2);border-radius:8px">`;
+  
+  // Previous button
+  html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(${Math.max(1,currentP-1)},'${entityType}')" ${currentP===1?'disabled':''} style="${currentP===1?'opacity:0.5;cursor:not-allowed':''}">← Anterior</button>`;
+  
+  // Page indicators
+  const startPage=Math.max(1,currentP-2);
+  const endPage=Math.min(totalPages,currentP+2);
+  
+  if(startPage>1){
+    html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(1,'${entityType}')">1</button>`;
+    if(startPage>2)html+=`<span style="color:var(--text3)">...</span>`;
+  }
+  
+  for(let i=startPage;i<=endPage;i++){
+    html+=`<button class="btn ${i===currentP?'btn-primary':'btn-ghost'} btn-sm" onclick="goToPage(${i},'${entityType}')">${i}</button>`;
+  }
+  
+  if(endPage<totalPages){
+    if(endPage<totalPages-1)html+=`<span style="color:var(--text3)">...</span>`;
+    html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(${totalPages},'${entityType}')">${totalPages}</button>`;
+  }
+  
+  // Next button
+  html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(${Math.min(totalPages,currentP+1)},'${entityType}')" ${currentP===totalPages?'disabled':''} style="${currentP===totalPages?'opacity:0.5;cursor:not-allowed':''}">Siguiente →</button>`;
+  
+  html+=`<span style="margin-left:auto;color:var(--text3);font-size:12px">Página ${currentP} de ${totalPages}</span>`;
+  html+=`</div>`;
+  
+  return html;
+}
+
+function goToPage(page,entityType){
+  currentPage[entityType]=page;
+  if(entityType==='eq')renderEq();
+  else if(entityType==='usu')renderUsr();
+  else if(entityType==='loan')renderLoan();
+  else if(entityType==='mant')renderMant();
+}
+
+function paginateArray(arr,entityType){
+  if(!arr || arr.length===0) return {data:[],totalPages:0,currentPage:1};
+  const pageSize=ITEMS_PER_PAGE[entityType]||10;
+  const page=currentPage[entityType]||1;
+  const start=(page-1)*pageSize;
+  const end=start+pageSize;
+  const totalPages=Math.ceil(arr.length/pageSize);
+  // Validar que la página actual no exceda el total
+  const validPage=Math.min(page,totalPages);
+  if(validPage!==page) currentPage[entityType]=validPage;
+  return {data:arr.slice((validPage-1)*pageSize,((validPage-1)*pageSize)+pageSize),totalPages:totalPages,currentPage:validPage};
 }
 
 /* ════════════════════════════════════════════════════
@@ -1977,6 +2527,10 @@ function renderMant(){
   const q=($('srchMant')?.value||'').toLowerCase();
   const tipo=$('ftMantTipo')?.value||'';
   const est=$('ftMantEst')?.value||'';
+  
+  // Reset pagination when filters change
+  currentPage['mant']=1;
+  
   const rows=MANTS.filter(m=>
     (!q||(m.equipo_nombre||'').toLowerCase().includes(q)||(m.tecnico||'').toLowerCase().includes(q)||(m.descripcion||'').toLowerCase().includes(q))&&
     (!tipo||m.tipo===tipo)&&(!est||m.estado===est));
@@ -2027,14 +2581,37 @@ function editMant(id){
   open('ovMant');
 }
 async function saveMant(){
+  // Prevenir múltiples clics
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
   const data={equipo_id:parseInt($('mEquipo').value),tipo:$('mTipo').value,descripcion:$('mDesc').value.trim(),
     fecha:$('mFecha').value,tecnico:$('mTec').value,costo:parseFloat($('mCosto').value)||0,
     estado:$('mEst').value,proxima_revision:$('mProx').value||null};
   if(!data.equipo_id||!data.descripcion||!data.fecha){toast('Equipo, descripción y fecha son requeridos','err');return}
-  const res=editMantId?await api('/api/mantenimientos/'+editMantId,'PUT',data):await api('/api/mantenimientos','POST',data);
-  if(res.error){toast(res.error,'err');return}
-  close('ovMant');await loadAll();renderMant();renderDashboard();
-  toast(editMantId?'Mantenimiento actualizado':'Mantenimiento registrado','ok');editMantId=null;
+  
+  // Establecer flag y deshabilitar botón
+  isSubmitting=true;
+  const btn=$('saveMantBtn');
+  btn.disabled=true;
+  const btnText=editMantId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editMantId?await api('/api/mantenimientos/'+editMantId,'PUT',data):await api('/api/mantenimientos','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovMant');await loadAll();renderMant();renderDashboard();
+    toast(editMantId?'Mantenimiento actualizado':'Mantenimiento registrado','ok');editMantId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar mantenimiento';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar mantenimiento';
+  }
 }
 async function delMant(id){
   if(!confirm('¿Eliminar este mantenimiento?'))return;
@@ -2149,6 +2726,10 @@ function renderUsr(){
   const q=($('srchUsr')?.value||'').toLowerCase();
   const dpto=$('ftUsrDpto')?.value||'';
   const est=$('ftUsrEst')?.value||'';
+  
+  // Reset pagination when filters change
+  currentPage['usu']=1;
+  
   const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!dpto||u.departamento===dpto)&&(!est||u.estado===est));
   $('usrCount').textContent=`${rows.length} usuario(s)`;
   const tb=$('usrTbody');
@@ -2233,6 +2814,12 @@ function updateDptoFromRol(){
 }
 
 async function saveUsr(){
+  // Prevenir múltiples clics
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
   const rolId=parseInt($('uRol').value);
   const selectedRol=ROLES.find(r=>r.id===rolId);
   
@@ -2249,14 +2836,186 @@ async function saveUsr(){
     toast('Completa todos los campos. El departamento se asigna automáticamente desde el cargo'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
     return;
   }
-  const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
-  if(res.error){toast(res.error,'err');return}
-  close('ovUsr');await loadAll();renderUsr();renderDashboard();
-  toast(editUsrId?'Usuario actualizado':'Usuario creado','ok');editUsrId=null;
+  
+  // Establecer flag y deshabilitar botón
+  isSubmitting=true;
+  const btn=$('saveUsrBtn');
+  btn.disabled=true;
+  const btnText=editUsrId?'Actualizando...':'Guardando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editUsrId?await api('/api/usuarios/'+editUsrId,'PUT',data):await api('/api/usuarios','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovUsr');await loadAll();renderUsr();renderDashboard();
+    toast(editUsrId?'Usuario actualizado':'Usuario creado','ok');editUsrId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Guardar';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Guardar';
+  }
 }
 async function delUsr(id){
   if(!confirm('¿Eliminar este responsable?'))return;
   await api('/api/usuarios/'+id,'DELETE');await loadAll();renderUsr();toast('Usuario eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   LICENCIAS
+════════════════════════════════════════════════════ */
+function renderLicenses(){
+  const q=($('srchLicense')?.value||'').toLowerCase();
+  const tipo=$('ftLicenseTipo')?.value||'';
+  const est=$('ftLicenseEst')?.value||'';
+  
+  // Reset pagination when filters change
+  currentPage['license']=1;
+  
+  let rows=LICENCIAS.filter(l=>
+    (!q||(l.nombre||'').toLowerCase().includes(q)||(l.proveedor||'').toLowerCase().includes(q))&&
+    (!tipo||l.tipo===tipo)&&(!est||l.estado===est));
+  
+  $('licenseCount').textContent=`${rows.length} licencia(s)`;
+  
+  // Paginación
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'license');
+  
+  const tb=$('licenseTbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📜</div><h3>Sin licencias</h3></div></td></tr>`;
+    // Limpiar pagination
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="license"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tb.innerHTML=pageData.map(l=>{
+    const hoy=TODAY;
+    const vencida=l.fecha_caducidad<hoy&&l.estado!=='inactiva';
+    const porvencer=l.fecha_caducidad>=hoy&&l.fecha_caducidad<=new Date(new Date().setDate(new Date().getDate()+30)).toISOString().split('T')[0]&&l.estado!=='inactiva';
+    return`<tr style="${vencida?'background:rgba(248,113,113,.04)':porvencer?'background:rgba(251,191,36,.04)':''}">
+      <td data-label="Nombre"><strong>${l.nombre}</strong></td>
+      <td data-label="Tipo"><span style="font-size:12px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:4px;display:inline-block">${l.tipo}</span></td>
+      <td data-label="Inicio" class="mono">${fmtDate(l.fecha_inicio)}</td>
+      <td data-label="Caducidad" class="mono" style="color:${vencida?'var(--red)':porvencer?'var(--amber)':'var(--text3)'}">
+        ${fmtDate(l.fecha_caducidad)}
+        ${vencida?'<div style="font-size:10px;color:var(--red);font-weight:700">VENCIDA</div>':''}
+        ${porvencer?'<div style="font-size:10px;color:var(--amber);font-weight:700">Por vencer</div>':''}
+      </td>
+      <td data-label="Proveedor">${l.proveedor||'—'}</td>
+      <td data-label="Costo" class="mono">${l.costo?fmt(l.costo):'—'}</td>
+      <td data-label="Estado"><span class="bs ${bsClass(l.estado)}">${bsLabel(l.estado)}</span></td>
+      <td data-label="Acciones"><div class="act-cell">
+        <button class="btn btn-warning btn-sm" onclick="openLicenseModal(${l.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delLicense(${l.id})">🗑️</button>
+      </div></td>
+    </tr>`;}).join('');
+  
+  // Agregar/actualizar controles de paginación si hay múltiples páginas
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="license"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','license');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'license');
+  }else{
+    // Remover pagination si no es necesaria
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="license"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
+}
+
+function openLicenseModal(license_id=null){
+  editLicenseId=null;
+  if(license_id){
+    const lic=LICENCIAS.find(l=>l.id===license_id);
+    if(!lic)return;
+    editLicenseId=license_id;
+    $('licenseModalTitle').textContent='Editar licencia';
+    $('licenseModalSub').textContent=lic.nombre;
+    $('lName').value=lic.nombre;
+    $('lTipo').value=lic.tipo;
+    $('lStart').value=lic.fecha_inicio;
+    $('lExpiry').value=lic.fecha_caducidad;
+    $('lProvider').value=lic.proveedor||'';
+    $('lCost').value=lic.costo||'';
+    $('lDesc').value=lic.descripcion||'';
+    $('lNotes').value=lic.notas||'';
+  }else{
+    $('licenseModalTitle').textContent='Nueva licencia';
+    $('licenseModalSub').textContent='Registrar licencia de software o hardware';
+    $('lName').value='';
+    $('lTipo').value='Software';
+    $('lStart').value=TODAY;
+    $('lExpiry').value='';
+    $('lProvider').value='';
+    $('lCost').value='';
+    $('lDesc').value='';
+    $('lNotes').value='';
+  }
+  open('ovLicense');
+}
+
+async function saveLicense(){
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
+  const nombre=$('lName').value.trim();
+  const tipo=$('lTipo').value;
+  const fecha_inicio=$('lStart').value;
+  const fecha_caducidad=$('lExpiry').value;
+  
+  if(!nombre||!tipo||!fecha_inicio||!fecha_caducidad){
+    toast('Nombre, tipo y fechas son requeridos','err');
+    return;
+  }
+  
+  const data={
+    nombre:nombre,
+    tipo:tipo,
+    fecha_inicio:fecha_inicio,
+    fecha_caducidad:fecha_caducidad,
+    proveedor:$('lProvider').value||'',
+    costo:parseFloat($('lCost').value)||0,
+    descripcion:$('lDesc').value||'',
+    notas:$('lNotes').value||''
+  };
+  
+  isSubmitting=true;
+  const btn=$('saveLicenseBtn');
+  btn.disabled=true;
+  const btnText=editLicenseId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editLicenseId?await api('/api/licencias/'+editLicenseId,'PUT',data):await api('/api/licencias','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovLicense');await loadAll();renderLicenses();renderDashboard();
+    toast(editLicenseId?'Licencia actualizada':'Licencia registrada','ok');editLicenseId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar licencia';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar licencia';
+  }
+}
+
+async function delLicense(id){
+  if(!confirm('¿Eliminar esta licencia?'))return;
+  await api('/api/licencias/'+id,'DELETE');await loadAll();renderLicenses();toast('Licencia eliminada','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -2265,14 +3024,18 @@ async function delUsr(id){
 function renderLoan(){
   const q=($('srchLoan')?.value||'').toLowerCase();
   const est=$('ftLoanEst')?.value||'';
+  
+  // Reset pagination when filters change
+  currentPage['loan']=1;
+  
   const rows=LOANS.filter(p=>(!q||(p.equipo_nombre||'').toLowerCase().includes(q)||(p.usuario_nombre||'').toLowerCase().includes(q))&&(!est||p.estado===est));
   $('loanCount').textContent=`${rows.length} préstamo(s)`;
   const tb=$('loanTbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;return}
   tb.innerHTML=rows.map(p=>{
-    const overdue=p.estado==='activo'&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+    const overdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
     const dl=daysLeft(p.fecha_devolucion_esperada);
-    const near=p.estado==='activo'&&dl!==null&&dl>=0&&dl<=7;
+    const near=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
     return`<tr style="${overdue?'background:rgba(248,113,113,.04)':near?'background:rgba(251,191,36,.04)':''}">
       <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[p.equipo_tipo]||'📦'}</div>
@@ -2290,22 +3053,50 @@ function renderLoan(){
       <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-info btn-sm" onclick="viewLoanDetails(${p.id})" title="Ver detalles">ℹ️ Detalles</button>
+        ${p.estado==='solicitado'?`<button class="btn btn-warning btn-sm" onclick="openLoanModal(${p.id})">✏️ Editar</button>`:``}
         ${p.estado!=='devuelto'?`<button class="btn btn-success btn-sm" onclick="showSignatureLinkModal(${p.id})">🔗 Enviar Link</button>`:''}
         ${p.estado==='firmado'?`<button class="btn btn-teal btn-sm" onclick="returnLoan(${p.id})">📤 Devolver</button>`:''}
         <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️ Eliminar</button>
       </div></td>
     </tr>`;}).join('');
 }
-function openLoanModal(){
+function openLoanModal(loan_id=null){
+  editLoanId=null;
+  
   // Excluir equipos que YA tienen préstamos NO devueltos (no solo 'activo')
-  // Debe incluir: activo, solicitado, firmado
-  const asignados=LOANS.filter(p=>p.estado!=='devuelto').map(p=>p.equipo_id);
+  // Pero si estamos editando, excluir solo los demás préstamos activos
+  const excludeLoanId=loan_id||null;
+  const asignados=LOANS.filter(p=>p.estado!=='devuelto'&&p.id!==excludeLoanId).map(p=>p.equipo_id);
   window.equiposDisponibles=EQ.filter(e=>!asignados.includes(e.id)&&e.disponibilidad!=='Retirado');
-  $('lEqSearch').value='';
-  $('lEq').value='';
+  
+  if(loan_id){
+    // Modo edición
+    const loan=LOANS.find(l=>l.id===loan_id);
+    if(!loan)return;
+    editLoanId=loan_id;
+    $('loanModalTitle').textContent='Editar préstamo';
+    $('loanModalSub').textContent=loan.equipo_nombre;
+    
+    // Llenar datos existentes
+    $('lEq').value=loan.equipo_id;
+    $('lUsr').value=loan.usuario_id;
+    $('lFecha').value=loan.fecha_prestamo;
+    $('lDevol').value=loan.fecha_devolucion_esperada||'';
+    $('lNotas').value=loan.notas||'';
+    $('lEqSearch').value='';
+  }else{
+    // Modo crear
+    $('loanModalTitle').textContent='Nuevo préstamo';
+    $('loanModalSub').textContent='Registrar préstamo vinculado a equipo';
+    $('lEqSearch').value='';
+    $('lEq').value='';
+    $('lFecha').value=TODAY;
+    $('lDevol').value='';
+    $('lNotas').value='';
+  }
+  
   filterEquipos();
   $('lUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
-  $('lFecha').value=TODAY;$('lDevol').value='';$('lNotas').value='';
   open('ovLoan');
 }
 
@@ -2354,6 +3145,12 @@ document.addEventListener('click',function(e){
   }
 });
 async function saveLoan(){
+  // Prevenir múltiples clics
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
   const equipo_id=parseInt($('lEq').value);
   const usuario_id=parseInt($('lUsr').value);
   const fecha_prestamo=$('lFecha').value;
@@ -2373,31 +3170,59 @@ async function saveLoan(){
     notas:notas
   };
   
-  const res=await api('/api/prestamos','POST',data);
+  // Establecer flag y deshabilitar botón
+  isSubmitting=true;
+  const btn=$('saveLoanBtn');
+  btn.disabled=true;
+  const btnText=editLoanId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
   
-  if(res.error){
-    toast(res.error,'err');
-    return;
+  try{
+    const res=editLoanId?await api('/api/prestamos/'+editLoanId,'PUT',data):await api('/api/prestamos','POST',data);
+    
+    if(res.error){
+      toast(res.error,'err');
+      isSubmitting=false;
+      btn.disabled=false;
+      btn.textContent=editLoanId?'Actualizar':'Registrar préstamo';
+      return;
+    }
+    
+    // Obtener el ID del préstamo
+    let loanId=res.id||editLoanId;
+    
+    if(!loanId){
+      toast('Error: No se pudo obtener el ID del préstamo','err');
+      isSubmitting=false;
+      btn.disabled=false;
+      btn.textContent=editLoanId?'Actualizar':'Registrar préstamo';
+      return;
+    }
+    
+    close('ovLoan');
+    await loadAll();
+    renderLoan();
+    renderDashboard();
+    toast(editLoanId?'Préstamo actualizado ✅':'Préstamo registrado ✅','ok');
+    editLoanId=null;
+    
+    // Reiniciar estado
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar préstamo';
+    
+    // Mostrar modal para compartir link de firma solo si es nuevo préstamo
+    if(!editLoanId){
+      setTimeout(()=>{
+        showSignatureLinkModal(loanId);
+      },500);
+    }
+  }catch(e){
+    toast('Error al registrar: '+e.message,'err');
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent=editLoanId?'Actualizar':'Registrar préstamo';
   }
-  
-  // Obtener el ID del préstamo creado
-  let newLoanId=res.id;
-  
-  if(!newLoanId){
-    toast('Error: No se pudo obtener el ID del préstamo','err');
-    return;
-  }
-  
-  close('ovLoan');
-  await loadAll();
-  renderLoan();
-  renderDashboard();
-  toast('Préstamo registrado ✅','ok');
-  
-  // Mostrar modal para compartir link de firma
-  setTimeout(()=>{
-    showSignatureLinkModal(newLoanId);
-  },500);
 }
 function viewLoanDocuments(id){
   const loan=LOANS.find(l=>l.id===id);
@@ -2699,13 +3524,6 @@ function renderReportes(){
 /* ════════════════════════════════════════════════════
    GLOBAL SEARCH
 ════════════════════════════════════════════════════ */
-function gSearchFn(q){
-  if(!q)return;
-  const ql=q.toLowerCase();
-  const found=EQ.filter(e=>e.nombre.toLowerCase().includes(ql)||(e.serial||'').toLowerCase().includes(ql));
-  if(found.length){nav('equipos');$('srchEq').value=q;renderEq()}
-}
-
 /* ════════════════════════════════════════════════════
    MODAL CLOSE ON BACKDROP
 ════════════════════════════════════════════════════ */
@@ -2773,28 +3591,43 @@ function openSignatureForm(loanId, tipo='inicial'){
 }
 
 function showSignatureLinkModal(loanId){
-
   if(!loanId){
-    toast('Error: ID de prestamo invalido','err');
+    toast('Error: ID de préstamo inválido','err');
     return;
   }
-  const sigUrl=`${window.location.origin}/firma/${loanId}`;
-
-  $('sigLinkUrl').value=sigUrl;
-  $('sigLinkQR').innerHTML='';
-  open('ovSignLink');
+  
+  try{
+    const sigUrl=`${window.location.origin}/firma/${loanId}`;
+    const urlInput=$('sigLinkUrl');
+    if(urlInput){
+      urlInput.value=sigUrl;
+    }
+    const qrDiv=$('sigLinkQR');
+    if(qrDiv){
+      qrDiv.innerHTML='';
+    }
+    open('ovSignLink');
+  }catch(e){
+    toast('Error al preparar link de firma: '+e.message,'err');
+  }
 }
 
 function showReturnLinkModal(loanId){
-
   if(!loanId){
-    toast('Error: ID de prestamo invalido','err');
+    toast('Error: ID de préstamo inválido','err');
     return;
   }
-  const returnUrl=`${window.location.origin}/firma/${loanId}?tipo=devolucion`;
-
-  $('returnLinkUrl').value=returnUrl;
-  open('ovReturnLink');
+  
+  try{
+    const returnUrl=`${window.location.origin}/firma/${loanId}?tipo=devolucion`;
+    const urlInput=$('returnLinkUrl');
+    if(urlInput){
+      urlInput.value=returnUrl;
+    }
+    open('ovReturnLink');
+  }catch(e){
+    toast('Error al preparar link de devolución: '+e.message,'err');
+  }
 }
 
 function copySignatureLink(){
