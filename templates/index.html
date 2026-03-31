@@ -3083,7 +3083,8 @@ function openLoanModal(loan_id=null){
     $('lFecha').value=loan.fecha_prestamo;
     $('lDevol').value=loan.fecha_devolucion_esperada||'';
     $('lNotas').value=loan.notas||'';
-    $('lEqSearch').value='';
+    $('lEqSearch').value=loan.equipo_nombre||'';  // Mostrar nombre del equipo
+    $('lEqList').style.display='none';  // Ocultar lista
   }else{
     // Modo crear
     $('loanModalTitle').textContent='Nuevo préstamo';
@@ -3126,7 +3127,7 @@ function filterEquipos(){
            onmouseout="this.style.background='transparent'" 
            onclick="selectEquipo(${e.id},'${e.nombre.replace(/'/g,"\\'")}')">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
-        <div style="font-size:11px;color:var(--text3)">${e.tipo_nombre||e.tipo}${e.marca?' • '+e.marca:''}</div>
+        <div style="font-size:11px;color:var(--text3)">${e.serial?'Serial: '+e.serial:''}</div>
       </div>
     `).join('');
   }

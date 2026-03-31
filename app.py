@@ -1540,15 +1540,24 @@ def create_licencia():
         if not d.get('nombre') or not d.get('tipo') or not d.get('fecha_inicio') or not d.get('fecha_caducidad'):
             return jsonify({'error': 'nombre, tipo, fecha_inicio y fecha_caducidad son requeridos'}), 400
         
+        # Convertir costo de forma segura
+        costo = 0
+        try:
+            costo_str = str(d.get('costo', '0')).strip()
+            if costo_str and costo_str not in ['NaN', 'nan', '']:
+                costo = float(costo_str)
+        except (ValueError, TypeError):
+            costo = 0
+        
         result = supabase_request('POST', 'licencias', '', {
             'nombre': d['nombre'].strip(),
             'tipo': d['tipo'],
             'fecha_inicio': d['fecha_inicio'],
             'fecha_caducidad': d['fecha_caducidad'],
-            'proveedor': d.get('proveedor', ''),
-            'costo': float(d.get('costo', 0)) or 0,
-            'descripcion': d.get('descripcion', ''),
-            'notas': d.get('notas', ''),
+            'proveedor': d.get('proveedor', '').strip(),
+            'costo': costo,
+            'descripcion': d.get('descripcion', '').strip(),
+            'notas': d.get('notas', '').strip(),
             'estado': 'activa'
         })
         
@@ -1575,15 +1584,24 @@ def update_licencia(id):
         if not isinstance(licencia, list) or len(licencia) == 0:
             return jsonify({'error': 'Licencia no encontrada'}), 404
         
+        # Convertir costo de forma segura
+        costo = licencia[0].get('costo', 0) or 0
+        try:
+            costo_str = str(d.get('costo', costo)).strip()
+            if costo_str and costo_str not in ['NaN', 'nan', '']:
+                costo = float(costo_str)
+        except (ValueError, TypeError):
+            costo = licencia[0].get('costo', 0) or 0
+        
         update_data = {
             'nombre': d.get('nombre', licencia[0].get('nombre')).strip(),
             'tipo': d.get('tipo', licencia[0].get('tipo')),
             'fecha_inicio': d.get('fecha_inicio', licencia[0].get('fecha_inicio')),
             'fecha_caducidad': d.get('fecha_caducidad', licencia[0].get('fecha_caducidad')),
-            'proveedor': d.get('proveedor', licencia[0].get('proveedor', '')),
-            'costo': float(d.get('costo', licencia[0].get('costo', 0))) or 0,
-            'descripcion': d.get('descripcion', licencia[0].get('descripcion', '')),
-            'notas': d.get('notas', licencia[0].get('notas', '')),
+            'proveedor': d.get('proveedor', licencia[0].get('proveedor', '')).strip(),
+            'costo': costo,
+            'descripcion': d.get('descripcion', licencia[0].get('descripcion', '')).strip(),
+            'notas': d.get('notas', licencia[0].get('notas', '')).strip(),
             'estado': d.get('estado', licencia[0].get('estado', 'activa'))
         }
         
