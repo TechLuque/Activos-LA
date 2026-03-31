@@ -2903,7 +2903,7 @@ async function saveUsr(){
     btn.textContent='Guardar';
   }
 }
-}
+
 async function delUsr(id){
   if(!confirm('¿Eliminar este responsable?'))return;
   await api('/api/usuarios/'+id,'DELETE');await loadAll();renderUsr();toast('Usuario eliminado','info');
