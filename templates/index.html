@@ -2836,22 +2836,50 @@ async function saveUsr(){
     return;
   }
   
-  const rolId=parseInt($('uRol').value);
-  const selectedRol=ROLES.find(r=>r.id===rolId);
+  const nombre = $('uNom').value.trim();
+  const email = $('uEmail').value.trim();
+  const password = $('uPass').value.trim();
+  const rolId = parseInt($('uRol').value);
+  const selectedRol = ROLES.find(r=>r.id===rolId);
+  const departamento = selectedRol?.departamento || '';
+  const telefono = $('uTel').value.trim();
+  const estado = $('uEst').value;
   
-  const data={
-    nombre:$('uNom').value.trim(),
-    email:$('uEmail').value.trim(),
-    password:$('uPass').value.trim(),
-    departamento:selectedRol?.departamento||'',
-    telefono:$('uTel').value,
-    estado:$('uEst').value,
-    rol_id:rolId||null
-  };
-  if(!data.nombre||!data.email||(!editUsrId&&!data.password)||!data.rol_id||!data.departamento){
-    toast('Completa todos los campos. El departamento se asigna automáticamente desde el cargo'+(editUsrId?'':', y contraseña para nuevos usuarios'),'err');
+  // Debug: mostrar en consola
+  console.log('Validación saveUsr:', {nombre, email, password, rolId, departamento, editUsrId});
+  
+  // Validación simple
+  if(!nombre) {
+    toast('❌ Nombre: requerido','err');
     return;
   }
+  if(!email) {
+    toast('❌ Email: requerido','err');
+    return;
+  }
+  if(!editUsrId && !password) {
+    toast('❌ Contraseña: requerida para nuevos usuarios (min. 6 caracteres)','err');
+    return;
+  }
+  if(!rolId || isNaN(rolId)) {
+    toast('❌ Cargo: selecciona uno del dropdown','err');
+    console.log('rolId error:', rolId, typeof rolId);
+    return;
+  }
+  if(!departamento) {
+    toast('❌ Departamento: el cargo no tiene departamento','err');
+    return;
+  }
+  
+  const data={
+    nombre: nombre,
+    email: email,
+    password: password,
+    departamento: departamento,
+    telefono: telefono,
+    estado: estado,
+    rol_id: rolId
+  };
   
   // Establecer flag y deshabilitar botón
   isSubmitting=true;
@@ -2869,10 +2897,12 @@ async function saveUsr(){
     btn.disabled=false;
     btn.textContent='Guardar';
   }catch(e){
+    console.error('Error en saveUsr:', e);
     isSubmitting=false;
     btn.disabled=false;
     btn.textContent='Guardar';
   }
+}
 }
 async function delUsr(id){
   if(!confirm('¿Eliminar este responsable?'))return;
