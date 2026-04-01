@@ -554,6 +554,18 @@ input[type="file"]::file-selector-button{
       <button class="nav-btn" onclick="nav('licencias')">
         <div class="nav-icon">📜</div> Licencias
       </button>
+      <button class="nav-btn" onclick="nav('aplicativos')">
+        <div class="nav-icon">📱</div> Aplicativos
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Telecomunicaciones</div>
+      <button class="nav-btn" onclick="nav('celulares')">
+        <div class="nav-icon">📞</div> Celulares
+      </button>
+      <button class="nav-btn" onclick="nav('simcards')">
+        <div class="nav-icon">🆔</div> SIM Cards
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Operaciones</div>
@@ -746,6 +758,94 @@ input[type="file"]::file-selector-button{
         <table><thead><tr>
           <th>Nombre</th><th>Tipo</th><th>Inicio</th><th>Caducidad</th><th>Proveedor</th><th>Costo</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="licenseTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ APLICATIVOS ════ -->
+    <section class="page" id="page-aplicativos">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Aplicativos</h2><p>Gestión de suscripciones y pagos periódicos</p></div>
+        <button class="btn btn-primary" onclick="openAplicativoModal()">+ Nuevo Aplicativo</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="renderAplicativos()">
+          <select id="ftAplicativoPeriodicidad" onchange="renderAplicativos()">
+            <option value="">Todas las periodicidades</option>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Semestral">Semestral</option>
+            <option value="Anual">Anual</option>
+          </select>
+          <select id="ftAplicativoEst" onchange="renderAplicativos()">
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="por_vencer">Por vencer</option>
+            <option value="vencido">Vencido</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        <span class="count-badge" id="aplicativoCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Próximo Pago</th><th>Caducidad</th><th>Periodicidad</th><th>Tarjeta</th><th>Estado</th><th>Acciones</th>
+        </tr></thead><tbody id="aplicativoTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ CELULARES ════ -->
+    <section class="page" id="page-celulares">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Celulares</h2><p>Gestión de dispositivos móviles</p></div>
+        <button class="btn btn-primary" onclick="openCelularModal()">+ Nuevo Celular</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="renderCelulares()">
+          <select id="ftCelularWhatsapp" onchange="renderCelulares()">
+            <option value="">Todos los WhatsApp</option>
+            <option value="activo">WhatsApp Activo</option>
+            <option value="bloqueado">WhatsApp Bloqueado</option>
+          </select>
+        </div>
+        <span class="count-badge" id="celularCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Marca</th><th>IMEI</th><th>WhatsApp</th><th>Números SIM</th><th>Estado</th><th>Acciones</th>
+        </tr></thead><tbody id="celularTbody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ════ SIM CARDS ════ -->
+    <section class="page" id="page-simcards">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>SIM Cards</h2><p>Gestión de tarjetas SIM</p></div>
+        <button class="btn btn-primary" onclick="openSimcardModal()">+ Nueva SIM Card</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="renderSimcards()">
+          <select id="ftSimcardOperador" onchange="renderSimcards()">
+            <option value="">Todos los operadores</option>
+            <option value="Movistar">Movistar</option>
+            <option value="Claro">Claro</option>
+            <option value="Tigo">Tigo</option>
+            <option value="WOM">WOM</option>
+          </select>
+          <select id="ftSimcardEst" onchange="renderSimcards()">
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="desactivado">Desactivado</option>
+          </select>
+        </div>
+        <span class="count-badge" id="simcardCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Número</th><th>Operador</th><th>Serial</th><th>App</th><th>Celular</th><th>Estado</th><th>Bloqueos</th><th>Acciones</th>
+        </tr></thead><tbody id="simcardTbody"></tbody></table>
       </div>
     </section>
 
@@ -1132,6 +1232,220 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
+<!-- APLICATIVOS MODAL -->
+<div class="overlay" id="ovAplicativo">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3 id="aplicativoModalTitle">Nuevo Aplicativo</h3><p id="aplicativoModalSub">Registrar aplicativo o suscripción</p></div>
+      <button class="m-close" onclick="close('ovAplicativo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Nombre *</label><input id="aName" placeholder="Nombre del aplicativo…"></div>
+        <div class="fg"><label>Fecha de Pago *</label><input type="date" id="aFechaPago" style="color:white"></div>
+        <div class="fg"><label>Fecha de Caducidad</label><input type="date" id="aFechaCaducidad" style="color:white"></div>
+        <div class="fg"><label>Periodicidad *</label>
+          <select id="aPeriodicidad">
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Semestral">Semestral</option>
+            <option value="Anual">Anual</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tarjeta/Débito Crédito *</label>
+          <select id="aTarjeta">
+            <option value="4184">Tarjeta 4184</option>
+            <option value="1111">Tarjeta 1111</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+        <div class="card-title" style="margin-bottom:10px">💳 Historial de Pagos</div>
+        <div id="aplicativoPagosContainer" style="max-height:300px;overflow-y:auto;margin-bottom:16px">
+          <div style="text-align:center;color:var(--text3);padding:20px">Este aplicativo no tiene pagos registrados aún</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="addPagoModal()">+ Agregar Pago</button>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" onclick="close('ovAplicativo')">Cancelar</button>
+        <button id="saveAplicativoBtn" class="btn btn-primary" onclick="saveAplicativo()">Registrar Aplicativo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR PAGO -->
+<div class="overlay" id="ovAgregarPago">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Agregar Pago</h3><p>Registrar nuevo pago para el aplicativo</p></div>
+      <button class="m-close" onclick="close('ovAgregarPago')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Fecha de Pago *</label><input type="date" id="pFechaPago" style="color:white"></div>
+        <div class="fg"><label>Nueva Fecha de Caducidad *</label><input type="date" id="pFechaCaducidad" style="color:white"></div>
+        <div class="fg"><label>Monto (COP)</label><input type="number" id="pMonto" placeholder="0"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovAgregarPago')">Cancelar</button>
+        <button id="savePagoBtn" class="btn btn-primary" onclick="savePago()">Guardar Pago</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL PAGOS DETALLADO -->
+<div class="overlay" id="ovPagosDetalle">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Historial de Pagos</h3><p id="pagosDetalleTitle">Historial completo de pagos</p></div>
+      <button class="m-close" onclick="close('ovPagosDetalle')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Fecha Pago</th><th>Caducidad</th><th>Monto</th><th>Método</th><th>Acciones</th>
+        </tr></thead><tbody id="pagosDetalleTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CELULAR MODAL -->
+<div class="overlay" id="ovCelular">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="celularModalTitle">Nuevo Celular</h3><p id="celularModalSub">Registrar dispositivo móvil</p></div>
+      <button class="m-close" onclick="close('ovCelular')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Nombre *</label><input id="cNombre" placeholder="Nombre del celular…"></div>
+        <div class="fg"><label>Marca *</label><input id="cMarca" placeholder="Apple, Samsung, etc…"></div>
+        <div class="fg"><label>IMEI *</label><input id="cImei" placeholder="Número IMEI…"></div>
+        <div class="fg"><label>WhatsApp *</label>
+          <select id="cWhatsapp">
+            <option value="activo">Activo</option>
+            <option value="bloqueado">Bloqueado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovCelular')">Cancelar</button>
+        <button id="saveCelularBtn" class="btn btn-primary" onclick="saveCelular()">Registrar Celular</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIMCARD MODAL -->
+<div class="overlay" id="ovSimcard">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3 id="simcardModalTitle">Nueva SIM Card</h3><p id="simcardModalSub">Registrar tarjeta SIM</p></div>
+      <button class="m-close" onclick="close('ovSimcard')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Número *</label><input id="sNumero" placeholder="Número telefónico…"></div>
+        <div class="fg"><label>Serial</label><input id="sSerial" placeholder="Serial ICCID…"></div>
+        <div class="fg"><label>Operador *</label>
+          <select id="sOperador">
+            <option value="Movistar">Movistar</option>
+            <option value="Claro">Claro</option>
+            <option value="Tigo">Tigo</option>
+            <option value="WOM">WOM</option>
+          </select>
+        </div>
+        <div class="fg"><label>Estado *</label>
+          <select id="sEstado">
+            <option value="activo">Activo</option>
+            <option value="desactivado">Desactivado</option>
+          </select>
+        </div>
+        <div class="fg"><label>App *</label>
+          <select id="sApp">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="whatsapp_business">WhatsApp Business</option>
+          </select>
+        </div>
+        <div class="fg"><label>Celular Asociado</label>
+          <select id="sCelularId">
+            <option value="">Ninguno</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+        <div class="card-title" style="margin-bottom:10px">🚫 Historial de Bloqueos</div>
+        <div id="simcardBloqueoContainer" style="max-height:250px;overflow-y:auto;margin-bottom:16px">
+          <div style="text-align:center;color:var(--text3);padding:20px">Sin bloqueos registrados</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="addBloqueoModal()">+ Registrar Bloqueo</button>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" onclick="close('ovSimcard')">Cancelar</button>
+        <button id="saveSimcardBtn" class="btn btn-primary" onclick="saveSimcard()">Registrar SIM Card</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER SIM CARDS & HISTORIAL DEL CELULAR -->
+<div class="overlay" id="ovSimsDelCelular">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>📞 SIM Cards del Celular</h3></div>
+      <button class="m-close" onclick="close('ovSimsDelCelular')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="simsDelCelularContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR BLOQUEO -->
+<div class="overlay" id="ovAgregarBloqueo">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Registrar Bloqueo de SIM</h3><p>Registrar motivo y fecha del bloqueo</p></div>
+      <button class="m-close" onclick="close('ovAgregarBloqueo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Fecha del Bloqueo *</label><input type="date" id="bFecha" style="color:white"></div>
+        <div class="fg s2"><label>Razón</label><input id="bRazon" placeholder="Motivo del bloqueo…"></div>
+        <div class="fg s2"><label>Notas</label><textarea id="bNotas" placeholder="Detalles adicionales…" rows="3"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovAgregarBloqueo')">Cancelar</button>
+        <button id="saveBloqueoBtn" class="btn btn-primary" onclick="saveBloqueo()">Registrar Bloqueo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL BLOQUEOS DETALLADO -->
+<div class="overlay" id="ovBloqueoDetalle">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Historial de Bloqueos</h3><p id="bloqueoDetalleTitle">Todos los bloqueos registrados</p></div>
+      <button class="m-close" onclick="close('ovBloqueoDetalle')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Fecha Bloqueo</th><th>Razón</th><th>Notas</th><th>Acciones</th>
+        </tr></thead><tbody id="bloqueoDetalleTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PRÉSTAMO -->
 <div class="overlay" id="ovLoan">
   <div class="modal">
@@ -1385,7 +1699,7 @@ input[type="file"]::file-selector-button{
 /* ════════════════════════════════════════════════════
    STATE & HELPERS
 ════════════════════════════════════════════════════ */
-let EQ=[],USR=[],LOANS=[],MANTS=[],LICENCIAS=[],DASH={},TIPOS=[],ROLES=[];
+let EQ=[],USR=[],LOANS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -1460,7 +1774,7 @@ function bsLabel(s){
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
-  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
+  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
 
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1473,6 +1787,9 @@ function nav(page){
   if(page==='usuarios')renderUsr();
   if(page==='prestamos')renderLoan();
   if(page==='licencias')renderLicenses();
+  if(page==='aplicativos')renderAplicativos();
+  if(page==='celulares')renderCelulares();
+  if(page==='simcards')renderSimcards();
   if(page==='calendario')renderCal();
   if(page==='reportes')renderReportes();
   if(page==='admin-tipos')renderTipos();
@@ -1510,21 +1827,24 @@ async function init(){
 
 async function loadAll(){
   try{
-    const [eq,usr,loans,mants,lics]=await Promise.all([
+    const [eq,usr,loans,mants,lics,apps,cels,sims]=await Promise.all([
       api('/api/equipos'),
       api('/api/usuarios'),
       api('/api/prestamos'),
       api('/api/mantenimientos'),
-      api('/api/licencias')
+      api('/api/licencias'),
+      api('/api/aplicativos'),
+      api('/api/celulares'),
+      api('/api/simcards')
     ]);
     
     // Check for errors in any response
-    if(eq.error||usr.error||loans.error||mants.error||lics.error){
+    if(eq.error||usr.error||loans.error||mants.error||lics.error||apps.error||cels.error||sims.error){
       toast('Error loading data from server','err');
       return;
     }
     
-    EQ=eq; USR=usr; LOANS=loans; MANTS=mants; LICENCIAS=lics||[];
+    EQ=eq; USR=usr; LOANS=loans; MANTS=mants; LICENCIAS=lics||[]; APLICATIVOS=apps||[]; CELULARES=cels||[]; SIMCARDS=sims||[];
     
     DASH=await api('/api/dashboard');
     updateNavBadges();
@@ -3063,6 +3383,785 @@ async function saveLicense(){
 async function delLicense(id){
   if(!confirm('¿Eliminar esta licencia?'))return;
   await api('/api/licencias/'+id,'DELETE');await loadAll();renderLicenses();toast('Licencia eliminada','info');
+}
+
+/* ════════════════════════════════════════════════════
+   APLICATIVOS
+════════════════════════════════════════════════════ */
+let currentAppId=null;
+let currentAppPagos=[];
+let editAplicativoId=null;
+
+function renderAplicativos(){
+  const q=($('srchAplicativo')?.value||'').toLowerCase();
+  const periodicidad=$('ftAplicativoPeriodicidad')?.value||'';
+  const est=$('ftAplicativoEst')?.value||'';
+  
+  currentPage['aplicativo']=1;
+  
+  let rows=APLICATIVOS.filter(a=>
+    (!q||(a.nombre||'').toLowerCase().includes(q))&&
+    (!periodicidad||a.periodicidad===periodicidad)&&
+    (!est||a.estado===est));
+  
+  $('aplicativoCount').textContent=`${rows.length} aplicativo(s)`;
+  
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'aplicativo');
+  
+  const tb=$('aplicativoTbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">📱</div><h3>Sin aplicativos</h3></div></td></tr>`;
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="aplicativo"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tb.innerHTML=pageData.map(a=>{
+    const hoy=TODAY;
+    const vencido=a.fecha_caducidad<hoy&&a.estado!=='inactivo';
+    const porvencer=a.fecha_caducidad>=hoy&&a.fecha_caducidad<=new Date(new Date().setDate(new Date().getDate()+30)).toISOString().split('T')[0]&&a.estado!=='inactivo';
+    return`<tr style="${vencido?'background:rgba(248,113,113,.04)':porvencer?'background:rgba(251,191,36,.04)':''}">
+      <td data-label="Nombre"><strong>${a.nombre}</strong></td>
+      <td data-label="Próximo Pago" class="mono">${fmtDate(a.fecha_pago)}</td>
+      <td data-label="Caducidad" class="mono" style="color:${vencido?'var(--red)':porvencer?'var(--amber)':'var(--text3)'}">
+        ${fmtDate(a.fecha_caducidad)}
+        ${vencido?'<div style="font-size:10px;color:var(--red);font-weight:700">VENCIDO</div>':''}
+        ${porvencer?'<div style="font-size:10px;color:var(--amber);font-weight:700">Por vencer</div>':''}
+      </td>
+      <td data-label="Periodicidad"><span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:4px 8px;border-radius:4px;display:inline-block">${a.periodicidad}</span></td>
+      <td data-label="Tarjeta"><span style="font-size:12px;background:var(--violet-soft);color:var(--violet);padding:4px 8px;border-radius:4px;display:inline-block;font-family:var(--mono)">***${a.tarjeta.slice(-4)}</span></td>
+      <td data-label="Estado"><span class="bs ${bsClass(a.estado)}">${bsLabel(a.estado)}</span></td>
+      <td data-label="Acciones"><div class="act-cell">
+        <button class="btn btn-secondary btn-sm" onclick="showPagosDetalle(${a.id})">📋 Pagos</button>
+        <button class="btn btn-warning btn-sm" onclick="openAplicativoModal(${a.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delAplicativo(${a.id})">🗑️</button>
+      </div></td>
+    </tr>`;}).join('');
+  
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="aplicativo"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','aplicativo');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'aplicativo');
+  }else{
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="aplicativo"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
+}
+
+async function openAplicativoModal(app_id=null){
+  editAplicativoId=null;
+  currentAppId=app_id;
+  currentAppPagos=[];
+  
+  if(app_id){
+    const app=APLICATIVOS.find(a=>a.id===app_id);
+    if(!app)return;
+    editAplicativoId=app_id;
+    $('aplicativoModalTitle').textContent='Editar Aplicativo';
+    $('aplicativoModalSub').textContent=app.nombre;
+    $('aName').value=app.nombre;
+    $('aFechaPago').value=app.fecha_pago;
+    $('aFechaCaducidad').value=app.fecha_caducidad||'';
+    $('aPeriodicidad').value=app.periodicidad;
+    $('aTarjeta').value=app.tarjeta;
+    
+    // Cargar pagos
+    try{
+      const pagos=await api(`/api/aplicativos/${app_id}/pagos`);
+      currentAppPagos=Array.isArray(pagos)?pagos:[];
+      renderAplicativoPagos();
+    }catch(e){
+      currentAppPagos=[];
+    }
+  }else{
+    $('aplicativoModalTitle').textContent='Nuevo Aplicativo';
+    $('aplicativoModalSub').textContent='Registrar nuevo aplicativo';
+    $('aName').value='';
+    $('aFechaPago').value=TODAY;
+    $('aFechaCaducidad').value='';
+    $('aPeriodicidad').value='Mensual';
+    $('aTarjeta').value='4184';
+    currentAppPagos=[];
+    renderAplicativoPagos();
+  }
+  open('ovAplicativo');
+}
+
+function renderAplicativoPagos(){
+  const container=$('aplicativoPagosContainer');
+  if(!currentAppPagos.length){
+    container.innerHTML=`<div style="text-align:center;color:var(--text3);padding:20px">No hay pagos registrados</div>`;
+    return;
+  }
+  
+  container.innerHTML=`<div style="background:var(--surface2);border-radius:var(--radius-sm);overflow:hidden">
+    ${currentAppPagos.map((p,idx)=>`<div style="padding:12px;border-bottom:${idx<currentAppPagos.length-1?'1px solid var(--border)':'none'};display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;color:var(--text3)">Pago #${idx+1}</div>
+        <div style="font-size:13px;font-weight:600">${fmtDate(p.fecha_pago)} → ${fmtDate(p.fecha_caducidad)}</div>
+      </div>
+      <button class="btn btn-danger btn-icon btn-sm" onclick="delPago(${p.id})">🗑️</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+async function showPagosDetalle(app_id){
+  try{
+    const app=APLICATIVOS.find(a=>a.id===app_id);
+    if(!app)return;
+    
+    const pagos=await api(`/api/aplicativos/${app_id}/pagos`);
+    const pagosList=Array.isArray(pagos)?pagos:[];
+    
+    $('pagosDetalleTitle').textContent=`Historial de pagos - ${app.nombre}`;
+    const tb=$('pagosDetalleTbody');
+    
+    if(!pagosList.length){
+      tb.innerHTML=`<tr><td colspan="5"><div class="empty" style="padding:30px"><div class="empty-icon">📋</div><h3>Sin pagos registrados</h3></div></td></tr>`;
+    }else{
+      tb.innerHTML=pagosList.map(p=>`<tr>
+        <td data-label="Fecha Pago" class="mono">${fmtDate(p.fecha_pago)}</td>
+        <td data-label="Caducidad" class="mono">${fmtDate(p.fecha_caducidad)}</td>
+        <td data-label="Monto" class="mono">${p.monto?fmt(p.monto):'—'}</td>
+        <td data-label="Método">${p.metodo_pago||'—'}</td>
+        <td data-label="Acciones"><button class="btn btn-danger btn-icon btn-sm" onclick="delPago(${p.id});location.reload()">🗑️</button></td>
+      </tr>`).join('');
+    }
+    
+    open('ovPagosDetalle');
+  }catch(e){
+    toast('Error al cargar historial de pagos','err');
+  }
+}
+
+async function saveAplicativo(){
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
+  const nombre=$('aName').value.trim();
+  const fecha_pago=$('aFechaPago').value;
+  const fecha_caducidad=$('aFechaCaducidad').value;
+  const periodicidad=$('aPeriodicidad').value;
+  const tarjeta=$('aTarjeta').value;
+  
+  if(!nombre||!fecha_pago||!periodicidad||!tarjeta){
+    toast('Nombre, fecha de pago, periodicidad y tarjeta son requeridos','err');
+    return;
+  }
+  
+  const data={
+    nombre:nombre,
+    fecha_pago:fecha_pago,
+    fecha_caducidad:fecha_caducidad||null,
+    periodicidad:periodicidad,
+    tarjeta:tarjeta
+  };
+  
+  isSubmitting=true;
+  const btn=$('saveAplicativoBtn');
+  btn.disabled=true;
+  const btnText=editAplicativoId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editAplicativoId?await api('/api/aplicativos/'+editAplicativoId,'PUT',data):await api('/api/aplicativos','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovAplicativo');await loadAll();renderAplicativos();
+    toast(editAplicativoId?'Aplicativo actualizado':'Aplicativo registrado','ok');editAplicativoId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar Aplicativo';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar Aplicativo';
+  }
+}
+
+async function delAplicativo(id){
+  if(!confirm('¿Eliminar este aplicativo?'))return;
+  await api('/api/aplicativos/'+id,'DELETE');await loadAll();renderAplicativos();toast('Aplicativo eliminado','info');
+}
+
+function addPagoModal(){
+  $('pFechaPago').value=TODAY;
+  $('pFechaCaducidad').value='';
+  $('pMonto').value='';
+  open('ovAgregarPago');
+}
+
+async function savePago(){
+  const fecha_pago=$('pFechaPago').value;
+  const fecha_caducidad=$('pFechaCaducidad').value;
+  const monto=$('pMonto').value||0;
+  
+  if(!fecha_pago||!fecha_caducidad){
+    toast('Las fechas de pago y caducidad son requeridas','err');
+    return;
+  }
+  
+  if(!currentAppId){
+    toast('Error: No se seleccionó aplicativo','err');
+    return;
+  }
+  
+  const data={
+    fecha_pago:fecha_pago,
+    fecha_caducidad:fecha_caducidad,
+    monto:parseFloat(monto)
+  };
+  
+  try{
+    const res=await api(`/api/aplicativos/${currentAppId}/pagos`,'POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovAgregarPago');
+    
+    // Recargar pagos del aplicativo actual
+    try{
+      const pagos=await api(`/api/aplicativos/${currentAppId}/pagos`);
+      currentAppPagos=Array.isArray(pagos)?pagos:[];
+      renderAplicativoPagos();
+    }catch(e){}
+    
+    toast('Pago agregado correctamente','ok');
+  }catch(e){
+    toast('Error al guardar pago','err');
+  }
+}
+
+async function delPago(pago_id){
+  if(!confirm('¿Eliminar este pago?'))return;
+  
+  try{
+    await api('/api/pagos-aplicativos/'+pago_id,'DELETE');
+    toast('Pago eliminado','info');
+    
+    // Recargar si estamos en modal
+    if(currentAppId){
+      const pagos=await api(`/api/aplicativos/${currentAppId}/pagos`);
+      currentAppPagos=Array.isArray(pagos)?pagos:[];
+      renderAplicativoPagos();
+    }
+  }catch(e){
+    toast('Error al eliminar pago','err');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   CELULARES
+════════════════════════════════════════════════════ */
+let editCelularId=null;
+
+function renderCelulares(){
+  const q=($('srchCelular')?.value||'').toLowerCase();
+  const whatsapp=$('ftCelularWhatsapp')?.value||'';
+  
+  currentPage['celular']=1;
+  
+  let rows=CELULARES.filter(c=>
+    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.marca||'').toLowerCase().includes(q)||(c.imei||'').toLowerCase().includes(q))&&
+    (!whatsapp||c.whatsapp===whatsapp));
+  
+  $('celularCount').textContent=`${rows.length} celular(es)`;
+  
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'celular');
+  
+  const tb=$('celularTbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">📞</div><h3>Sin celulares</h3></div></td></tr>`;
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="celular"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tb.innerHTML=pageData.map(c=>{
+    const sims=Array.isArray(c.simcard)?c.simcard:[];
+    const operadorColors={'Movistar':'var(--blue)','Claro':'var(--amber)','Tigo':'var(--red)','WOM':'var(--teal)'};
+    const operadorColorsSoft={'Movistar':'var(--blue-soft)','Claro':'var(--amber-soft)','Tigo':'var(--red-soft)','WOM':'var(--teal-soft)'};
+    const simsDisplay=sims.slice(0,3).map(s=>{
+      const opColor=operadorColors[s.operador]||'var(--blue)';
+      const opColorSoft=operadorColorsSoft[s.operador]||'var(--blue-soft)';
+      return `<div style="font-size:11px;padding:4px 6px;background:${opColorSoft};color:${opColor};border-radius:4px;margin-bottom:3px;font-weight:500">${s.numero}</div>`;
+    }).join('');
+    const masIndicador=sims.length>3?`<div style="font-size:10px;color:var(--text3);padding:4px 6px;font-weight:600">+${sims.length-3} más</div>`:'';
+    return`<tr>
+      <td data-label="Nombre"><strong>${c.nombre}</strong></td>
+      <td data-label="Marca">${c.marca}</td>
+      <td data-label="IMEI" class="mono">${c.imei}</td>
+      <td data-label="WhatsApp"><span class="bs ${c.whatsapp==='activo'?'bs-ok':'bs-err'}">${c.whatsapp}</span></td>
+      <td data-label="Números SIM"><div style="max-width:140px">${simsDisplay?simsDisplay+masIndicador:'<span style="color:var(--text3)">—</span>'}</div></td>
+      <td data-label="Estado"><span class="bs ${bsClass(c.estado)}">${bsLabel(c.estado)}</span></td>
+      <td data-label="Acciones"><div class="act-cell">
+        <button class="btn btn-secondary btn-sm" onclick="showSimsDelCelular(${c.id})" title="Ver todas las SIM">📋 SIM</button>
+        <button class="btn btn-warning btn-sm" onclick="openCelularModal(${c.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delCelular(${c.id})">🗑️</button>
+      </div></td>
+    </tr>`;}).join('');
+  
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="celular"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','celular');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'celular');
+  }else{
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="celular"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
+}
+
+function openCelularModal(cel_id=null){
+  editCelularId=null;
+  
+  if(cel_id){
+    const cel=CELULARES.find(c=>c.id===cel_id);
+    if(!cel)return;
+    editCelularId=cel_id;
+    $('celularModalTitle').textContent='Editar Celular';
+    $('celularModalSub').textContent=cel.nombre;
+    $('cNombre').value=cel.nombre;
+    $('cMarca').value=cel.marca;
+    $('cImei').value=cel.imei;
+    $('cWhatsapp').value=cel.whatsapp;
+  }else{
+    $('celularModalTitle').textContent='Nuevo Celular';
+    $('celularModalSub').textContent='Registrar nuevo dispositivo';
+    $('cNombre').value='';
+    $('cMarca').value='';
+    $('cImei').value='';
+    $('cWhatsapp').value='activo';
+  }
+  open('ovCelular');
+}
+
+async function saveCelular(){
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
+  const nombre=$('cNombre').value.trim();
+  const marca=$('cMarca').value.trim();
+  const imei=$('cImei').value.trim();
+  const whatsapp=$('cWhatsapp').value;
+  
+  if(!nombre||!marca||!imei){
+    toast('Nombre, marca e IMEI son requeridos','err');
+    return;
+  }
+  
+  const data={nombre:nombre,marca:marca,imei:imei,whatsapp:whatsapp};
+  
+  isSubmitting=true;
+  const btn=$('saveCelularBtn');
+  btn.disabled=true;
+  const btnText=editCelularId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editCelularId?await api('/api/celulares/'+editCelularId,'PUT',data):await api('/api/celulares','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovCelular');await loadAll();renderCelulares();
+    toast(editCelularId?'Celular actualizado':'Celular registrado','ok');editCelularId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar Celular';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar Celular';
+  }
+}
+
+async function delCelular(id){
+  if(!confirm('¿Eliminar este celular?'))return;
+  await api('/api/celulares/'+id,'DELETE');await loadAll();renderCelulares();toast('Celular eliminado','info');
+}
+
+async function showSimsDelCelular(celular_id){
+  const celular=CELULARES.find(c=>c.id===celular_id);
+  if(!celular)return;
+  
+  // Mapeo de colores para operadores
+  const operadorColors={'Movistar':'var(--blue)','Claro':'var(--amber)','Tigo':'var(--red)','WOM':'var(--teal)'};
+  const operadorColorsSoft={'Movistar':'var(--blue-soft)','Claro':'var(--amber-soft)','Tigo':'var(--red-soft)','WOM':'var(--teal-soft)'};
+  
+  // Obtener historial del servidor
+  const historialRes=await api(`/api/celulares/${celular_id}/historial-sims`,'GET');
+  const historial=Array.isArray(historialRes)?historialRes:[];
+  
+  const simsActuales=Array.isArray(celular.simcard)?celular.simcard:[];
+  
+  let html=`<div style="display:flex;gap:12px;margin-bottom:16px">
+    <button class="btn btn-secondary" style="flex:1;border-bottom:3px solid var(--blue);cursor:pointer" onclick="switchSimTab('actual')">📱 SIM Actuales (${simsActuales.length})</button>
+    <button class="btn btn-secondary" style="flex:1;cursor:pointer" onclick="switchSimTab('historial')">📋 Historial (${historial.length})</button>
+  </div>`;
+  
+  // TAB 1: SIM Cards Actuales
+  html+=`<div id="simTabActual">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Operador</th>
+          <th>Estado</th>
+          <th>App</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  if(simsActuales.length>0){
+    simsActuales.forEach(s=>{
+      const opColor=operadorColors[s.operador]||'var(--blue)';
+      const opColorSoft=operadorColorsSoft[s.operador]||'var(--blue-soft)';
+      html+=`<tr>
+        <td data-label="Número" class="mono"><strong>${s.numero}</strong></td>
+        <td data-label="Operador"><span class="bs" style="background:${opColorSoft};color:${opColor}">${s.operador}</span></td>
+        <td data-label="Estado"><span class="bs ${bsClass(s.estado)}">${bsLabel(s.estado)}</span></td>
+        <td data-label="App">${s.app==='whatsapp_business'?'WhatsApp Biz':'WhatsApp'}</td>
+        <td data-label="Acciones"><div class="act-cell">
+          <button class="btn btn-warning btn-sm" onclick="openSimcardModal(${s.id})">✏️ Editar</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="delSimcard(${s.id})">🗑️</button>
+        </div></td>
+      </tr>`;
+    });
+  }else{
+    html+=`<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin SIM cards actualmente</td></tr>`;
+  }
+  
+  html+=`</tbody></table></div>`;
+  
+  // TAB 2: Historial de Cambios
+  html+=`<div id="simTabHistorial" style="display:none">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Operador</th>
+          <th>Fecha Agregada</th>
+          <th>Fecha Removida</th>
+          <th>Duración</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  if(historial.length>0){
+    historial.forEach(h=>{
+      const sim=h.simcard;
+      const fechaAg=new Date(h.fecha_agregada);
+      const fechaRem=h.fecha_removida?new Date(h.fecha_removida):null;
+      const duracion=fechaRem?Math.floor((fechaRem-fechaAg)/(1000*60*60*24))+' días':h.fecha_removida?'Removida':'Activa';
+      const statusBg=h.fecha_removida?'background:var(--red-soft);color:var(--red)':'background:var(--green-soft);color:var(--green)';
+      const opColor=sim?operadorColors[sim.operador]||'var(--blue)':'var(--text2)';
+      const opColorSoft=sim?operadorColorsSoft[sim.operador]||'var(--blue-soft)':'var(--text2-soft)';
+      
+      html+=`<tr>
+        <td data-label="Número" class="mono"><strong>${sim?sim.numero:'[Eliminada]'}</strong></td>
+        <td data-label="Operador"><span class="bs" style="background:${opColorSoft};color:${opColor}">${sim?sim.operador:'N/A'}</span></td>
+        <td data-label="Fecha Agregada">${fechaAg.toLocaleDateString('es-CO')}<br><small style="color:var(--text3)">${fechaAg.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</small></td>
+        <td data-label="Fecha Removida">${fechaRem?fechaRem.toLocaleDateString('es-CO')+'<br><small style="color:var(--text3)">'+fechaRem.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})+'</small>':'<span style="color:var(--text3)">—</span>'}</td>
+        <td data-label="Duración" style="${statusBg};border-radius:8px;padding:8px;text-align:center">${duracion}</td>
+      </tr>`;
+    });
+  }else{
+    html+=`<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin historial</td></tr>`;
+  }
+  
+  html+=`</tbody></table></div>`;
+  
+  $('simsDelCelularContent').innerHTML=html;
+  open('ovSimsDelCelular');
+}
+
+function switchSimTab(tab){
+  const actual=$('simTabActual');
+  const hist=$('simTabHistorial');
+  const btns=document.querySelectorAll('#simsDelCelularContent~button');
+  
+  if(tab==='actual'){
+    actual.style.display='block';
+    hist.style.display='none';
+  }else{
+    actual.style.display='none';
+    hist.style.display='block';
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   SIM CARDS
+════════════════════════════════════════════════════ */
+let currentSimcardId=null;
+let currentSimcardBloqueos=[];
+let editSimcardId=null;
+
+function renderSimcards(){
+  const q=($('srchSimcard')?.value||'').toLowerCase();
+  const operador=$('ftSimcardOperador')?.value||'';
+  const estado=$('ftSimcardEst')?.value||'';
+  
+  currentPage['simcard']=1;
+  
+  let rows=SIMCARDS.filter(s=>
+    (!q||(s.numero||'').toLowerCase().includes(q)||(s.operador||'').toLowerCase().includes(q))&&
+    (!operador||s.operador===operador)&&
+    (!estado||s.estado===estado));
+  
+  $('simcardCount').textContent=`${rows.length} SIM(s)`;
+  
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'simcard');
+  
+  const tb=$('simcardTbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🆔</div><h3>Sin SIM cards</h3></div></td></tr>`;
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="simcard"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tb.innerHTML=pageData.map(s=>{
+    const cel=s.celular?s.celular:null;
+    return`<tr>
+      <td data-label="Número" class="mono"><strong>${s.numero}</strong></td>
+      <td data-label="Operador"><span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:4px 8px;border-radius:4px;display:inline-block">${s.operador}</span></td>
+      <td data-label="Serial" class="mono">${s.serial||'—'}</td>
+      <td data-label="App"><span style="font-size:12px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:4px;display:inline-block">${s.app==='whatsapp'?'WhatsApp':'WA Business'}</span></td>
+      <td data-label="Celular">${cel?cel.nombre:'—'}</td>
+      <td data-label="Estado"><span class="bs ${bsClass(s.estado)}">${bsLabel(s.estado)}</span></td>
+      <td data-label="Bloqueos"><button class="btn btn-secondary btn-sm" onclick="showBloqueoDetalle(${s.id})">📋</button></td>
+      <td data-label="Acciones"><div class="act-cell">
+        <button class="btn btn-warning btn-sm" onclick="openSimcardModal(${s.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="delSimcard(${s.id})">🗑️</button>
+      </div></td>
+    </tr>`;}).join('');
+  
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="simcard"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','simcard');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'simcard');
+  }else{
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="simcard"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
+}
+
+async function openSimcardModal(sim_id=null){
+  editSimcardId=null;
+  currentSimcardId=sim_id;
+  currentSimcardBloqueos=[];
+  
+  // Cargar lista de celulares en el select
+  const select=$('sCelularId');
+  select.innerHTML='<option value="">Ninguno</option>'+CELULARES.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  
+  if(sim_id){
+    const sim=SIMCARDS.find(s=>s.id===sim_id);
+    if(!sim)return;
+    editSimcardId=sim_id;
+    $('simcardModalTitle').textContent='Editar SIM Card';
+    $('simcardModalSub').textContent=sim.numero;
+    $('sNumero').value=sim.numero;
+    $('sSerial').value=sim.serial||'';
+    $('sOperador').value=sim.operador;
+    $('sEstado').value=sim.estado;
+    $('sApp').value=sim.app;
+    $('sCelularId').value=sim.celular_id||'';
+    
+    // Cargar bloqueos
+    try{
+      const bloqueos=await api(`/api/simcards/${sim_id}/bloqueos`);
+      currentSimcardBloqueos=Array.isArray(bloqueos)?bloqueos:[];
+      renderSimcardBloqueos();
+    }catch(e){
+      currentSimcardBloqueos=[];
+    }
+  }else{
+    $('simcardModalTitle').textContent='Nueva SIM Card';
+    $('simcardModalSub').textContent='Registrar nuevatarjeta SIM';
+    $('sNumero').value='';
+    $('sSerial').value='';
+    $('sOperador').value='Movistar';
+    $('sEstado').value='activo';
+    $('sApp').value='whatsapp';
+    $('sCelularId').value='';
+    currentSimcardBloqueos=[];
+    renderSimcardBloqueos();
+  }
+  open('ovSimcard');
+}
+
+function renderSimcardBloqueos(){
+  const container=$('simcardBloqueoContainer');
+  if(!currentSimcardBloqueos.length){
+    container.innerHTML=`<div style="text-align:center;color:var(--text3);padding:20px">Sin bloqueos registrados</div>`;
+    return;
+  }
+  
+  container.innerHTML=`<div style="background:var(--surface2);border-radius:var(--radius-sm);overflow:hidden">
+    ${currentSimcardBloqueos.map((b,idx)=>`<div style="padding:12px;border-bottom:${idx<currentSimcardBloqueos.length-1?'1px solid var(--border)':'none'}">
+      <div style="font-size:12px;color:var(--text3)">Bloqueo #${idx+1}</div>
+      <div style="font-size:13px;font-weight:600">${fmtDate(b.fecha_bloqueo)}</div>
+      ${b.razon?`<div style="font-size:12px;color:var(--text3)">Razón: ${b.razon}</div>`:''}
+    </div>`).join('')}
+  </div>`;
+}
+
+async function showBloqueoDetalle(sim_id){
+  try{
+    const sim=SIMCARDS.find(s=>s.id===sim_id);
+    if(!sim)return;
+    
+    const bloqueos=await api(`/api/simcards/${sim_id}/bloqueos`);
+    const bloqueosList=Array.isArray(bloqueos)?bloqueos:[];
+    
+    $('bloqueoDetalleTitle').textContent=`Bloqueos - ${sim.numero} (${sim.operador})`;
+    const tb=$('bloqueoDetalleTbody');
+    
+    if(!bloqueosList.length){
+      tb.innerHTML=`<tr><td colspan="4"><div class="empty" style="padding:30px"><div class="empty-icon">🚫</div><h3>Sin bloqueos</h3></div></td></tr>`;
+    }else{
+      tb.innerHTML=bloqueosList.map(b=>`<tr>
+        <td data-label="Fecha Bloqueo" class="mono">${fmtDate(b.fecha_bloqueo)}</td>
+        <td data-label="Razón">${b.razon||'—'}</td>
+        <td data-label="Notas" style="font-size:12px;color:var(--text3)">${b.notas||'—'}</td>
+        <td data-label="Acciones"><button class="btn btn-danger btn-icon btn-sm" onclick="delBloqueo(${b.id})">🗑️</button></td>
+      </tr>`).join('');
+    }
+    
+    open('ovBloqueoDetalle');
+  }catch(e){
+    toast('Error al cargar historial de bloqueos','err');
+  }
+}
+
+async function saveSimcard(){
+  if(isSubmitting){
+    toast('Por favor espera a que termine el proceso','info');
+    return;
+  }
+  
+  const numero=$('sNumero').value.trim();
+  const serial=$('sSerial').value.trim();
+  const operador=$('sOperador').value;
+  const estado=$('sEstado').value;
+  const app=$('sApp').value;
+  const celular_id=$('sCelularId').value||null;
+  
+  if(!numero||!operador){
+    toast('Número y operador son requeridos','err');
+    return;
+  }
+  
+  const data={numero:numero,serial:serial,operador:operador,estado:estado,app:app,celular_id:celular_id?parseInt(celular_id):null};
+  
+  isSubmitting=true;
+  const btn=$('saveSimcardBtn');
+  btn.disabled=true;
+  const btnText=editSimcardId?'Actualizando...':'Registrando...';
+  btn.textContent=btnText;
+  
+  try{
+    const res=editSimcardId?await api('/api/simcards/'+editSimcardId,'PUT',data):await api('/api/simcards','POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovSimcard');await loadAll();renderSimcards();
+    toast(editSimcardId?'SIM Card actualizada':'SIM Card registrada','ok');editSimcardId=null;
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar SIM Card';
+  }catch(e){
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Registrar SIM Card';
+  }
+}
+
+async function delSimcard(id){
+  if(!confirm('¿Eliminar esta SIM Card?'))return;
+  await api('/api/simcards/'+id,'DELETE');await loadAll();renderSimcards();toast('SIM Card eliminada','info');
+}
+
+function addBloqueoModal(){
+  $('bFecha').value=TODAY;
+  $('bRazon').value='';
+  $('bNotas').value='';
+  open('ovAgregarBloqueo');
+}
+
+async function saveBloqueo(){
+  const fecha_bloqueo=$('bFecha').value;
+  const razon=$('bRazon').value||'';
+  const notas=$('bNotas').value||'';
+  
+  if(!fecha_bloqueo){
+    toast('La fecha del bloqueo es requerida','err');
+    return;
+  }
+  
+  if(!currentSimcardId){
+    toast('Error: No se seleccionó SIM card','err');
+    return;
+  }
+  
+  const data={fecha_bloqueo:fecha_bloqueo,razon:razon,notas:notas};
+  
+  try{
+    const res=await api(`/api/simcards/${currentSimcardId}/bloqueos`,'POST',data);
+    if(res.error){toast(res.error,'err');throw new Error(res.error)}
+    close('ovAgregarBloqueo');
+    
+    // Recargar bloqueos
+    try{
+      const bloqueos=await api(`/api/simcards/${currentSimcardId}/bloqueos`);
+      currentSimcardBloqueos=Array.isArray(bloqueos)?bloqueos:[];
+      renderSimcardBloqueos();
+    }catch(e){}
+    
+    toast('Bloqueo registrado correctamente','ok');
+  }catch(e){
+    toast('Error al registrar bloqueo','err');
+  }
+}
+
+async function delBloqueo(bloqueo_id){
+  if(!confirm('¿Eliminar este bloqueo?'))return;
+  
+  try{
+    await api('/api/bloqueos/'+bloqueo_id,'DELETE');
+    toast('Bloqueo eliminado','info');
+    
+    // Recargar si estamos en modal
+    if(currentSimcardId){
+      const bloqueos=await api(`/api/simcards/${currentSimcardId}/bloqueos`);
+      currentSimcardBloqueos=Array.isArray(bloqueos)?bloqueos:[];
+      renderSimcardBloqueos();
+    }
+  }catch(e){
+    toast('Error al eliminar bloqueo','err');
+  }
 }
 
 /* ════════════════════════════════════════════════════

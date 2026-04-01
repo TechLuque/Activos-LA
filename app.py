@@ -2101,5 +2101,632 @@ def cambiar_responsable(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ========== APLICATIVOS Y PAGOS ==========
+@app.route('/api/aplicativos', methods=['GET'])
+@require_api_login
+def get_aplicativos():
+    """Obtener todos los aplicativos"""
+    try:
+        result = supabase_request('GET', 'aplicativos', '?order=nombre.asc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/aplicativos/<int:id>', methods=['GET'])
+@require_api_login
+def get_aplicativo(id):
+    """Obtener un aplicativo específico"""
+    try:
+        result = supabase_request('GET', 'aplicativos', f'?id=eq.{id}')
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify(result[0]), 200
+        return jsonify({'error': 'Aplicativo no encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/aplicativos', methods=['POST'])
+@require_api_login
+def create_aplicativo():
+    """Crear nuevo aplicativo"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        if not d.get('nombre') or not d.get('fecha_pago') or not d.get('periodicidad') or not d.get('tarjeta'):
+            return jsonify({'error': 'nombre, fecha_pago, periodicidad y tarjeta son requeridos'}), 400
+        
+        # Validar periodicidad
+        PERIODICIDADES = ['Mensual', 'Trimestral', 'Semestral', 'Anual']
+        if d.get('periodicidad') not in PERIODICIDADES:
+            return jsonify({'error': f'Periodicidad inválida. Debe ser: {", ".join(PERIODICIDADES)}'}), 400
+        
+        # Validar tarjeta
+        TARJETAS = ['4184', '1111']
+        if d.get('tarjeta') not in TARJETAS:
+            return jsonify({'error': f'Tarjeta inválida. Debe ser: {", ".join(TARJETAS)}'}), 400
+        
+        result = supabase_request('POST', 'aplicativos', '', {
+            'nombre': d['nombre'].strip(),
+            'fecha_pago': d['fecha_pago'],
+            'fecha_caducidad': d.get('fecha_caducidad'),
+            'periodicidad': d['periodicidad'],
+            'tarjeta': d['tarjeta'],
+            'estado': 'activo'
+        })
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify({'id': result[0].get('id'), 'ok': True}), 201
+        elif isinstance(result, dict) and 'id' in result:
+            return jsonify({'id': result.get('id'), 'ok': True}), 201
+        else:
+            return jsonify({'error': 'Error al crear aplicativo'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/aplicativos/<int:id>', methods=['PUT'])
+@require_api_login
+def update_aplicativo(id):
+    """Actualizar un aplicativo"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener aplicativo existente
+        app_exist = supabase_request('GET', 'aplicativos', f'?id=eq.{id}')
+        if not isinstance(app_exist, list) or len(app_exist) == 0:
+            return jsonify({'error': 'Aplicativo no encontrado'}), 404
+        
+        # Validar periodicidad si fue proporcionada
+        if d.get('periodicidad'):
+            PERIODICIDADES = ['Mensual', 'Trimestral', 'Semestral', 'Anual']
+            if d.get('periodicidad') not in PERIODICIDADES:
+                return jsonify({'error': f'Periodicidad inválida. Debe ser: {", ".join(PERIODICIDADES)}'}), 400
+        
+        # Validar tarjeta si fue proporcionada
+        if d.get('tarjeta'):
+            TARJETAS = ['4184', '1111']
+            if d.get('tarjeta') not in TARJETAS:
+                return jsonify({'error': f'Tarjeta inválida. Debe ser: {", ".join(TARJETAS)}'}), 400
+        
+        update_data = {
+            'nombre': d.get('nombre', app_exist[0].get('nombre')).strip(),
+            'fecha_pago': d.get('fecha_pago', app_exist[0].get('fecha_pago')),
+            'fecha_caducidad': d.get('fecha_caducidad', app_exist[0].get('fecha_caducidad')),
+            'periodicidad': d.get('periodicidad', app_exist[0].get('periodicidad')),
+            'tarjeta': d.get('tarjeta', app_exist[0].get('tarjeta')),
+            'estado': d.get('estado', app_exist[0].get('estado', 'activo'))
+        }
+        
+        result = supabase_request('PATCH', 'aplicativos', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        return jsonify({'ok': True, 'id': id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/aplicativos/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_aplicativo(id):
+    """Eliminar un aplicativo"""
+    try:
+        result = supabase_request('DELETE', 'aplicativos', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ════════════════════════════════════════════════════════════════
+# HISTORIAL DE PAGOS DE APLICATIVOS
+# ════════════════════════════════════════════════════════════════
+
+@app.route('/api/aplicativos/<int:aplicativo_id>/pagos', methods=['GET'])
+@require_api_login
+def get_pagos_aplicativo(aplicativo_id):
+    """Obtener historial de pagos de un aplicativo"""
+    try:
+        result = supabase_request('GET', 'pagos_aplicativos', f'?aplicativo_id=eq.{aplicativo_id}&order=fecha_pago.desc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/aplicativos/<int:aplicativo_id>/pagos', methods=['POST'])
+@require_api_login
+def add_pago_aplicativo(aplicativo_id):
+    """Agregar un pago al historial de un aplicativo"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Verificar que aplicativo existe
+        app_check = supabase_request('GET', 'aplicativos', f'?id=eq.{aplicativo_id}')
+        if not isinstance(app_check, list) or len(app_check) == 0:
+            return jsonify({'error': 'Aplicativo no encontrado'}), 404
+        
+        app_data = app_check[0]
+        
+        # Si no se proporciona fecha de pago, usar la fecha actual
+        fecha_pago = d.get('fecha_pago', date.today().isoformat())
+        
+        # Calcular nueva fecha de caducidad basada en la periodicidad
+        fecha_caducidad = d.get('fecha_caducidad')
+        if not fecha_caducidad:
+            fecha_caducidad = app_data.get('fecha_caducidad', date.today().isoformat())
+        
+        result = supabase_request('POST', 'pagos_aplicativos', '', {
+            'aplicativo_id': aplicativo_id,
+            'fecha_pago': fecha_pago,
+            'fecha_caducidad': d.get('fecha_caducidad', fecha_caducidad),
+            'monto': d.get('monto', 0),
+            'metodo_pago': d.get('metodo_pago', app_data.get('tarjeta', ''))
+        })
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        # Actualizar la fecha de pago y caducidad del aplicativo
+        update_data = {
+            'fecha_pago': fecha_pago,
+            'fecha_caducidad': d.get('fecha_caducidad', fecha_caducidad)
+        }
+        
+        supabase_request('PATCH', 'aplicativos', f'?id=eq.{aplicativo_id}', update_data)
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify({'id': result[0].get('id'), 'ok': True}), 201
+        elif isinstance(result, dict) and 'id' in result:
+            return jsonify({'id': result.get('id'), 'ok': True}), 201
+        else:
+            return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pagos-aplicativos/<int:pago_id>', methods=['DELETE'])
+@require_api_login
+def delete_pago_aplicativo(pago_id):
+    """Eliminar un pago del historial"""
+    try:
+        result = supabase_request('DELETE', 'pagos_aplicativos', f'?id=eq.{pago_id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========== CELULARES Y SIM CARDS ==========
+@app.route('/api/celulares', methods=['GET'])
+@require_api_login
+def get_celulares():
+    """Obtener todos los celulares"""
+    try:
+        result = supabase_request('GET', 'celulares', '?order=nombre.asc')
+        if isinstance(result, list):
+            # Enriquecer con datos de SIM asociada
+            simcards = supabase_request('GET', 'simcards', '?order=numero.asc')
+            simcards_map = {}
+            if isinstance(simcards, list):
+                for sim in simcards:
+                    if sim.get('celular_id'):
+                        if sim['celular_id'] not in simcards_map:
+                            simcards_map[sim['celular_id']] = []
+                        simcards_map[sim['celular_id']].append(sim)
+            
+            for cel in result:
+                cel['simcard'] = simcards_map.get(cel['id'], [])
+            
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/celulares/<int:id>', methods=['GET'])
+@require_api_login
+def get_celular(id):
+    """Obtener un celular específico"""
+    try:
+        result = supabase_request('GET', 'celulares', f'?id=eq.{id}')
+        if isinstance(result, list) and len(result) > 0:
+            cel = result[0]
+            # Obtener SIM cards asociadas
+            simcards = supabase_request('GET', 'simcards', f'?celular_id=eq.{id}&order=numero.asc')
+            cel['simcard'] = simcards if isinstance(simcards, list) else []
+            return jsonify(cel), 200
+        return jsonify({'error': 'Celular no encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/celulares', methods=['POST'])
+@require_api_login
+def create_celular():
+    """Crear nuevo celular"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        if not d.get('nombre') or not d.get('marca') or not d.get('imei'):
+            return jsonify({'error': 'nombre, marca e imei son requeridos'}), 400
+        
+        # Validar WhatsApp
+        WHATSAPP_STATUS = ['activo', 'bloqueado']
+        if d.get('whatsapp') and d.get('whatsapp') not in WHATSAPP_STATUS:
+            return jsonify({'error': f'WhatsApp debe ser: {", ".join(WHATSAPP_STATUS)}'}), 400
+        
+        result = supabase_request('POST', 'celulares', '', {
+            'nombre': d['nombre'].strip(),
+            'marca': d['marca'].strip(),
+            'imei': d['imei'].strip(),
+            'whatsapp': d.get('whatsapp', 'activo'),
+            'estado': 'activo'
+        })
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify({'id': result[0].get('id'), 'ok': True}), 201
+        else:
+            return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/celulares/<int:id>', methods=['PUT'])
+@require_api_login
+def update_celular(id):
+    """Actualizar un celular"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener celular existente
+        cel_exist = supabase_request('GET', 'celulares', f'?id=eq.{id}')
+        if not isinstance(cel_exist, list) or len(cel_exist) == 0:
+            return jsonify({'error': 'Celular no encontrado'}), 404
+        
+        # Validar WhatsApp si fue proporcionado
+        if d.get('whatsapp'):
+            WHATSAPP_STATUS = ['activo', 'bloqueado']
+            if d.get('whatsapp') not in WHATSAPP_STATUS:
+                return jsonify({'error': f'WhatsApp debe ser: {", ".join(WHATSAPP_STATUS)}'}), 400
+        
+        update_data = {
+            'nombre': d.get('nombre', cel_exist[0].get('nombre')).strip(),
+            'marca': d.get('marca', cel_exist[0].get('marca')).strip(),
+            'imei': d.get('imei', cel_exist[0].get('imei')).strip(),
+            'whatsapp': d.get('whatsapp', cel_exist[0].get('whatsapp', 'activo')),
+            'estado': d.get('estado', cel_exist[0].get('estado', 'activo'))
+        }
+        
+        result = supabase_request('PATCH', 'celulares', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        return jsonify({'ok': True, 'id': id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/celulares/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_celular(id):
+    """Eliminar un celular"""
+    try:
+        result = supabase_request('DELETE', 'celulares', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ════════════════════════════════════════════════════════════════
+# SIM CARDS
+# ════════════════════════════════════════════════════════════════
+
+@app.route('/api/simcards', methods=['GET'])
+@require_api_login
+def get_simcards():
+    """Obtener todas las SIM cards"""
+    try:
+        result = supabase_request('GET', 'simcards', '?order=numero.asc')
+        if isinstance(result, list):
+            # Enriquecer con datos del celular asociado
+            celulares = supabase_request('GET', 'celulares')
+            celulares_map = {c['id']: c for c in celulares} if isinstance(celulares, list) else {}
+            
+            for sim in result:
+                if sim.get('celular_id') and sim['celular_id'] in celulares_map:
+                    sim['celular'] = celulares_map[sim['celular_id']]
+                else:
+                    sim['celular'] = None
+            
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards/<int:id>', methods=['GET'])
+@require_api_login
+def get_simcard(id):
+    """Obtener una SIM card específica"""
+    try:
+        result = supabase_request('GET', 'simcards', f'?id=eq.{id}')
+        if isinstance(result, list) and len(result) > 0:
+            sim = result[0]
+            
+            # Obtener datos del celular asociado
+            if sim.get('celular_id'):
+                cel = supabase_request('GET', 'celulares', f'?id=eq.{sim["celular_id"]}')
+                if isinstance(cel, list) and len(cel) > 0:
+                    sim['celular'] = cel[0]
+            
+            # Obtener historial de bloqueos
+            historial = supabase_request('GET', 'historial_bloqueos_sim', f'?simcard_id=eq.{id}&order=fecha_bloqueo.desc')
+            sim['historial_bloqueos'] = historial if isinstance(historial, list) else []
+            
+            return jsonify(sim), 200
+        return jsonify({'error': 'SIM card no encontrada'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards', methods=['POST'])
+@require_api_login
+def create_simcard():
+    """Crear nueva SIM card"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        if not d.get('numero') or not d.get('operador'):
+            return jsonify({'error': 'número y operador son requeridos'}), 400
+        
+        # Validar operador
+        OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM']
+        if d.get('operador') not in OPERADORES:
+            return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
+        
+        # Validar estado
+        ESTADOS = ['activo', 'desactivado']
+        if d.get('estado') and d.get('estado') not in ESTADOS:
+            return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
+        
+        # Validar app
+        APPS = ['whatsapp', 'whatsapp_business']
+        if d.get('app') and d.get('app') not in APPS:
+            return jsonify({'error': f'App debe ser: {", ".join(APPS)}'}), 400
+        
+        # Verificar que celular existe si fue proporcionado
+        if d.get('celular_id'):
+            cel_check = supabase_request('GET', 'celulares', f'?id=eq.{d["celular_id"]}')
+            if not isinstance(cel_check, list) or len(cel_check) == 0:
+                return jsonify({'error': 'Celular no encontrado'}), 404
+        
+        result = supabase_request('POST', 'simcards', '', {
+            'numero': d['numero'].strip(),
+            'serial': d.get('serial', '').strip(),
+            'operador': d['operador'],
+            'estado': d.get('estado', 'activo'),
+            'app': d.get('app', 'whatsapp'),
+            'celular_id': d.get('celular_id', None)
+        })
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        if isinstance(result, list) and len(result) > 0:
+            new_id = result[0].get('id')
+            # Registrar en historial si tiene celular_id
+            if d.get('celular_id'):
+                supabase_request('POST', 'historial_simcards_celular', '', {
+                    'celular_id': d['celular_id'],
+                    'simcard_id': new_id
+                })
+            return jsonify({'id': new_id, 'ok': True}), 201
+        else:
+            return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards/<int:id>', methods=['PUT'])
+@require_api_login
+def update_simcard(id):
+    """Actualizar una SIM card"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener SIM card existente
+        sim_exist = supabase_request('GET', 'simcards', f'?id=eq.{id}')
+        if not isinstance(sim_exist, list) or len(sim_exist) == 0:
+            return jsonify({'error': 'SIM card no encontrada'}), 404
+        
+        old_celular_id = sim_exist[0].get('celular_id')
+        new_celular_id = d.get('celular_id') if 'celular_id' in d else old_celular_id
+        
+        # Validar operador si fue proporcionado
+        if d.get('operador'):
+            OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM']
+            if d.get('operador') not in OPERADORES:
+                return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
+        
+        # Validar estado si fue proporcionado
+        if d.get('estado'):
+            ESTADOS = ['activo', 'desactivado']
+            if d.get('estado') not in ESTADOS:
+                return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
+        
+        # Validar app si fue proporcionado
+        if d.get('app'):
+            APPS = ['whatsapp', 'whatsapp_business']
+            if d.get('app') not in APPS:
+                return jsonify({'error': f'App debe ser: {", ".join(APPS)}'}), 400
+        
+        # Verificar que nuevo celular existe si fue proporcionado
+        if new_celular_id:
+            cel_check = supabase_request('GET', 'celulares', f'?id=eq.{new_celular_id}')
+            if not isinstance(cel_check, list) or len(cel_check) == 0:
+                return jsonify({'error': 'Celular no encontrado'}), 404
+        
+        update_data = {
+            'numero': d.get('numero', sim_exist[0].get('numero')).strip(),
+            'serial': d.get('serial', sim_exist[0].get('serial', '')).strip(),
+            'operador': d.get('operador', sim_exist[0].get('operador')),
+            'estado': d.get('estado', sim_exist[0].get('estado', 'activo')),
+            'app': d.get('app', sim_exist[0].get('app', 'whatsapp')),
+            'celular_id': new_celular_id
+        }
+        
+        # Registrar cambio de celular en historial
+        if old_celular_id != new_celular_id:
+            if old_celular_id:
+                # Marcar fecha_removida en el registro anterior
+                supabase_request('PATCH', 'historial_simcards_celular', 
+                    f'?celular_id=eq.{old_celular_id}&simcard_id=eq.{id}&fecha_removida=is.null',
+                    {'fecha_removida': datetime.now().isoformat()})
+            
+            if new_celular_id:
+                # Crear nuevo registro en historial
+                supabase_request('POST', 'historial_simcards_celular', '', {
+                    'celular_id': new_celular_id,
+                    'simcard_id': id
+                })
+        
+        result = supabase_request('PATCH', 'simcards', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        return jsonify({'ok': True, 'id': id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_simcard(id):
+    """Eliminar una SIM card"""
+    try:
+        # Obtener SIM card para registrar en historial
+        sim_data = supabase_request('GET', 'simcards', f'?id=eq.{id}')
+        if isinstance(sim_data, list) and len(sim_data) > 0:
+            celular_id = sim_data[0].get('celular_id')
+            if celular_id:
+                # Marcar fecha_removida en el historial
+                supabase_request('PATCH', 'historial_simcards_celular',
+                    f'?celular_id=eq.{celular_id}&simcard_id=eq.{id}&fecha_removida=is.null',
+                    {'fecha_removida': datetime.now().isoformat()})
+        
+        result = supabase_request('DELETE', 'simcards', f'?id=eq.{id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ════════════════════════════════════════════════════════════════
+# HISTORIAL DE BLOQUEOS DE SIM CARDS
+# ════════════════════════════════════════════════════════════════
+
+@app.route('/api/simcards/<int:simcard_id>/bloqueos', methods=['GET'])
+@require_api_login
+def get_bloqueos_simcard(simcard_id):
+    """Obtener historial de bloqueos de una SIM card"""
+    try:
+        result = supabase_request('GET', 'historial_bloqueos_sim', f'?simcard_id=eq.{simcard_id}&order=fecha_bloqueo.desc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards/<int:simcard_id>/bloqueos', methods=['POST'])
+@require_api_login
+def add_bloqueo_simcard(simcard_id):
+    """Registrar un bloqueo de SIM card"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Verificar que SIM card existe
+        sim_check = supabase_request('GET', 'simcards', f'?id=eq.{simcard_id}')
+        if not isinstance(sim_check, list) or len(sim_check) == 0:
+            return jsonify({'error': 'SIM card no encontrada'}), 404
+        
+        fecha_bloqueo = d.get('fecha_bloqueo', date.today().isoformat())
+        
+        result = supabase_request('POST', 'historial_bloqueos_sim', '', {
+            'simcard_id': simcard_id,
+            'fecha_bloqueo': fecha_bloqueo,
+            'razon': d.get('razon', ''),
+            'notas': d.get('notas', '')
+        })
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        # Actualizar estado de SIM a bloqueado
+        supabase_request('PATCH', 'simcards', f'?id=eq.{simcard_id}', {
+            'estado': 'desactivado'
+        })
+        
+        if isinstance(result, list) and len(result) > 0:
+            return jsonify({'id': result[0].get('id'), 'ok': True}), 201
+        else:
+            return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/bloqueos/<int:bloqueo_id>', methods=['DELETE'])
+@require_api_login
+def delete_bloqueo_simcard(bloqueo_id):
+    """Eliminar un registro de bloqueo"""
+    try:
+        result = supabase_request('DELETE', 'historial_bloqueos_sim', f'?id=eq.{bloqueo_id}')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ════════════════════════════════════════════════════════════════
+# HISTORIAL DE SIM CARDS POR CELULAR
+# ════════════════════════════════════════════════════════════════
+
+@app.route('/api/celulares/<int:celular_id>/historial-sims', methods=['GET'])
+@require_api_login
+def get_historial_sims_celular(celular_id):
+    """Obtener historial completo de SIM cards para un celular"""
+    try:
+        # Obtener historial con detalles de las SIM cards
+        result = supabase_request('GET', 'historial_simcards_celular', 
+            f'?celular_id=eq.{celular_id}&order=fecha_agregada.desc')
+        
+        if not isinstance(result, list):
+            return jsonify([]), 200
+        
+        # Enriquecer con datos de simcard y celular
+        historial_enriquecido = []
+        for h in result:
+            simcard_id = h.get('simcard_id')
+            sim_data = supabase_request('GET', 'simcards', f'?id=eq.{simcard_id}')
+            
+            historial_enriquecido.append({
+                'id': h.get('id'),
+                'celular_id': h.get('celular_id'),
+                'simcard_id': h.get('simcard_id'),
+                'fecha_agregada': h.get('fecha_agregada'),
+                'fecha_removida': h.get('fecha_removida'),
+                'notas': h.get('notas'),
+                'simcard': sim_data[0] if isinstance(sim_data, list) and len(sim_data) > 0 else None
+            })
+        
+        return jsonify(historial_enriquecido), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
