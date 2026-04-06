@@ -2364,6 +2364,7 @@ def create_celular():
             'nombre': d['nombre'].strip(),
             'marca': d['marca'].strip(),
             'imei': d['imei'].strip(),
+            'imei2': d.get('imei2', '').strip(),
             'whatsapp': d.get('whatsapp', 'activo'),
             'estado': 'activo'
         })
@@ -2402,6 +2403,7 @@ def update_celular(id):
             'nombre': d.get('nombre', cel_exist[0].get('nombre')).strip(),
             'marca': d.get('marca', cel_exist[0].get('marca')).strip(),
             'imei': d.get('imei', cel_exist[0].get('imei')).strip(),
+            'imei2': d.get('imei2', cel_exist[0].get('imei2', '')).strip(),
             'whatsapp': d.get('whatsapp', cel_exist[0].get('whatsapp', 'activo')),
             'estado': d.get('estado', cel_exist[0].get('estado', 'activo'))
         }
@@ -2507,6 +2509,11 @@ def create_simcard():
             cel_check = supabase_request('GET', 'celulares', f'?id=eq.{d["celular_id"]}')
             if not isinstance(cel_check, list) or len(cel_check) == 0:
                 return jsonify({'error': 'Celular no encontrado'}), 404
+            
+            # Validar que no exceeda 3 números por celular
+            sim_count = supabase_request('GET', 'simcards', f'?celular_id=eq.{d["celular_id"]}')
+            if isinstance(sim_count, list) and len(sim_count) >= 3:
+                return jsonify({'error': 'Este celular ya tiene 3 números. Máximo permitido es 3 por celular'}), 400
         
         result = supabase_request('POST', 'simcards', '', {
             'numero': d['numero'].strip(),
@@ -2574,6 +2581,12 @@ def update_simcard(id):
             cel_check = supabase_request('GET', 'celulares', f'?id=eq.{new_celular_id}')
             if not isinstance(cel_check, list) or len(cel_check) == 0:
                 return jsonify({'error': 'Celular no encontrado'}), 404
+            
+            # Si cambió de celular, validar que no exceeda 3 números en el nuevo
+            if new_celular_id != old_celular_id:
+                sim_count = supabase_request('GET', 'simcards', f'?celular_id=eq.{new_celular_id}')
+                if isinstance(sim_count, list) and len(sim_count) >= 3:
+                    return jsonify({'error': 'El nuevo celular ya tiene 3 números. Máximo permitido es 3 por celular'}), 400
         
         update_data = {
             'numero': d.get('numero', sim_exist[0].get('numero')).strip(),
@@ -2611,20 +2624,100 @@ def update_simcard(id):
 @app.route('/api/simcards/<int:id>', methods=['DELETE'])
 @require_api_login
 def delete_simcard(id):
-    """Eliminar una SIM card"""
+    """Desasignar una SIM card del celular actual (no la elimina)
+    
+    Parámetro query: ?permanently=true para eliminar completamente
+    """
     try:
-        # Obtener SIM card para registrar en historial
+        permanently = request.args.get('permanently', 'false').lower() == 'true'
+        
+        # Obtener SIM card actual
         sim_data = supabase_request('GET', 'simcards', f'?id=eq.{id}')
-        if isinstance(sim_data, list) and len(sim_data) > 0:
-            celular_id = sim_data[0].get('celular_id')
+        if not isinstance(sim_data, list) or len(sim_data) == 0:
+            return jsonify({'error': 'SIM card no encontrada'}), 404
+        
+        celular_id = sim_data[0].get('celular_id')
+        
+        if permanently:
+            # Eliminar completamente la SIM card
             if celular_id:
                 # Marcar fecha_removida en el historial
                 supabase_request('PATCH', 'historial_simcards_celular',
                     f'?celular_id=eq.{celular_id}&simcard_id=eq.{id}&fecha_removida=is.null',
                     {'fecha_removida': datetime.now().isoformat()})
+            
+            result = supabase_request('DELETE', 'simcards', f'?id=eq.{id}')
+            return jsonify({'ok': True, 'message': 'SIM card eliminada permanentemente'})
+        else:
+            # Solo desasignar del celular
+            if celular_id:
+                # Marcar fecha_removida en el historial
+                supabase_request('PATCH', 'historial_simcards_celular',
+                    f'?celular_id=eq.{celular_id}&simcard_id=eq.{id}&fecha_removida=is.null',
+                    {'fecha_removida': datetime.now().isoformat()})
+            
+            # Desasignar: poner celular_id en NULL
+            result = supabase_request('PATCH', 'simcards', f'?id=eq.{id}', {
+                'celular_id': None
+            })
+            
+            return jsonify({'ok': True, 'message': 'SIM card desasignada del celular'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards/<int:id>/reasignar', methods=['POST'])
+@require_api_login
+def reasignar_simcard(id):
+    """Reasignar una SIM card a otro celular"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
         
-        result = supabase_request('DELETE', 'simcards', f'?id=eq.{id}')
-        return jsonify({'ok': True})
+        nuevo_celular_id = d.get('nuevo_celular_id')
+        if not nuevo_celular_id:
+            return jsonify({'error': 'nuevo_celular_id es requerido'}), 400
+        
+        # Obtener SIM card actual
+        sim_data = supabase_request('GET', 'simcards', f'?id=eq.{id}')
+        if not isinstance(sim_data, list) or len(sim_data) == 0:
+            return jsonify({'error': 'SIM card no encontrada'}), 404
+        
+        old_celular_id = sim_data[0].get('celular_id')
+        
+        # Verificar que nuevo celular existe
+        cel_check = supabase_request('GET', 'celulares', f'?id=eq.{nuevo_celular_id}')
+        if not isinstance(cel_check, list) or len(cel_check) == 0:
+            return jsonify({'error': 'Celular destino no encontrado'}), 404
+        
+        # Validar que no exceeda 3 números en el nuevo celular
+        if nuevo_celular_id != old_celular_id:
+            sim_count = supabase_request('GET', 'simcards', f'?celular_id=eq.{nuevo_celular_id}')
+            if isinstance(sim_count, list) and len(sim_count) >= 3:
+                return jsonify({'error': 'El celular destino ya tiene 3 números. Máximo permitido es 3 por celular'}), 400
+        
+        # Actualizar celular_id
+        result = supabase_request('PATCH', 'simcards', f'?id=eq.{id}', {
+            'celular_id': nuevo_celular_id
+        })
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        # Registrar cambio en historial
+        if old_celular_id:
+            # Marcar fecha_removida en el registro anterior
+            supabase_request('PATCH', 'historial_simcards_celular',
+                f'?celular_id=eq.{old_celular_id}&simcard_id=eq.{id}&fecha_removida=is.null',
+                {'fecha_removida': datetime.now().isoformat()})
+        
+        # Crear nuevo registro en historial
+        supabase_request('POST', 'historial_simcards_celular', '', {
+            'celular_id': nuevo_celular_id,
+            'simcard_id': id
+        })
+        
+        return jsonify({'ok': True, 'id': id, 'message': f'SIM card reasignada de celular {old_celular_id} a {nuevo_celular_id}'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -2659,10 +2752,12 @@ def add_bloqueo_simcard(simcard_id):
             return jsonify({'error': 'SIM card no encontrada'}), 404
         
         fecha_bloqueo = d.get('fecha_bloqueo', date.today().isoformat())
+        fecha_desbloqueo = d.get('fecha_desbloqueo', None)
         
         result = supabase_request('POST', 'historial_bloqueos_sim', '', {
             'simcard_id': simcard_id,
             'fecha_bloqueo': fecha_bloqueo,
+            'fecha_desbloqueo': fecha_desbloqueo,
             'razon': d.get('razon', ''),
             'notas': d.get('notas', '')
         })
@@ -2679,6 +2774,36 @@ def add_bloqueo_simcard(simcard_id):
             return jsonify({'id': result[0].get('id'), 'ok': True}), 201
         else:
             return jsonify({'ok': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/bloqueos/<int:bloqueo_id>', methods=['PUT'])
+@require_api_login
+def update_bloqueo_simcard(bloqueo_id):
+    """Actualizar un registro de bloqueo (especialmente fecha_desbloqueo)"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Obtener bloqueo existente
+        bloqueo_exist = supabase_request('GET', 'historial_bloqueos_sim', f'?id=eq.{bloqueo_id}')
+        if not isinstance(bloqueo_exist, list) or len(bloqueo_exist) == 0:
+            return jsonify({'error': 'Bloqueo no encontrado'}), 404
+        
+        update_data = {
+            'fecha_bloqueo': d.get('fecha_bloqueo', bloqueo_exist[0].get('fecha_bloqueo')),
+            'fecha_desbloqueo': d.get('fecha_desbloqueo', bloqueo_exist[0].get('fecha_desbloqueo')),
+            'razon': d.get('razon', bloqueo_exist[0].get('razon', '')),
+            'notas': d.get('notas', bloqueo_exist[0].get('notas', ''))
+        }
+        
+        result = supabase_request('PATCH', 'historial_bloqueos_sim', f'?id=eq.{bloqueo_id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"Error: {result.get('error')}"}), 500
+        
+        return jsonify({'ok': True, 'id': bloqueo_id}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
