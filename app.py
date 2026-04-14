@@ -2853,5 +2853,310 @@ def get_historial_sims_celular(celular_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ════════════════════════════════════════════════════════════════
+# ASIGNACIONES DE EQUIPOS - Entrada/Salida con Firma Digital
+# ════════════════════════════════════════════════════════════════
+
+@app.route('/api/asignaciones-equipos', methods=['GET'])
+@require_api_login
+def get_asignaciones_equipos():
+    """Obtener lista de asignaciones de equipos (con enriquecimiento de datos)"""
+    try:
+        result = supabase_request('GET', 'asignaciones_equipos', '?order=fecha_asignacion.desc')
+        
+        if isinstance(result, list):
+            # Enriquecer con datos de equipos y usuarios
+            equipos = supabase_request('GET', 'equipos')
+            usuarios = supabase_request('GET', 'usuarios')
+            
+            eq_map = {e['id']: e for e in equipos} if isinstance(equipos, list) else {}
+            usr_map = {u['id']: u for u in usuarios} if isinstance(usuarios, list) else {}
+            
+            for asig in result:
+                asig['equipo'] = eq_map.get(asig.get('equipo_id'), {})
+                asig['usuario'] = usr_map.get(asig.get('usuario_id'), {})
+            
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/asignaciones-equipos/<int:id>', methods=['GET'])
+@require_api_login
+def get_asignacion_equipo(id):
+    """Obtener detalles completos de una asignación"""
+    try:
+        result = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
+        
+        if isinstance(result, list) and len(result) > 0:
+            asig = result[0]
+            
+            # Enriquecer con datos relacionados
+            equipo = supabase_request('GET', 'equipos', f'?id=eq.{asig.get("equipo_id")}')
+            usuario = supabase_request('GET', 'usuarios', f'?id=eq.{asig.get("usuario_id")}')
+            
+            asig['equipo'] = equipo[0] if isinstance(equipo, list) and len(equipo) > 0 else {}
+            asig['usuario'] = usuario[0] if isinstance(usuario, list) and len(usuario) > 0 else {}
+            
+            return jsonify(asig), 200
+        
+        return jsonify({'error': 'Asignación no encontrada'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/asignaciones-equipos', methods=['POST'])
+@require_api_login
+def create_asignacion_equipo():
+    """Crear nueva asignación de equipo (entrada)"""
+    try:
+        d = request.json
+        if not d:
+            return jsonify({'error': 'Datos JSON requeridos'}), 400
+        
+        # Validaciones
+        equipo_id = d.get('equipo_id')
+        usuario_id = d.get('usuario_id')
+        
+        if not equipo_id or not usuario_id:
+            return jsonify({'error': 'equipo_id y usuario_id son requeridos'}), 400
+        
+        # Verificar que equipo existe
+        equipo = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}')
+        if not isinstance(equipo, list) or len(equipo) == 0:
+            return jsonify({'error': f'Equipo con ID {equipo_id} no encontrado'}), 404
+        
+        # Verificar que usuario existe y está activo
+        usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+        if not isinstance(usuario, list) or len(usuario) == 0:
+            return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado'}), 404
+        
+        if usuario[0].get('estado') != 'activo':
+            return jsonify({'error': 'El usuario debe estar activo para recibir equipos'}), 400
+        
+        # Verificar que equipo no está retirado
+        if equipo[0].get('disponibilidad') == 'Retirado':
+            return jsonify({'error': 'No se puede asignar un equipo retirado'}), 400
+        
+        # Verificar que no hay asignación abierta anterior
+        existing = supabase_request('GET', 'asignaciones_equipos', 
+            f'?equipo_id=eq.{equipo_id}&estado=eq.abierta')
+        if isinstance(existing, list) and len(existing) > 0:
+            return jsonify({'error': 'Este equipo ya tiene una asignación abierta'}), 400
+        
+        # Crear la asignación
+        asig_data = {
+            'equipo_id': equipo_id,
+            'usuario_id': usuario_id,
+            'fecha_asignacion': datetime.now().isoformat(),
+            'estado_equipo_entrada': d.get('estado_equipo', 'bueno'),
+            'notas_entrada': d.get('notas', '').strip(),
+            'estado': 'abierta'
+        }
+        
+        result = supabase_request('POST', 'asignaciones_equipos', '', asig_data)
+        
+        if isinstance(result, list) and len(result) > 0:
+            nueva_asig = result[0]
+            
+            # Actualizar equipos.usuario_id para marcar actual responsable
+            supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                'usuario_id': usuario_id
+            })
+            
+            # Crear entrada en hoja_vida
+            supabase_request('POST', 'hoja_vida', '', {
+                'equipo_id': equipo_id,
+                'tipo': 'asignacion',
+                'titulo': f'Asignado a {usuario[0].get("nombre")}',
+                'descripcion': f'Equipo asignado en entrada con estado: {asig_data.get("estado_equipo_entrada")}',
+                'fecha': date.today().isoformat(),
+                'responsable': session.get('username', 'Sistema')
+            })
+            
+            return jsonify({
+                'id': nueva_asig.get('id'),
+                'ok': True,
+                'message': 'Asignación creada. Proceda con firma de entrada.'
+            }), 201
+        
+        return jsonify({'error': 'Error al crear asignación'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/asignaciones-equipos/<int:id>/upload-image', methods=['POST'])
+@require_api_login
+def upload_asignacion_image(id):
+    """Subir imagen de entrada o salida"""
+    try:
+        imagen = request.files.get('imagen')
+        numero = request.form.get('numero', '1')
+        tipo = request.form.get('tipo', 'entrada')  # 'entrada' o 'salida'
+        
+        if not imagen:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        img_content = imagen.read()
+        if not img_content or len(img_content) == 0:
+            return jsonify({'error': 'Image is empty'}), 400
+        
+        # Generar path único
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        prefix = f'imagen{numero}_{tipo}' if tipo == 'salida' else f'imagen{numero}'
+        folder = f"asignacion_{id}"
+        img_filename = f"{prefix}_{timestamp}.jpg"
+        img_path = f"{folder}/{img_filename}"
+        
+        # Subir a Storage
+        try:
+            img_url = supabase_storage_upload(img_content, img_path)
+            if not img_url:
+                return jsonify({'error': 'Storage upload failed'}), 500
+        except Exception as e:
+            return jsonify({'error': f'Storage error: {str(e)}'}), 500
+        
+        # Guardar URL en sesión
+        session_key = f'asig_{id}_img{numero}_{tipo}'
+        session[session_key] = img_url
+        
+        return jsonify({'ok': True, 'url': img_url}), 201
+    except Exception as e:
+        return jsonify({'error': f'Error: {str(e)}'}), 500
+
+@app.route('/api/asignaciones-equipos/<int:id>/firma-entrada', methods=['POST'])
+@require_api_login
+def save_firma_entrada(id):
+    """Guardar firma de entrada (asignación)"""
+    try:
+        firma_file = request.files.get('firma')
+        img1_url = request.form.get('img1_url')
+        img2_url = request.form.get('img2_url')
+        
+        if not firma_file or not img1_url or not img2_url:
+            return jsonify({'error': 'Missing required data (firma, img1_url, img2_url)'}), 400
+        
+        # Verificar que asignación existe
+        asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
+        if not isinstance(asig, list) or len(asig) == 0:
+            return jsonify({'error': 'Asignación no encontrada'}), 404
+        
+        firma_content = firma_file.read()
+        if not firma_content or len(firma_content) == 0:
+            return jsonify({'error': 'Signature is empty'}), 400
+        
+        # Guardar firma en Storage
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        folder = f"asignacion_{id}"
+        firma_filename = f"firma_entrada_{timestamp}.jpg"
+        firma_path = f"{folder}/{firma_filename}"
+        
+        try:
+            firma_url = supabase_storage_upload(firma_content, firma_path)
+            if not firma_url:
+                return jsonify({'error': 'Storage upload failed'}), 500
+        except Exception as e:
+            return jsonify({'error': f'Storage error: {str(e)}'}), 500
+        
+        # Actualizar asignación con datos de entrada
+        update_data = {
+            'firma_entrada_url': firma_url,
+            'imagen1_entrada_url': img1_url,
+            'imagen2_entrada_url': img2_url,
+            'fecha_firma_entrada': datetime.now().isoformat()
+        }
+        
+        result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': str(result.get('error'))}), 500
+        
+        return jsonify({
+            'ok': True,
+            'message': 'Firma de entrada registrada exitosamente'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Error: {str(e)}'}), 500
+
+@app.route('/api/asignaciones-equipos/<int:id>/firma-salida', methods=['POST'])
+@require_api_login
+def save_firma_salida(id):
+    """Guardar firma de salida (devolución)"""
+    try:
+        firma_file = request.files.get('firma')
+        img1_url = request.form.get('img1_url')
+        img2_url = request.form.get('img2_url')
+        estado_equipo = request.form.get('estado_equipo', 'bueno')
+        notas = request.form.get('notas', '').strip()
+        
+        if not firma_file or not img1_url or not img2_url:
+            return jsonify({'error': 'Missing required data (firma, img1_url, img2_url)'}), 400
+        
+        # Verificar que asignación existe y está abierta
+        asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
+        if not isinstance(asig, list) or len(asig) == 0:
+            return jsonify({'error': 'Asignación no encontrada'}), 404
+        
+        if asig[0].get('estado') != 'abierta':
+            return jsonify({'error': 'Solo se pueden cerrar asignaciones abiertas'}), 400
+        
+        firma_content = firma_file.read()
+        if not firma_content or len(firma_content) == 0:
+            return jsonify({'error': 'Signature is empty'}), 400
+        
+        # Guardar firma en Storage
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        folder = f"asignacion_{id}"
+        firma_filename = f"firma_salida_{timestamp}.jpg"
+        firma_path = f"{folder}/{firma_filename}"
+        
+        try:
+            firma_url = supabase_storage_upload(firma_content, firma_path)
+            if not firma_url:
+                return jsonify({'error': 'Storage upload failed'}), 500
+        except Exception as e:
+            return jsonify({'error': f'Storage error: {str(e)}'}), 500
+        
+        # Actualizar asignación con datos de salida y cerrarla
+        update_data = {
+            'firma_salida_url': firma_url,
+            'imagen1_salida_url': img1_url,
+            'imagen2_salida_url': img2_url,
+            'estado_equipo_salida': estado_equipo,
+            'notas_salida': notas,
+            'fecha_firma_salida': datetime.now().isoformat(),
+            'fecha_devolucion': datetime.now().isoformat(),
+            'estado': 'cerrada'
+        }
+        
+        result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', update_data)
+        
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': str(result.get('error'))}), 500
+        
+        # Limpiar usuario_id del equipo (ya no está en posesión de nadie)
+        equipo_id = asig[0].get('equipo_id')
+        supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+            'usuario_id': None
+        })
+        
+        # Crear entrada en hoja_vida
+        usuario = supabase_request('GET', 'usuarios', f'?id=eq.{asig[0].get("usuario_id")}')
+        usuario_nombre = usuario[0].get('nombre') if isinstance(usuario, list) and len(usuario) > 0 else 'Desconocido'
+        
+        supabase_request('POST', 'hoja_vida', '', {
+            'equipo_id': equipo_id,
+            'tipo': 'devolucion',
+            'titulo': f'Devuelto por {usuario_nombre}',
+            'descripcion': f'Equipo devuelto con estado: {estado_equipo}. Notas: {notas}',
+            'fecha': date.today().isoformat(),
+            'responsable': session.get('username', 'Sistema')
+        })
+        
+        return jsonify({
+            'ok': True,
+            'message': 'Asignación cerrada. Firma de salida registrada.'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Error: {str(e)}'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

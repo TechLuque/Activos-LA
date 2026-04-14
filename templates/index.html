@@ -569,6 +569,9 @@ input[type="file"]::file-selector-button{
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Operaciones</div>
+      <button class="nav-btn" onclick="nav('asignaciones')">
+        <div class="nav-icon">📋</div> Asignaciones <span class="nav-badge" id="nb-asig" style="display:none">0</span>
+      </button>
       <button class="nav-btn" onclick="nav('prestamos')">
         <div class="nav-icon">🔁</div> Préstamos <span class="nav-badge" id="nb-loan" style="display:none">0</span>
       </button>
@@ -690,6 +693,17 @@ input[type="file"]::file-selector-button{
             <option value="">Todos los dueños</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageEq" onchange="updateItemsPerPage('eq');renderEq()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
         <span class="count-badge" id="eqCount"></span>
       </div>
       <div class="tbl-wrap">
@@ -718,6 +732,17 @@ input[type="file"]::file-selector-button{
             <option value="en_proceso">En proceso</option>
             <option value="pendiente">Pendiente</option>
           </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageMant" onchange="updateItemsPerPage('mant');renderMant()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
         </div>
         <span class="count-badge" id="mantCount"></span>
       </div>
@@ -752,6 +777,17 @@ input[type="file"]::file-selector-button{
             <option value="inactiva">Inactiva</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageLicense" onchange="updateItemsPerPage('license');renderLicenses()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
         <span class="count-badge" id="licenseCount"></span>
       </div>
       <div class="tbl-wrap">
@@ -785,6 +821,17 @@ input[type="file"]::file-selector-button{
             <option value="inactivo">Inactivo</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageAplicativo" onchange="updateItemsPerPage('aplicativo');renderAplicativos()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
         <span class="count-badge" id="aplicativoCount"></span>
       </div>
       <div class="tbl-wrap">
@@ -808,6 +855,17 @@ input[type="file"]::file-selector-button{
             <option value="activo">WhatsApp Activo</option>
             <option value="bloqueado">WhatsApp Bloqueado</option>
           </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageCelular" onchange="updateItemsPerPage('celular');renderCelulares()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
         </div>
         <span class="count-badge" id="celularCount"></span>
       </div>
@@ -840,6 +898,17 @@ input[type="file"]::file-selector-button{
             <option value="desactivado">Desactivado</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageSimcard" onchange="updateItemsPerPage('simcard');renderSimcards()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
         <span class="count-badge" id="simcardCount"></span>
       </div>
       <div class="tbl-wrap">
@@ -865,6 +934,17 @@ input[type="file"]::file-selector-button{
             <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageUsr" onchange="updateItemsPerPage('usu');renderUsr()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
         <span class="count-badge" id="usrCount"></span>
       </div>
       <div class="tbl-wrap">
@@ -872,6 +952,42 @@ input[type="file"]::file-selector-button{
           <th>Nombre</th><th>Email</th><th>Cargo</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="usrTbody"></tbody></table>
       </div>
+    </section>
+
+    <!-- ════ ASIGNACIONES DE EQUIPOS ════ -->
+    <section class="page" id="page-asignaciones">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Asignaciones de Equipos</h2><p>Control de entrada/salida con firma digital</p></div>
+        <button class="btn btn-primary" onclick="openAsignacionModal()">+ Nueva asignación</button>
+      </div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <input id="srchAsig" type="text" placeholder="Buscar equipo, responsable…" oninput="renderAsignaciones()">
+          <select id="ftAsigEst" onchange="renderAsignaciones()">
+            <option value="">Todos los estados</option>
+            <option value="abierta">Abierta (En posesión)</option>
+            <option value="cerrada">Cerrada (Devuelta)</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageAsig" onchange="updateItemsPerPage('asignaciones');renderAsignaciones()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
+        <span class="count-badge" id="asigCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Equipo</th><th>Responsable</th><th>Fecha Asignación</th><th>Estado Entrada</th><th>Firma Entrada</th><th>Estado</th><th>Acciones</th>
+        </tr></thead><tbody id="asigTbody"></tbody></table>
+      </div>
+      <div id="asigPaginationContainer"></div>
     </section>
 
     <!-- ════ PRÉSTAMOS ════ -->
@@ -890,6 +1006,17 @@ input[type="file"]::file-selector-button{
             <option value="activo">Activo</option>
             <option value="devuelto">Devuelto</option>
           </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageLoan" onchange="updateItemsPerPage('loan');renderLoan()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
         </div>
         <span class="count-badge" id="loanCount"></span>
       </div>
@@ -940,6 +1067,17 @@ input[type="file"]::file-selector-button{
         <div class="filter-row">
           <input id="srchTipo" type="text" placeholder="Buscar tipo…" oninput="renderTipos()">
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageTipos" onchange="updateItemsPerPage('tipos');renderTipos()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
+        </div>
         <span class="count-badge" id="tiposCount"></span>
       </div>
       <div class="tbl-wrap">
@@ -958,6 +1096,17 @@ input[type="file"]::file-selector-button{
       <div class="tbl-toolbar">
         <div class="filter-row">
           <input id="srchRol" type="text" placeholder="Buscar rol…" oninput="renderRoles()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
+          <select id="itemsPerPageRoles" onchange="updateItemsPerPage('roles');renderRoles()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3)">por página</span>
         </div>
         <span class="count-badge" id="rolesCount"></span>
       </div>
@@ -1696,11 +1845,155 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
+<!-- ════ MODALS ASIGNACIONES DE EQUIPOS ════ -->
+
+<!-- MODAL: Nueva Asignación -->
+<div class="overlay" id="ovAsignacion">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="asigModalTitle">Nueva Asignación de Equipo</h3><p id="asigModalSub">Registra la entrada de un equipo</p></div>
+      <button class="m-close" onclick="close('ovAsignacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid c1">
+        <div class="fg"><label>Equipo *</label>
+          <div style="position:relative">
+            <input type="text" id="aEqSearch" placeholder="Buscar equipo…" style="width:100%" oninput="filterEquiposAsignacion()">
+            <div id="aEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
+          </div>
+          <input type="hidden" id="aEq">
+        </div>
+        <div class="fg"><label>Responsable *</label><select id="aUsr"><option value="">Seleccionar responsable…</option></select></div>
+        <div class="fg"><label>Estado del Equipo</label>
+          <select id="aEstado">
+            <option value="bueno">Bueno</option>
+            <option value="marginal">Marginal</option>
+            <option value="dañado">Dañado</option>
+          </select>
+        </div>
+        <div class="fg"><label>Notas de Entrada</label><textarea id="aNotas" placeholder="Observaciones sobre el equipo…"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovAsignacion')">Cancelar</button>
+        <button id="saveAsigBtn" class="btn btn-primary" onclick="saveAsignacion()">Crear asignación</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Firma de Entrada -->
+<div class="overlay" id="ovFirmaEntrada">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Firma de Entrada</h3><p>Captura fotos y firma digital para documentar la recepción</p></div>
+      <button class="m-close" onclick="close('ovFirmaEntrada')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid c2">
+        <!-- Foto 1 -->
+        <div class="fg">
+          <label>📸 Foto 1 (ID/Documento)</label>
+          <div id="fotoEntrada1Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoEntrada1Input')">
+            <div id="fotoEntrada1Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
+            <input type="file" id="fotoEntrada1Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoEntrada1Preview')">
+            <span id="fotoEntrada1Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
+          </div>
+          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoEntrada1Input')">📷 Usar Cámara</button>
+        </div>
+        <!-- Foto 2 -->
+        <div class="fg">
+          <label>📸 Foto 2 (Equipo)</label>
+          <div id="fotoEntrada2Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoEntrada2Input')">
+            <div id="fotoEntrada2Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
+            <input type="file" id="fotoEntrada2Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoEntrada2Preview')">
+            <span id="fotoEntrada2Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
+          </div>
+          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoEntrada2Input')">📷 Usar Cámara</button>
+        </div>
+      </div>
+      <!-- Firma Digital -->
+      <div class="fg" style="margin-top:20px">
+        <label>✍️ Firma Digital *</label>
+        <div id="firmaEntradaContainer" style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);position:relative">
+          <canvas id="firmaEntradaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:250px;background:white"></canvas>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaEntrada()">Limpiar firma</button>
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" onclick="close('ovFirmaEntrada')">Cancelar</button>
+        <button id="saveFirmaEntradaBtn" class="btn btn-primary" onclick="saveFirmaEntrada()">Guardar firma de entrada</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Firma de Salida/Devolución -->
+<div class="overlay" id="ovFirmaSalida">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Firma de Salida (Devolución)</h3><p>Verifica condición del equipo y documenta con firma</p></div>
+      <button class="m-close" onclick="close('ovFirmaSalida')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid c2">
+        <!-- Foto 1 -->
+        <div class="fg">
+          <label>📸 Foto 1 (Equipo)</label>
+          <div id="fotoSalida1Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoSalida1Input')">
+            <div id="fotoSalida1Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
+            <input type="file" id="fotoSalida1Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoSalida1Preview')">
+            <span id="fotoSalida1Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
+          </div>
+          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoSalida1Input')">📷 Usar Cámara</button>
+        </div>
+        <!-- Foto 2 -->
+        <div class="fg">
+          <label>📸 Foto 2 (Detalles)</label>
+          <div id="fotoSalida2Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoSalida2Input')">
+            <div id="fotoSalida2Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
+            <input type="file" id="fotoSalida2Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoSalida2Preview')">
+            <span id="fotoSalida2Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
+          </div>
+          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoSalida2Input')">📷 Usar Cámara</button>
+        </div>
+      </div>
+      <!-- Condición y Notas -->
+      <div class="form-grid c2" style="margin-top:20px">
+        <div class="fg">
+          <label>Estado del Equipo *</label>
+          <select id="aEstadoSalida">
+            <option value="">Seleccionar…</option>
+            <option value="bueno">Bueno</option>
+            <option value="marginal">Marginal</option>
+            <option value="dañado">Dañado</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Notas de Daños/Comentarios</label>
+          <textarea id="aNotasSalida" placeholder="Describir daños o condición especial…"></textarea>
+        </div>
+      </div>
+      <!-- Firma Digital --> 
+      <div class="fg" style="margin-top:20px">
+        <label>✍️ Firma Digital *</label>
+        <div id="firmaSalidaContainer" style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);position:relative">
+          <canvas id="firmaSalidaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:250px;background:white"></canvas>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaSalida()">Limpiar firma</button>
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" onclick="close('ovFirmaSalida')">Cancelar</button>
+        <button id="saveFirmaSalidaBtn" class="btn btn-primary" onclick="saveFirmaSalida()">Guardar devolución</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ════════════════════════════════════════════════════
    STATE & HELPERS
 ════════════════════════════════════════════════════ */
-let EQ=[],USR=[],LOANS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],DASH={},TIPOS=[],ROLES=[];
+let EQ=[],USR=[],LOANS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -1828,7 +2121,7 @@ async function init(){
 
 async function loadAll(){
   try{
-    const [eq,usr,loans,mants,lics,apps,cels,sims]=await Promise.all([
+    const [eq,usr,loans,mants,lics,apps,cels,sims,asigs]=await Promise.all([
       api('/api/equipos'),
       api('/api/usuarios'),
       api('/api/prestamos'),
@@ -1836,7 +2129,8 @@ async function loadAll(){
       api('/api/licencias'),
       api('/api/aplicativos'),
       api('/api/celulares'),
-      api('/api/simcards')
+      api('/api/simcards'),
+      api('/api/asignaciones-equipos')
     ]);
     
     // Check for errors in any response
@@ -1845,7 +2139,7 @@ async function loadAll(){
       return;
     }
     
-    EQ=eq; USR=usr; LOANS=loans; MANTS=mants; LICENCIAS=lics||[]; APLICATIVOS=apps||[]; CELULARES=cels||[]; SIMCARDS=sims||[];
+    EQ=eq; USR=usr; LOANS=loans; MANTS=mants; LICENCIAS=lics||[]; APLICATIVOS=apps||[]; CELULARES=cels||[]; SIMCARDS=sims||[]; ASIGNACIONES=asigs||[];
     
     DASH=await api('/api/dashboard');
     updateNavBadges();
@@ -2592,9 +2886,22 @@ async function delEq(id){
 /* ════════════════════════════════════════════════════
    PAGINACIÓN
 ════════════════════════════════════════════════════ */
-let currentPage={eq:1,usu:1,loan:1,mant:1,license:1};
+let currentPage={eq:1,usu:1,loan:1,asignaciones:1,mant:1,license:1,aplicativo:1,celular:1,simcard:1,tipos:1,roles:1};
 let isSubmitting=false;
-const ITEMS_PER_PAGE={eq:10,usu:15,loan:15,mant:10,license:15};
+const ITEMS_PER_PAGE={eq:10,usu:15,loan:15,asignaciones:10,mant:10,license:15,aplicativo:15,celular:10,simcard:10,tipos:10,roles:10};
+
+function updateItemsPerPage(entityType){
+  try{
+    const selectId=entityType==='usu'?'itemsPerPageUsr':'itemsPerPage'+entityType.charAt(0).toUpperCase()+entityType.slice(1);
+    const select=document.getElementById(selectId);
+    if(select){
+      ITEMS_PER_PAGE[entityType]=parseInt(select.value)||10;
+      currentPage[entityType]=1;
+    }
+  }catch(e){
+    console.error('Error in updateItemsPerPage:',e);
+  }
+}
 
 function createPaginationControls(currentP,totalPages,entityType){
   if(totalPages<=1)return'';
@@ -2635,6 +2942,7 @@ function goToPage(page,entityType){
   if(entityType==='eq')renderEq();
   else if(entityType==='usu')renderUsr();
   else if(entityType==='loan')renderLoan();
+  else if(entityType==='asignaciones')renderAsignaciones();
   else if(entityType==='mant')renderMant();
 }
 
@@ -2658,12 +2966,23 @@ let editTipoId=null;
 
 function renderTipos(){
   const srch=$('srchTipo').value.toLowerCase();
+  currentPage['tipos']=1;
   const filtered=TIPOS.filter(t=>t.nombre.toLowerCase().includes(srch)||t.descripcion?.toLowerCase().includes(srch));
   
   $('tiposCount').textContent=`${filtered.length} tipo${filtered.length!==1?'s':''}`;
   
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'tipos');
+  
   const tbody=$('tiposTbody');
-  tbody.innerHTML=filtered.map(t=>`
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-icon">📦</div><h3>Sin tipos</h3></div></td></tr>';
+    const wrapper=tbody.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="tipos"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tbody.innerHTML=pageData.map(t=>`
     <tr>
       <td>${t.nombre}</td>
       <td>${t.descripcion||'-'}</td>
@@ -2674,6 +2993,22 @@ function renderTipos(){
       </td>
     </tr>
   `).join('');
+  
+  if(totalPages>1){
+    const wrapper=tbody.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="tipos"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','tipos');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'tipos');
+  }else{
+    const wrapper=tbody.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="tipos"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
 }
 
 function openTipoModal(){
@@ -2750,14 +3085,25 @@ let editRolId=null;
 
 function renderRoles(){
   const srch=$('srchRol').value.toLowerCase();
+  currentPage['roles']=1;
   const filtered=ROLES.filter(r=>r.nombre.toLowerCase().includes(srch)||r.descripcion?.toLowerCase().includes(srch));
   
   $('rolesCount').textContent=`${filtered.length} rol${filtered.length!==1?'es':''}`;
   
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'roles');
+  
   const deptColors={'Finanzas':'#4f8ef7','Plataformas':'#2dd4bf','Producción':'#a78bfa','Academia':'#fbbf24','Contenido':'#f87171','Gerencia':'#34d399'};
   
   const tbody=$('rolesTbody');
-  tbody.innerHTML=filtered.map(r=>{
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="5"><div class="empty"><div class="empty-icon">🔐</div><h3>Sin roles</h3></div></td></tr>';
+    const wrapper=tbody.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="roles"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  
+  tbody.innerHTML=pageData.map(r=>{
     const deptColor=deptColors[r.departamento]||'#6b7280';
     return `
       <tr>
@@ -2772,6 +3118,22 @@ function renderRoles(){
       </tr>
     `;
   }).join('');
+  
+  if(totalPages>1){
+    const wrapper=tbody.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="roles"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','roles');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'roles');
+  }else{
+    const wrapper=tbody.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="roles"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
 }
 
 function openRolModal(){
@@ -5043,6 +5405,470 @@ function toggleUserMenu(){
       document.removeEventListener('click',closeUserMenu);
     }
   });
+}
+
+/* ════════════════════════════════════════════════════
+   ASIGNACIONES DE EQUIPOS
+════════════════════════════════════════════════════ */
+let ASIGNACIONES=[];
+let currentAsigForFirma=null;
+let currentAsigForFirmaType=null;
+let firmaEntradaPad=null;
+let firmaSalidaPad=null;
+
+async function loadAsignaciones(){
+  try{
+    const res=await api('/api/asignaciones-equipos','GET');
+    ASIGNACIONES=Array.isArray(res)?res:[];
+    renderAsignaciones();
+  }catch(err){
+    console.error('Error loading asignaciones:',err);
+    ASIGNACIONES=[];
+  }
+}
+
+function renderAsignaciones(){
+  const search=$('srchAsig')?.value||'';
+  const estado=$('ftAsigEst')?.value||'';
+  
+  let filtered=ASIGNACIONES.filter(a=>{
+    const matchText=search.toLowerCase();
+    const equipo=a.equipo||{};
+    const usuario=a.usuario||{};
+    const matchesSearch=!search||equipo.nombre?.toLowerCase().includes(matchText)||usuario.nombre?.toLowerCase().includes(matchText);
+    const matchesEstado=!estado||a.estado===estado;
+    return matchesSearch&&matchesEstado;
+  });
+  
+  const itemsPerPage=parseInt($('itemsPerPageAsig')?.value||10);
+  const pages=paginateArray(filtered,itemsPerPage);
+  const pageNum=currentPage.asignaciones||1;
+  const page=pages[pageNum-1]||[];
+  
+  // Renderizar tabla
+  const tbody=$('asigTbody');
+  tbody.innerHTML=page.map(a=>{
+    const eq=a.equipo||{};
+    const usr=a.usuario||{};
+    const fechaAsig=a.fecha_asignacion?new Date(a.fecha_asignacion).toLocaleDateString('es-ES'):'—';
+    const tieneEntrada=!!a.firma_entrada_url;
+    const tieneSalida=!!a.firma_salida_url;
+    
+    return `<tr>
+      <td><strong>${eq.nombre||'—'}</strong><br><small style="color:var(--text3)">${eq.serial||''}</small></td>
+      <td>${usr.nombre||'—'}<br><small style="color:var(--text3)">${usr.departamento||''}</small></td>
+      <td>${fechaAsig}</td>
+      <td><span class="badge">${a.estado_equipo_entrada||'—'}</span></td>
+      <td>${tieneEntrada?'✅ Firmada':'⏳ Pendiente'}</td>
+      <td><span class="badge ${a.estado==='abierta'?'badge-blue':'badge-green'}">${a.estado}</span></td>
+      <td>
+        ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="openFirmaEntradaModal(${a.id})">📋 Firmar Entrada</button>`:''}
+        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="openFirmaSalidaModal(${a.id})">📤 Devolver</button>`:''}
+        ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">👁️ Ver</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+  
+  // Renderizar paginación
+  renderPaginationAsig(pages.length);
+  
+  // Actualizar contador
+  $('asigCount').textContent=`${filtered.length} de ${ASIGNACIONES.length}`;
+}
+
+function renderPaginationAsig(totalPages){
+  const container=$('asigPaginationContainer');
+  if(!container)return;
+  
+  currentPage.asignaciones=currentPage.asignaciones||1;
+  if(totalPages<=1){
+    container.innerHTML='';
+    return;
+  }
+  
+  let html=`<div class="pagination">`;
+  if(currentPage.asignaciones>1)
+    html+=`<button onclick="currentPage.asignaciones=${currentPage.asignaciones-1};renderAsignaciones()">← Anterior</button>`;
+  
+  for(let i=1;i<=totalPages;i++){
+    if(Math.abs(i-currentPage.asignaciones)<=2||i===1||i===totalPages){
+      html+=`<button onclick="currentPage.asignaciones=${i};renderAsignaciones()" ${i===currentPage.asignaciones?'class="active"':''}>${i}</button>`;
+    }else if(Math.abs(i-currentPage.asignaciones)===3){
+      html+=`<span>...</span>`;
+    }
+  }
+  
+  if(currentPage.asignaciones<totalPages)
+    html+=`<button onclick="currentPage.asignaciones=${currentPage.asignaciones+1};renderAsignaciones()">Siguiente →</button>`;
+  
+  html+=`</div>`;
+  container.innerHTML=html;
+}
+
+function openAsignacionModal(){
+  currentAsigForFirma=null;
+  $('asigModalTitle').textContent='Nueva Asignación';
+  $('asigModalSub').textContent='Registra la entrada de un equipo';
+  
+  // Llenar select de usuarios activos
+  $('aUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
+  
+  // Limpiar búsqueda de equipos
+  $('aEqSearch').value='';
+  $('aEq').value='';
+  $('aEstado').value='bueno';
+  $('aNotas').value='';
+  
+  open('ovAsignacion');
+}
+
+function filterEquiposAsignacion(){
+  const q=$('aEqSearch').value.toLowerCase();
+  const list=$('aEqList');
+  
+  // Excluir equipos ya asignados (estado abierta)
+  const asignados=ASIGNACIONES.filter(a=>a.estado==='abierta').map(a=>a.equipo_id);
+  const equiposDisp=EQ.filter(e=>!asignados.includes(e.id)&&e.disponibilidad!=='Retirado');
+  
+  const filtered=equiposDisp.filter(e=>
+    e.nombre.toLowerCase().includes(q)||
+    (e.marca||'').toLowerCase().includes(q)||
+    (e.tipo_nombre||'').toLowerCase().includes(q)
+  );
+  
+  if(!q){
+    list.style.display='none';
+    return;
+  }
+  
+  list.style.display='block';
+  if(filtered.length===0){
+    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
+  }else{
+    list.innerHTML=filtered.map(e=>`
+      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" 
+           onmouseover="this.style.background='var(--surface3)'" 
+           onmouseout="this.style.background='transparent'" 
+           onclick="selectEquipoAsignacion(${e.id},'${e.nombre.replace(/'/g,"\\'")}')">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
+        <div style="font-size:11px;color:var(--text3)">${e.serial?'Serial: '+e.serial:''}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function selectEquipoAsignacion(id,nombre){
+  $('aEq').value=id;
+  $('aEqSearch').value=nombre;
+  $('aEqList').style.display='none';
+}
+
+async function saveAsignacion(){
+  if(isSubmitting){
+    toast('Por favor espera…','info');
+    return;
+  }
+  
+  const equipo_id=parseInt($('aEq').value);
+  const usuario_id=parseInt($('aUsr').value);
+  const estado_equipo=$('aEstado').value||'bueno';
+  const notas=$('aNotas').value;
+  
+  if(!equipo_id||!usuario_id){
+    toast('Equipo y responsable son requeridos','err');
+    return;
+  }
+  
+  isSubmitting=true;
+  $('saveAsigBtn').disabled=true;
+  $('saveAsigBtn').textContent='Creando…';
+  
+  try{
+    const res=await api('/api/asignaciones-equipos','POST',{
+      equipo_id,usuario_id,estado_equipo,notas
+    });
+    
+    if(res.id){
+      currentAsigForFirma=res.id;
+      close('ovAsignacion');
+      toast('Asignación creada. Proceda con la firma.','ok');
+      setTimeout(()=>openFirmaEntradaModal(res.id),500);
+      loadAsignaciones();
+    }else{
+      toast('Error creando asignación','err');
+    }
+  }catch(err){
+    toast(err.message||'Error creando asignación','err');
+  }finally{
+    isSubmitting=false;
+    $('saveAsigBtn').disabled=false;
+    $('saveAsigBtn').textContent='Crear asignación';
+  }
+}
+
+function openFirmaEntradaModal(asigId){
+  currentAsigForFirma=asigId;
+  currentAsigForFirmaType='entrada';
+  
+  // Limpiar inputs
+  $('fotoEntrada1Preview').style.backgroundImage='';
+  $('fotoEntrada1Text').style.display='block';
+  $('fotoEntrada2Preview').style.backgroundImage='';
+  $('fotoEntrada2Text').style.display='block';
+  $('fotoEntrada1Input').value='';
+  $('fotoEntrada2Input').value='';
+  
+  // Inicializar firma
+  if(!firmaEntradaPad){
+    const canvas=$('firmaEntradaCanvas');
+    firmaEntradaPad=new SignaturePad(canvas,{backgroundColor:'white',penColor:'#000000'});
+  }else{
+    firmaEntradaPad.clear();
+  }
+  
+  open('ovFirmaEntrada');
+}
+
+function openFirmaSalidaModal(asigId){
+  currentAsigForFirma=asigId;
+  currentAsigForFirmaType='salida';
+  
+  // Limpiar inputs
+  $('fotoSalida1Preview').style.backgroundImage='';
+  $('fotoSalida1Text').style.display='block';
+  $('fotoSalida2Preview').style.backgroundImage='';
+  $('fotoSalida2Text').style.display='block';
+  $('fotoSalida1Input').value='';
+  $('fotoSalida2Input').value='';
+  $('aEstadoSalida').value='bueno';
+  $('aNotasSalida').value='';
+  
+  // Inicializar firma
+  if(!firmaSalidaPad){
+    const canvas=$('firmaSalidaCanvas');
+    firmaSalidaPad=new SignaturePad(canvas,{backgroundColor:'white',penColor:'#000000'});
+  }else{
+    firmaSalidaPad.clear();
+  }
+  
+  open('ovFirmaSalida');
+}
+
+function previsualizarFoto(input,previewId){
+  const preview=$(previewId);
+  const textId=previewId.replace('Preview','Text');
+  
+  if(input.files&&input.files[0]){
+    const reader=new FileReader();
+    reader.onload=function(e){
+      preview.style.backgroundImage=`url('${e.target.result}')`;
+      preview.style.backgroundSize='cover';
+      preview.style.backgroundPosition='center';
+      $(textId).style.display='none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function triggerFileInput(inputId){
+  $(inputId).click();
+}
+
+function openCamera(inputId){
+  const input=$(inputId);
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    input.setAttribute('capture','environment');
+    input.click();
+  }else{
+    input.click();
+  }
+}
+
+function clearFirmaEntrada(){
+  if(firmaEntradaPad)firmaEntradaPad.clear();
+}
+
+function clearFirmaSalida(){
+  if(firmaSalidaPad)firmaSalidaPad.clear();
+}
+
+async function saveFirmaEntrada(){
+  if(!currentAsigForFirma){
+    toast('Error: No hay asignación','err');
+    return;
+  }
+  
+  if(isSubmitting){
+    toast('Por favor espera…','info');
+    return;
+  }
+  
+  const foto1=document.getElementById('fotoEntrada1Input').files[0];
+  const foto2=document.getElementById('fotoEntrada2Input').files[0];
+  
+  if(!foto1||!foto2||firmaEntradaPad.isEmpty()){
+    toast('Fotos y firma son requeridas','err');
+    return;
+  }
+  
+  isSubmitting=true;
+  $('saveFirmaEntradaBtn').disabled=true;
+  $('saveFirmaEntradaBtn').textContent='Guardando…';
+  
+  try{
+    // Subir fotos
+    const img1Url=await uploadAsigImage(currentAsigForFirma,foto1,'1','entrada');
+    const img2Url=await uploadAsigImage(currentAsigForFirma,foto2,'2','entrada');
+    
+    if(!img1Url||!img2Url){
+      toast('Error subiendo fotos','err');
+      return;
+    }
+    
+    // Obtener firma como blob
+    const firmaBlob=await new Promise(resolve=>firmaEntradaPad.toBlob(blob=>resolve(blob)));
+    
+    // Crear FormData para la firma
+    const formData=new FormData();
+    formData.append('firma',firmaBlob);
+    formData.append('img1_url',img1Url);
+    formData.append('img2_url',img2Url);
+    
+    const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-entrada`,{
+      method:'POST',
+      body:formData
+    });
+    
+    if(res.ok){
+      const data=await res.json();
+      toast('Firma de entrada guardada','ok');
+      close('ovFirmaEntrada');
+      loadAsignaciones();
+    }else{
+      const err=await res.json();
+      toast(err.error||'Error guardando firma','err');
+    }
+  }catch(err){
+    toast(err.message||'Error','err');
+  }finally{
+    isSubmitting=false;
+    $('saveFirmaEntradaBtn').disabled=false;
+    $('saveFirmaEntradaBtn').textContent='Guardar firma de entrada';
+  }
+}
+
+async function saveFirmaSalida(){
+  if(!currentAsigForFirma){
+    toast('Error: No hay asignación','err');
+    return;
+  }
+  
+  if(isSubmitting){
+    toast('Por favor espera…','info');
+    return;
+  }
+  
+  const foto1=document.getElementById('fotoSalida1Input').files[0];
+  const foto2=document.getElementById('fotoSalida2Input').files[0];
+  const estado=$('aEstadoSalida').value;
+  const notas=$('aNotasSalida').value;
+  
+  if(!foto1||!foto2||!estado||firmaSalidaPad.isEmpty()){
+    toast('Fotos, estado y firma son requeridas','err');
+    return;
+  }
+  
+  isSubmitting=true;
+  $('saveFirmaSalidaBtn').disabled=true;
+  $('saveFirmaSalidaBtn').textContent='Guardando…';
+  
+  try{
+    // Subir fotos
+    const img1Url=await uploadAsigImage(currentAsigForFirma,foto1,'1','salida');
+    const img2Url=await uploadAsigImage(currentAsigForFirma,foto2,'2','salida');
+    
+    if(!img1Url||!img2Url){
+      toast('Error subiendo fotos','err');
+      return;
+    }
+    
+    // Obtener firma como blob
+    const firmaBlob=await new Promise(resolve=>firmaSalidaPad.toBlob(blob=>resolve(blob)));
+    
+    // Crear FormData
+    const formData=new FormData();
+    formData.append('firma',firmaBlob);
+    formData.append('img1_url',img1Url);
+    formData.append('img2_url',img2Url);
+    formData.append('estado_equipo',estado);
+    formData.append('notas',notas);
+    
+    const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-salida`,{
+      method:'POST',
+      body:formData
+    });
+    
+    if(res.ok){
+      const data=await res.json();
+      toast('Devolución completada','ok');
+      close('ovFirmaSalida');
+      loadAsignaciones();
+    }else{
+      const err=await res.json();
+      toast(err.error||'Error guardando firma','err');
+    }
+  }catch(err){
+    toast(err.message||'Error','err');
+  }finally{
+    isSubmitting=false;
+    $('saveFirmaSalidaBtn').disabled=false;
+    $('saveFirmaSalidaBtn').textContent='Guardar devolución';
+  }
+}
+
+async function uploadAsigImage(asigId,file,numero,tipo){
+  const formData=new FormData();
+  formData.append('imagen',file);
+  formData.append('numero',numero);
+  formData.append('tipo',tipo);
+  
+  try{
+    const res=await fetch(`/api/asignaciones-equipos/${asigId}/upload-image`,{
+      method:'POST',
+      body:formData
+    });
+    const data=await res.json();
+    return data.url||null;
+  }catch(err){
+    console.error('Error uploading image:',err);
+    return null;
+  }
+}
+
+function viewAsignacionDetail(asigId){
+  const asig=ASIGNACIONES.find(a=>a.id===asigId);
+  if(!asig)return;
+  
+  const eq=asig.equipo||{};
+  const usr=asig.usuario||{};
+  
+  const detail=`
+    <div class="modal-body">
+      <h4>Detalles de Asignación #${asigId}</h4>
+      <div class="form-grid c2">
+        <div><strong>Equipo:</strong><br>${eq.nombre||'—'}</div>
+        <div><strong>Responsable:</strong><br>${usr.nombre||'—'}</div>
+        <div><strong>Fecha Asignación:</strong><br>${new Date(asig.fecha_asignacion).toLocaleDateString('es-ES')}</div>
+        <div><strong>Estado Equipo (Entrada):</strong><br><span class="badge">${asig.estado_equipo_entrada||'—'}</span></div>
+      </div>
+      ${asig.firma_entrada_url?`<div><strong>Firma Entrada:</strong><br><img src="${asig.firma_entrada_url}" style="max-width:200px;border:1px solid var(--border);border-radius:var(--radius-sm)"></div>`:''}
+      ${asig.firma_salida_url?`<div><strong>Firma Salida:</strong><br><img src="${asig.firma_salida_url}" style="max-width:200px;border:1px solid var(--border);border-radius:var(--radius-sm)"></div>`:''}
+    </div>
+  `;
+  
+  // Mostrar en modal simple (podría ser un modal dedicado)
+  toast('Ver detalles en consola','info');
+  console.log('Asignación:',asig);
 }
 
 /* ════════════════════════════════════════════════════
