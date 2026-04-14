@@ -5530,7 +5530,10 @@ function filterEquiposAsignacion(){
   
   // Excluir equipos ya asignados (estado abierta)
   const asignados=ASIGNACIONES.filter(a=>a.estado==='abierta').map(a=>a.equipo_id);
-  const equiposDisp=EQ.filter(e=>!asignados.includes(e.id)&&e.disponibilidad!=='Retirado');
+  const equiposDisp=EQ.filter(e=>{
+    const disp=(e.disponibilidad||'').toLowerCase();
+    return !asignados.includes(e.id)&&!disp.includes('retirado')&&!disp.includes('baja');
+  });
   
   const filtered=equiposDisp.filter(e=>
     e.nombre.toLowerCase().includes(q)||
