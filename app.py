@@ -2964,37 +2964,49 @@ def create_asignacion_equipo():
             'estado': 'abierta'
         }
         
+        print(f"DEBUG: Creando asignación con datos: {asig_data}")
         result = supabase_request('POST', 'asignaciones_equipos', '', asig_data)
+        print(f"DEBUG: Resultado POST asignaciones: {result}")
         
+        # Manejar diferentes formatos de respuesta de Supabase
+        asignacion_id = None
         if isinstance(result, list) and len(result) > 0:
             nueva_asig = result[0]
-            
-            # Actualizar equipos.usuario_id para marcar actual responsable
-            supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
-                'usuario_id': usuario_id
-            })
-            
-            # Crear entrada en hoja_vida
-            supabase_request('POST', 'hoja_vida', '', {
-                'equipo_id': equipo_id,
-                'tipo': 'asignacion',
-                'titulo': f'Asignado a {usuario.get("nombre")}',
-                'descripcion': f'Equipo asignado en entrada con estado: {estado_equipo}',
-                'fecha': date.today().isoformat(),
-                'responsable': session.get('username', 'Sistema')
-            })
-            
-            return jsonify({
-                'id': nueva_asig.get('id'),
-                'ok': True,
-                'message': 'Asignación creada. Proceda con firma de entrada.'
-            }), 201
+            asignacion_id = nueva_asig.get('id')
+        elif isinstance(result, dict):
+            asignacion_id = result.get('id')
         
-        return jsonify({'error': 'Error al crear asignación'}), 500
+        if not asignacion_id:
+            return jsonify({'error': 'Failed to create assignment: no ID returned'}), 500
+        
+        # Actualizar equipos.usuario_id para marcar actual responsable
+        supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+            'usuario_id': usuario_id
+        })
+        
+        # Crear entrada en hoja_vida
+        supabase_request('POST', 'hoja_vida', '', {
+            'equipo_id': equipo_id,
+            'tipo': 'asignacion',
+            'titulo': f'Asignado a {usuario.get("nombre")}',
+            'descripcion': f'Equipo asignado en entrada con estado: {estado_equipo}',
+            'fecha': date.today().isoformat(),
+            'responsable': session.get('username', 'Sistema')
+        })
+        
+        print(f"DEBUG: Asignación creada exitosamente con ID: {asignacion_id}")
+        return jsonify({
+            'id': asignacion_id,
+            'ok': True,
+            'message': 'Asignación creada. Proceda con firma de entrada.'
+        }), 201
+    
     except Exception as e:
         import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        error_trace = traceback.format_exc()
+        print(f"ERROR en create_asignacion_equipo: {str(e)}")
+        print(f"TRACEBACK: {error_trace}")
+        return jsonify({'error': f'Error al crear asignación: {str(e)}'}), 500
 
 @app.route('/api/asignaciones-equipos/<int:id>/upload-image', methods=['POST'])
 @require_api_login

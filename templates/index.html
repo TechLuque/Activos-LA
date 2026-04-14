@@ -1849,21 +1849,29 @@ input[type="file"]::file-selector-button{
 
 <!-- MODAL: Nueva Asignación -->
 <div class="overlay" id="ovAsignacion">
-  <div class="modal">
+  <div class="modal modal-lg">
     <div class="modal-head">
-      <div><h3 id="asigModalTitle">Nueva Asignación de Equipo</h3><p id="asigModalSub">Registra la entrada de un equipo</p></div>
+      <div><h3 id="asigModalTitle">Nueva Asignación de Equipos</h3><p id="asigModalSub">Selecciona uno o varios equipos para asignar</p></div>
       <button class="m-close" onclick="close('ovAsignacion')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid c1">
-        <div class="fg"><label>Equipo *</label>
-          <div style="position:relative">
-            <input type="text" id="aEqSearch" placeholder="Buscar equipo…" style="width:100%" oninput="filterEquiposAsignacion()">
-            <div id="aEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
-          </div>
-          <input type="hidden" id="aEq">
-        </div>
         <div class="fg"><label>Responsable *</label><select id="aUsr"><option value="">Seleccionar responsable…</option></select></div>
+        
+        <!-- Búsqueda de equipos -->
+        <div class="fg">
+          <label>Equipos Disponibles *</label>
+          <input type="text" id="aEqSearch" placeholder="Buscar equipo por nombre, serial, tipo…" style="width:100%;margin-bottom:10px" oninput="filterEquiposAsignacion()">
+          
+          <!-- Lista de checkboxes -->
+          <div id="aEqList" style="border:1px solid var(--border);border-radius:var(--radius-sm);max-height:300px;overflow-y:auto;padding:8px;background:var(--surface2)">
+            <div style="text-align:center;color:var(--text3);padding:20px">Cargando equipos…</div>
+          </div>
+          <div id="aEqSelected" style="margin-top:10px;padding:8px;background:var(--surface1);border-radius:4px;font-size:12px;color:var(--text3)">
+            <strong>Seleccionados:</strong> <span id="aEqCount">0</span> equipo(s)
+          </div>
+        </div>
+        
         <div class="fg"><label>Estado del Equipo</label>
           <select id="aEstado">
             <option value="bueno">Bueno</option>
@@ -1871,11 +1879,11 @@ input[type="file"]::file-selector-button{
             <option value="dañado">Dañado</option>
           </select>
         </div>
-        <div class="fg"><label>Notas de Entrada</label><textarea id="aNotas" placeholder="Observaciones sobre el equipo…"></textarea></div>
+        <div class="fg"><label>Notas de Entrada</label><textarea id="aNotas" placeholder="Observaciones sobre los equipos…"></textarea></div>
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovAsignacion')">Cancelar</button>
-        <button id="saveAsigBtn" class="btn btn-primary" onclick="saveAsignacion()">Crear asignación</button>
+        <button id="saveAsigBtn" class="btn btn-primary" onclick="saveAsignacion()">Crear asignaciones</button>
       </div>
     </div>
   </div>
@@ -5415,6 +5423,7 @@ let currentAsigForFirma=null;
 let currentAsigForFirmaType=null;
 let firmaEntradaPad=null;
 let firmaSalidaPad=null;
+let selectedEquiposAsignacion={}; // {equipo_id: true, ...}
 
 async function loadAsignaciones(){
   try{
@@ -5509,19 +5518,35 @@ function goToAsigPage(page){
 
 function openAsignacionModal(){
   currentAsigForFirma=null;
-  $('asigModalTitle').textContent='Nueva Asignación';
-  $('asigModalSub').textContent='Registra la entrada de un equipo';
+  selectedEquiposAsignacion={};
+  $('asigModalTitle').textContent='Nueva Asignación de Equipos';
+  $('asigModalSub').textContent='Selecciona uno o varios equipos para asignar';
   
   // Llenar select de usuarios activos
   $('aUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
   
-  // Limpiar búsqueda de equipos
+  // Limpiar búsqueda y campos
   $('aEqSearch').value='';
-  $('aEq').value='';
   $('aEstado').value='bueno';
   $('aNotas').value='';
   
+  // Renderizar equipos disponibles
+  filterEquiposAsignacion();
+  updateAEqCount();
+  
   open('ovAsignacion');
+}
+
+function updateAEqCount(){
+  const count=Object.values(selectedEquiposAsignacion).filter(Boolean).length;
+  $('aEqCount').textContent=count;
+}
+
+function toggleEquipoAsignacion(equipoId){
+  selectedEquiposAsignacion[equipoId]=!selectedEquiposAsignacion[equipoId];
+  const checkbox=document.querySelector(`input[data-eq-id="${equipoId}"]`);
+  if(checkbox)checkbox.checked=selectedEquiposAsignacion[equipoId];
+  updateAEqCount();
 }
 
 function filterEquiposAsignacion(){
@@ -5536,36 +5561,32 @@ function filterEquiposAsignacion(){
   });
   
   const filtered=equiposDisp.filter(e=>
-    e.nombre.toLowerCase().includes(q)||
+    !q||e.nombre.toLowerCase().includes(q)||
     (e.marca||'').toLowerCase().includes(q)||
+    (e.serial||'').toLowerCase().includes(q)||
     (e.tipo_nombre||'').toLowerCase().includes(q)
   );
   
-  if(!q){
-    list.style.display='none';
-    return;
-  }
-  
-  list.style.display='block';
   if(filtered.length===0){
-    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
+    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px;text-align:center">No hay equipos disponibles</div>';
   }else{
     list.innerHTML=filtered.map(e=>`
-      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" 
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;cursor:pointer;transition:background 0.15s;background:${selectedEquiposAsignacion[e.id]?'var(--surface3)':'transparent'}" 
            onmouseover="this.style.background='var(--surface3)'" 
-           onmouseout="this.style.background='transparent'" 
-           onclick="selectEquipoAsignacion(${e.id},'${e.nombre.replace(/'/g,"\\'")}')">
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
-        <div style="font-size:11px;color:var(--text3)">${e.serial?'Serial: '+e.serial:''}</div>
+           onmouseout="this.style.background='${selectedEquiposAsignacion[e.id]?'var(--surface3)':'transparent'}'" 
+           onclick="toggleEquipoAsignacion(${e.id})">
+        <input type="checkbox" data-eq-id="${e.id}" ${selectedEquiposAsignacion[e.id]?'checked':''} style="cursor:pointer">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
+          <div style="font-size:11px;color:var(--text3)">${e.serial?'Serial: '+e.serial:''} • ${e.tipo_nombre||''}</div>
+        </div>
       </div>
     `).join('');
   }
 }
 
 function selectEquipoAsignacion(id,nombre){
-  $('aEq').value=id;
-  $('aEqSearch').value=nombre;
-  $('aEqList').style.display='none';
+  // Esta función ya no se usa (reemplazada por toggleEquipoAsignacion)
 }
 
 async function saveAsignacion(){
@@ -5574,57 +5595,77 @@ async function saveAsignacion(){
     return;
   }
   
-  const equipo_id_str=$('aEq').value;
   const usuario_id_str=$('aUsr').value;
   const estado_equipo=$('aEstado').value||'bueno';
   const notas=$('aNotas').value||'';
   
-  // Convertir a números
-  const equipo_id=parseInt(equipo_id_str,10);
+  // Validar usuario
   const usuario_id=parseInt(usuario_id_str,10);
+  if(!usuario_id||isNaN(usuario_id)){
+    toast('Selecciona un responsable','err');
+    return;
+  }
   
-  if(!equipo_id||!usuario_id||isNaN(equipo_id)||isNaN(usuario_id)){
-    toast('Equipo y responsable son requeridos (IDs inválidos)','err');
-    console.error('Invalid IDs:',{equipo_id,usuario_id,equipo_id_str,usuario_id_str});
+  // Obtener equipos seleccionados
+  const equiposSeleccionados=Object.keys(selectedEquiposAsignacion).filter(id=>selectedEquiposAsignacion[id]).map(id=>parseInt(id,10));
+  
+  if(equiposSeleccionados.length===0){
+    toast('Selecciona al menos un equipo','err');
     return;
   }
   
   isSubmitting=true;
   $('saveAsigBtn').disabled=true;
-  $('saveAsigBtn').textContent='Creando…';
+  $('saveAsigBtn').textContent=`Creando ${equiposSeleccionados.length} asignación(nes)…`;
   
   try{
-    const payload={
-      equipo_id:equipo_id,
-      usuario_id:usuario_id,
-      estado_equipo:estado_equipo,
-      notas:notas
-    };
+    let successCount=0;
+    let errorCount=0;
+    const createdAsignacionIds=[];
     
-    console.log('Sending payload:',payload);
+    // Crear una asignación por cada equipo
+    for(const equipo_id of equiposSeleccionados){
+      const payload={
+        equipo_id:equipo_id,
+        usuario_id:usuario_id,
+        estado_equipo:estado_equipo,
+        notas:notas
+      };
+      
+      console.log(`Creando asignación para equipo ${equipo_id}`,payload);
+      
+      const res=await api('/api/asignaciones-equipos','POST',payload);
+      
+      if(res.id){
+        successCount++;
+        createdAsignacionIds.push(res.id);
+        console.log(`✓ Asignación creada: ${res.id}`);
+      }else{
+        errorCount++;
+        console.error(`✗ Error en equipo ${equipo_id}:`,res.error);
+      }
+    }
     
-    const res=await api('/api/asignaciones-equipos','POST',payload);
-    
-    console.log('Response:',res);
-    
-    if(res.id){
-      currentAsigForFirma=res.id;
+    // Mostrar resultado
+    if(successCount>0){
       close('ovAsignacion');
-      toast('Asignación creada. Proceda con la firma.','ok');
-      setTimeout(()=>openFirmaEntradaModal(res.id),500);
+      toast(`✓ ${successCount} asignación(nes) creada(s)${errorCount>0?' ('+errorCount+' errores)':''}!`,'ok');
       loadAsignaciones();
-    }else if(res.error){
-      toast(res.error||'Error creando asignación','err');
+      
+      // Abrir firma del primera asignación después de 500ms
+      if(createdAsignacionIds.length>0){
+        setTimeout(()=>openFirmaEntradaModal(createdAsignacionIds[0]),500);
+      }
     }else{
-      toast('Error creando asignación','err');
+      toast(`✗ No se pudo crear ninguna asignación`,'err');
     }
   }catch(err){
     console.error('Exception:',err);
-    toast(err.message||'Error creando asignación','err');
+    toast(err.message||'Error creando asignaciones','err');
   }finally{
     isSubmitting=false;
     $('saveAsigBtn').disabled=false;
-    $('saveAsigBtn').textContent='Crear asignación';
+    $('saveAsigBtn').textContent='Crear asignaciones';
   }
 }
 
