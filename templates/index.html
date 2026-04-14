@@ -2084,6 +2084,7 @@ function nav(page){
   if(page==='aplicativos')renderAplicativos();
   if(page==='celulares')renderCelulares();
   if(page==='simcards')renderSimcards();
+  if(page==='asignaciones')renderAsignaciones();
   if(page==='calendario')renderCal();
   if(page==='reportes')renderReportes();
   if(page==='admin-tipos')renderTipos();
@@ -2134,7 +2135,7 @@ async function loadAll(){
     ]);
     
     // Check for errors in any response
-    if(eq.error||usr.error||loans.error||mants.error||lics.error||apps.error||cels.error||sims.error){
+    if(eq.error||usr.error||loans.error||mants.error||lics.error||apps.error||cels.error||sims.error||asigs.error){
       toast('Error loading data from server','err');
       return;
     }
@@ -5439,14 +5440,11 @@ function renderAsignaciones(){
     return matchesSearch&&matchesEstado;
   });
   
-  const itemsPerPage=parseInt($('itemsPerPageAsig')?.value||10);
-  const pages=paginateArray(filtered,itemsPerPage);
-  const pageNum=currentPage.asignaciones||1;
-  const page=pages[pageNum-1]||[];
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'asignaciones');
   
   // Renderizar tabla
   const tbody=$('asigTbody');
-  tbody.innerHTML=page.map(a=>{
+  tbody.innerHTML=pageData.map(a=>{
     const eq=a.equipo||{};
     const usr=a.usuario||{};
     const fechaAsig=a.fecha_asignacion?new Date(a.fecha_asignacion).toLocaleDateString('es-ES'):'—';
@@ -5469,7 +5467,7 @@ function renderAsignaciones(){
   }).join('');
   
   // Renderizar paginación
-  renderPaginationAsig(pages.length);
+  renderPaginationAsig(totalPages);
   
   // Actualizar contador
   $('asigCount').textContent=`${filtered.length} de ${ASIGNACIONES.length}`;
@@ -5487,21 +5485,26 @@ function renderPaginationAsig(totalPages){
   
   let html=`<div class="pagination">`;
   if(currentPage.asignaciones>1)
-    html+=`<button onclick="currentPage.asignaciones=${currentPage.asignaciones-1};renderAsignaciones()">← Anterior</button>`;
+    html+=`<button onclick="goToAsigPage(${currentPage.asignaciones-1})">← Anterior</button>`;
   
   for(let i=1;i<=totalPages;i++){
     if(Math.abs(i-currentPage.asignaciones)<=2||i===1||i===totalPages){
-      html+=`<button onclick="currentPage.asignaciones=${i};renderAsignaciones()" ${i===currentPage.asignaciones?'class="active"':''}>${i}</button>`;
+      html+=`<button onclick="goToAsigPage(${i})" ${i===currentPage.asignaciones?'class="active"':''}>${i}</button>`;
     }else if(Math.abs(i-currentPage.asignaciones)===3){
       html+=`<span>...</span>`;
     }
   }
   
   if(currentPage.asignaciones<totalPages)
-    html+=`<button onclick="currentPage.asignaciones=${currentPage.asignaciones+1};renderAsignaciones()">Siguiente →</button>`;
+    html+=`<button onclick="goToAsigPage(${currentPage.asignaciones+1})">Siguiente →</button>`;
   
   html+=`</div>`;
   container.innerHTML=html;
+}
+
+function goToAsigPage(page){
+  currentPage.asignaciones=page;
+  renderAsignaciones();
 }
 
 function openAsignacionModal(){
@@ -5568,13 +5571,18 @@ async function saveAsignacion(){
     return;
   }
   
-  const equipo_id=parseInt($('aEq').value);
-  const usuario_id=parseInt($('aUsr').value);
+  const equipo_id_str=$('aEq').value;
+  const usuario_id_str=$('aUsr').value;
   const estado_equipo=$('aEstado').value||'bueno';
-  const notas=$('aNotas').value;
+  const notas=$('aNotas').value||'';
   
-  if(!equipo_id||!usuario_id){
-    toast('Equipo y responsable son requeridos','err');
+  // Convertir a números
+  const equipo_id=parseInt(equipo_id_str,10);
+  const usuario_id=parseInt(usuario_id_str,10);
+  
+  if(!equipo_id||!usuario_id||isNaN(equipo_id)||isNaN(usuario_id)){
+    toast('Equipo y responsable son requeridos (IDs inválidos)','err');
+    console.error('Invalid IDs:',{equipo_id,usuario_id,equipo_id_str,usuario_id_str});
     return;
   }
   
@@ -5583,9 +5591,18 @@ async function saveAsignacion(){
   $('saveAsigBtn').textContent='Creando…';
   
   try{
-    const res=await api('/api/asignaciones-equipos','POST',{
-      equipo_id,usuario_id,estado_equipo,notas
-    });
+    const payload={
+      equipo_id:equipo_id,
+      usuario_id:usuario_id,
+      estado_equipo:estado_equipo,
+      notas:notas
+    };
+    
+    console.log('Sending payload:',payload);
+    
+    const res=await api('/api/asignaciones-equipos','POST',payload);
+    
+    console.log('Response:',res);
     
     if(res.id){
       currentAsigForFirma=res.id;
@@ -5593,10 +5610,13 @@ async function saveAsignacion(){
       toast('Asignación creada. Proceda con la firma.','ok');
       setTimeout(()=>openFirmaEntradaModal(res.id),500);
       loadAsignaciones();
+    }else if(res.error){
+      toast(res.error||'Error creando asignación','err');
     }else{
       toast('Error creando asignación','err');
     }
   }catch(err){
+    console.error('Exception:',err);
     toast(err.message||'Error creando asignación','err');
   }finally{
     isSubmitting=false;
@@ -5705,7 +5725,7 @@ async function saveFirmaEntrada(){
   const foto1=document.getElementById('fotoEntrada1Input').files[0];
   const foto2=document.getElementById('fotoEntrada2Input').files[0];
   
-  if(!foto1||!foto2||firmaEntradaPad.isEmpty()){
+  if(!foto1||!foto2||!firmaEntradaPad||firmaEntradaPad.isEmpty()){
     toast('Fotos y firma son requeridas','err');
     return;
   }
@@ -5735,6 +5755,7 @@ async function saveFirmaEntrada(){
     
     const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-entrada`,{
       method:'POST',
+      credentials:'include',
       body:formData
     });
     
@@ -5772,7 +5793,7 @@ async function saveFirmaSalida(){
   const estado=$('aEstadoSalida').value;
   const notas=$('aNotasSalida').value;
   
-  if(!foto1||!foto2||!estado||firmaSalidaPad.isEmpty()){
+  if(!foto1||!foto2||!estado||!firmaSalidaPad||firmaSalidaPad.isEmpty()){
     toast('Fotos, estado y firma son requeridas','err');
     return;
   }
@@ -5804,6 +5825,7 @@ async function saveFirmaSalida(){
     
     const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-salida`,{
       method:'POST',
+      credentials:'include',
       body:formData
     });
     
@@ -5834,6 +5856,7 @@ async function uploadAsigImage(asigId,file,numero,tipo){
   try{
     const res=await fetch(`/api/asignaciones-equipos/${asigId}/upload-image`,{
       method:'POST',
+      credentials:'include',
       body:formData
     });
     const data=await res.json();

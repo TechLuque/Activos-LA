@@ -2913,9 +2913,12 @@ def create_asignacion_equipo():
         if not d:
             return jsonify({'error': 'Datos JSON requeridos'}), 400
         
-        # Validaciones
-        equipo_id = d.get('equipo_id')
-        usuario_id = d.get('usuario_id')
+        # Obtener y convertir IDs a integers
+        try:
+            equipo_id = int(d.get('equipo_id'))
+            usuario_id = int(d.get('usuario_id'))
+        except (ValueError, TypeError) as e:
+            return jsonify({'error': f'IDs deben ser números enteros: {str(e)}'}), 400
         
         if not equipo_id or not usuario_id:
             return jsonify({'error': 'equipo_id y usuario_id son requeridos'}), 400
@@ -2925,17 +2928,22 @@ def create_asignacion_equipo():
         if not isinstance(equipo, list) or len(equipo) == 0:
             return jsonify({'error': f'Equipo con ID {equipo_id} no encontrado'}), 404
         
+        equipo = equipo[0]
+        
         # Verificar que usuario existe y está activo
         usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
         if not isinstance(usuario, list) or len(usuario) == 0:
             return jsonify({'error': f'Usuario con ID {usuario_id} no encontrado'}), 404
         
-        if usuario[0].get('estado') != 'activo':
+        usuario = usuario[0]
+        
+        if usuario.get('estado') != 'activo':
             return jsonify({'error': 'El usuario debe estar activo para recibir equipos'}), 400
         
         # Verificar que equipo no está retirado
-        if equipo[0].get('disponibilidad') == 'Retirado':
-            return jsonify({'error': 'No se puede asignar un equipo retirado'}), 400
+        disponibilidad = equipo.get('disponibilidad', '')
+        if 'retirado' in disponibilidad.lower() or 'baja' in disponibilidad.lower():
+            return jsonify({'error': f'No se puede asignar equipo con estado: {disponibilidad}'}), 400
         
         # Verificar que no hay asignación abierta anterior
         existing = supabase_request('GET', 'asignaciones_equipos', 
@@ -2944,12 +2952,15 @@ def create_asignacion_equipo():
             return jsonify({'error': 'Este equipo ya tiene una asignación abierta'}), 400
         
         # Crear la asignación
+        estado_equipo = d.get('estado_equipo', 'bueno')
+        notas = d.get('notas', '').strip()
+        
         asig_data = {
             'equipo_id': equipo_id,
             'usuario_id': usuario_id,
             'fecha_asignacion': datetime.now().isoformat(),
-            'estado_equipo_entrada': d.get('estado_equipo', 'bueno'),
-            'notas_entrada': d.get('notas', '').strip(),
+            'estado_equipo_entrada': estado_equipo,
+            'notas_entrada': notas,
             'estado': 'abierta'
         }
         
@@ -2967,8 +2978,8 @@ def create_asignacion_equipo():
             supabase_request('POST', 'hoja_vida', '', {
                 'equipo_id': equipo_id,
                 'tipo': 'asignacion',
-                'titulo': f'Asignado a {usuario[0].get("nombre")}',
-                'descripcion': f'Equipo asignado en entrada con estado: {asig_data.get("estado_equipo_entrada")}',
+                'titulo': f'Asignado a {usuario.get("nombre")}',
+                'descripcion': f'Equipo asignado en entrada con estado: {estado_equipo}',
                 'fecha': date.today().isoformat(),
                 'responsable': session.get('username', 'Sistema')
             })
@@ -2981,6 +2992,8 @@ def create_asignacion_equipo():
         
         return jsonify({'error': 'Error al crear asignación'}), 500
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/asignaciones-equipos/<int:id>/upload-image', methods=['POST'])
