@@ -1698,6 +1698,22 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
+<!-- MODAL DETALLES ASIGNACIÓN -->
+<div class="overlay" id="ovAsignacionDet">
+  <div class="modal modal-md">
+    <div class="modal-head">
+      <div><h3>Detalles de Asignación</h3></div>
+      <button class="m-close" onclick="close('ovAsignacionDet')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="asignacionDetContent" style="font-size:13px"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="close('ovAsignacionDet')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DOCUMENTOS PRÉSTAMO -->
 <div class="overlay" id="ovLoanDocs">
   <div class="modal modal-lg">
@@ -5062,7 +5078,7 @@ function renderAsignaciones(){
         ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="generateSignLink(${a.id}, 'salida')">Devolver</button>`:''}
         ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">Ver</button>`:''}
         ${a.estado==='cerrada'?`<button class="btn btn-warning btn-sm" onclick="unassignAsignacion(${a.id})">Desasignar</button>`:''}
-        <button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>
+        ${a.estado!=='desasignada'?`<button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>`:''}
       </td>
 
     </tr>`;
@@ -5163,12 +5179,12 @@ function filterEquiposAsignacion(){
     list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px;text-align:center">No hay equipos disponibles</div>';
   }else{
     list.innerHTML=filtered.map(e=>`
-      <div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;cursor:pointer;transition:background 0.15s;background:${selectedEquiposAsignacion[e.id]?'var(--surface3)':'transparent'}" 
+      <div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;cursor:pointer;transition:background 0.15s;background:${selectedEquiposAsignacion[e.id]?'var(--surface3)':'transparent'}" 
            onmouseover="this.style.background='var(--surface3)'" 
            onmouseout="this.style.background='${selectedEquiposAsignacion[e.id]?'var(--surface3)':'transparent'}'" 
            onclick="toggleEquipoAsignacion(${e.id})">
-        <input type="checkbox" data-eq-id="${e.id}" ${selectedEquiposAsignacion[e.id]?'checked':''} style="cursor:pointer;margin:0">
-        <div style="flex:1">
+        <input type="checkbox" data-eq-id="${e.id}" ${selectedEquiposAsignacion[e.id]?'checked':''} style="cursor:pointer;margin:0;min-width:16px;width:16px;height:16px;flex-shrink:0">
+        <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.2">${e.nombre}</div>
           <div style="font-size:10px;color:var(--text3);line-height:1.2">${e.serial?'Serial: '+e.serial:''} • ${e.tipo_nombre||''}</div>
         </div>
@@ -5269,26 +5285,60 @@ function generateSignLink(asigId, tipo){
 
 function viewAsignacionDetail(asigId){
   const asig=ASIGNACIONES.find(a=>a.id===asigId);
-  if(!asig)return;
+  if(!asig){
+    toast('Asignación no encontrada','error');
+    return;
+  }
   
   const eq=asig.equipo||{};
   const usr=asig.usuario||{};
   
-  const detail=`
-    <div class="modal-body">
-      <h4>Detalles de Asignación #${asigId}</h4>
-      <div class="form-grid c2">
-        <div><strong>Equipo:</strong><br>${eq.nombre||'—'}</div>
-        <div><strong>Responsable:</strong><br>${usr.nombre||'—'}</div>
-        <div><strong>Fecha Asignación:</strong><br>${new Date(asig.fecha_asignacion).toLocaleDateString('es-ES')}</div>
-        <div><strong>Estado Equipo (Entrada):</strong><br><span class="badge">${asig.estado_equipo_entrada||'—'}</span></div>
+  // Formatear fechas
+  const fecAsig = asig.fecha_asignacion ? new Date(asig.fecha_asignacion).toLocaleDateString('es-ES', {year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+  const fecDesasig = asig.fecha_firma_desasignacion ? new Date(asig.fecha_firma_desasignacion).toLocaleDateString('es-ES', {year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+  const fecFirmaEntrada = asig.fecha_firma_entrada ? new Date(asig.fecha_firma_entrada).toLocaleDateString('es-ES', {year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+  const fecFirmaSalida = asig.fecha_firma_salida ? new Date(asig.fecha_firma_salida).toLocaleDateString('es-ES', {year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+  
+  let html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">Equipo</strong>
+        <div style="margin-top:4px;font-weight:600">${eq.nombre||'—'}</div>
       </div>
-      ${asig.firma_entrada_url?`<div><strong>Firma Entrada:</strong><br><img src="${asig.firma_entrada_url}" style="max-width:200px;border:1px solid var(--border);border-radius:var(--radius-sm)"></div>`:''}
-      ${asig.firma_salida_url?`<div><strong>Firma Salida:</strong><br><img src="${asig.firma_salida_url}" style="max-width:200px;border:1px solid var(--border);border-radius:var(--radius-sm)"></div>`:''}
+      <div>
+        <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">Responsable</strong>
+        <div style="margin-top:4px;font-weight:600">${usr.nombre||'—'}</div>
+      </div>
+      <div>
+        <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">📅 Fecha Asignación</strong>
+        <div style="margin-top:4px">${fecAsig}</div>
+      </div>
+      <div>
+        <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">✍️ Firma Entrada</strong>
+        <div style="margin-top:4px;color:${asig.fecha_firma_entrada?'var(--green)':'var(--text3)'};">${fecFirmaEntrada}</div>
+      </div>
+      <div>
+        <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">📤 Firma Salida</strong>
+        <div style="margin-top:4px;color:${asig.fecha_firma_salida?'var(--green)':'var(--text3)'};">${fecFirmaSalida}</div>
+      </div>
+      <div>
+        <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">🔄 Desasignada</strong>
+        <div style="margin-top:4px;color:${asig.fecha_firma_desasignacion?'var(--green)':'var(--amber)'};">${fecDesasig}</div>
+      </div>
+    </div>
+    
+    <div style="background:var(--surface2);padding:12px;border-radius:6px;margin-top:12px">
+      <strong style="color:var(--text3);font-size:11px;text-transform:uppercase">Estado</strong>
+      <div style="margin-top:8px">
+        <span class="badge" style="background:${asig.estado==='desasignada'?'var(--red)':asig.estado==='cerrada'?'var(--amber)':'var(--green)'};color:white;padding:4px 8px;border-radius:4px">
+          ${asig.estado==='desasignada'?'Desasignada':asig.estado==='cerrada'?'Cerrada':'Abierta'}
+        </span>
+      </div>
     </div>
   `;
   
-  toast('Detalles mostrados','info');
+  $('asignacionDetContent').innerHTML = html;
+  open('ovAsignacionDet');
 }
 
 

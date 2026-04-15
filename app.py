@@ -3336,6 +3336,7 @@ def save_asignacion_signature_public(id):
         elif tipo_firma == 'desasignacion':
             update_data['firma_desasignacion_url'] = firma_url
             update_data['fecha_firma_desasignacion'] = datetime.now().isoformat()
+            update_data['estado'] = 'desasignada'  # ✅ Cambiar estado
         else:  # 'salida'
             update_data['firma_salida_url'] = firma_url
             update_data['fecha_firma_salida'] = datetime.now().isoformat()

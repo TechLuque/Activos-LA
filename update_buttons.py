@@ -15,7 +15,7 @@ new_section = """      <td style="display:flex;gap:4px;flex-wrap:wrap">
         ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="openFirmaSalidaModal(${a.id})">Devolver</button>`:''}
         ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">Ver</button>`:''}
         ${a.estado==='cerrada'?`<button class="btn btn-warning btn-sm" onclick="unassignAsignacion(${a.id})">Desasignar</button>`:''}
-        <button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>
+        ${a.estado!=='desasignada'?`<button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>`:''}
       </td>"""
 
 if old_section in content:
