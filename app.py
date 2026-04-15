@@ -3349,9 +3349,12 @@ def save_asignacion_signature_public(id):
             equipo_id = asig.get('equipo_id')
             usuario_id = asig.get('usuario_id')
             
-            # Obtener nombre del usuario para historial
-            usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
-            usuario_nombre = usuario[0].get('nombre') if isinstance(usuario, list) and len(usuario) > 0 else 'Desconocido'
+            # Obtener nombre del usuario para historial (validar que usuario_id exista)
+            usuario_nombre = 'Desconocido'
+            if usuario_id:
+                usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+                if isinstance(usuario, list) and len(usuario) > 0:
+                    usuario_nombre = usuario[0].get('nombre', 'Desconocido')
             
             # Limpiar usuario_id del equipo
             if equipo_id:

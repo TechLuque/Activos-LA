@@ -68,7 +68,15 @@ def save_asignacion_signature_public(id):
         # Guardar firma
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         folder = f"asignacion_{id}"
-        prefix = 'firma_entrada' if tipo_firma == 'entrada' else 'firma_salida'
+        
+        # Determinar prefijo según tipo de firma
+        if tipo_firma == 'entrada':
+            prefix = 'firma_entrada'
+        elif tipo_firma == 'desasignacion':
+            prefix = 'firma_desasignacion'
+        else:  # 'salida'
+            prefix = 'firma_salida'
+            
         firma_filename = f"{prefix}_{timestamp}.jpg"
         firma_path = f"{folder}/{firma_filename}"
         
@@ -88,6 +96,35 @@ def save_asignacion_signature_public(id):
                 'estado_equipo_entrada': 'bueno',
                 'fecha_firma_entrada': datetime.now().isoformat()
             }
+        elif tipo_firma == 'desasignacion':
+            update_data = {
+                'firma_desasignacion_url': firma_url,
+                'fecha_firma_desasignacion': datetime.now().isoformat(),
+                'estado': 'desasignada'
+            }
+            equipo_id = asig.get('equipo_id')
+            usuario_id = asig.get('usuario_id')
+            
+            # Obtener nombre del usuario para historial (validar que usuario_id exista)
+            usuario_nombre = 'Desconocido'
+            if usuario_id:
+                usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+                if isinstance(usuario, list) and len(usuario) > 0:
+                    usuario_nombre = usuario[0].get('nombre', 'Desconocido')
+            
+            # Limpiar usuario_id del equipo
+            if equipo_id:
+                supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'usuario_id': None})
+            
+            # Guardar en hoja_vida el evento de desasignación con firma
+            supabase_request('POST', 'hoja_vida', '', {
+                'equipo_id': equipo_id,
+                'tipo': 'desasignacion',
+                'titulo': f'Desasignado de {usuario_nombre} (con firma)',
+                'descripcion': f'Equipo desasignado del responsable {usuario_nombre} con firma digital confirmada.',
+                'fecha': date.today().isoformat(),
+                'responsable': 'Sistema'
+            })
         else:  # salida/devolucion
             update_data = {
                 'firma_salida_url': firma_url,
