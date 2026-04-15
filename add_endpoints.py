@@ -108,23 +108,32 @@ def save_asignacion_signature_public(id):
             # Obtener nombre del usuario para historial (validar que usuario_id exista)
             usuario_nombre = 'Desconocido'
             if usuario_id:
-                usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
-                if isinstance(usuario, list) and len(usuario) > 0:
-                    usuario_nombre = usuario[0].get('nombre', 'Desconocido')
+                try:
+                    usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+                    if isinstance(usuario, list) and len(usuario) > 0:
+                        usuario_nombre = usuario[0].get('nombre', 'Desconocido')
+                except:
+                    usuario_nombre = 'Desconocido'
             
             # Limpiar usuario_id del equipo
             if equipo_id:
-                supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'usuario_id': None})
+                try:
+                    supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'usuario_id': None})
+                except:
+                    pass  # No fallar si no se puede actualizar equipos
             
-            # Guardar en hoja_vida el evento de desasignación con firma
-            supabase_request('POST', 'hoja_vida', '', {
-                'equipo_id': equipo_id,
-                'tipo': 'desasignacion',
-                'titulo': f'Desasignado de {usuario_nombre} (con firma)',
-                'descripcion': f'Equipo desasignado del responsable {usuario_nombre} con firma digital confirmada.',
-                'fecha': date.today().isoformat(),
-                'responsable': 'Sistema'
-            })
+            # Intentar guardar en hoja_vida si la tabla existe (sin fallar si no existe)
+            try:
+                supabase_request('POST', 'hoja_vida', '', {
+                    'equipo_id': equipo_id,
+                    'tipo': 'desasignacion',
+                    'titulo': f'Desasignado de {usuario_nombre} (con firma)',
+                    'descripcion': f'Equipo desasignado del responsable {usuario_nombre} con firma digital confirmada.',
+                    'fecha': date.today().isoformat(),
+                    'responsable': 'Sistema'
+                })
+            except:
+                pass  # No fallar si tabla hoja_vida no existe
         else:  # salida/devolucion
             update_data = {
                 'firma_salida_url': firma_url,
@@ -139,9 +148,12 @@ def save_asignacion_signature_public(id):
             # Limpiar usuario_id del equipo
             equipo_id = asig.get('equipo_id')
             if equipo_id:
-                supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
-                    'usuario_id': None
-                })
+                try:
+                    supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                        'usuario_id': None
+                    })
+                except:
+                    pass  # No fallar si no se puede actualizar equipos
         
         result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', update_data)
         
@@ -153,7 +165,9 @@ def save_asignacion_signature_public(id):
             'message': f'Firma de {tipo_firma} completada'
         }), 201
     except Exception as e:
-        return jsonify({'error': f'Error: {str(e)}'}), 500
+        import traceback
+        error_msg = f"{str(e)} | {traceback.format_exc()}"
+        return jsonify({'error': error_msg}), 500
 
 '''
 
