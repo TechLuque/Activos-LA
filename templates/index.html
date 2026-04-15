@@ -5425,7 +5425,9 @@ function renderAsignaciones(){
       <td><span class="badge ${a.estado==='abierta'?'badge-blue':'badge-green'}">${a.estado}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="openFirmaEntradaModal(${a.id})">Firmar</button>`:''}
+        ${!tieneEntrada?`<button class="btn btn-info btn-sm" onclick="generateSignLink(${a.id}, 'entrada')" style="background:#06b6d4;color:white">🔗 Link</button>`:''}
         ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="openFirmaSalidaModal(${a.id})">Devolver</button>`:''}
+        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-info btn-sm" onclick="generateSignLink(${a.id}, 'salida')" style="background:#06b6d4;color:white">🔗 Link</button>`:''}
         ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">Ver</button>`:''}
         ${a.estado==='cerrada'?`<button class="btn btn-warning btn-sm" onclick="unassignAsignacion(${a.id})">Desasignar</button>`:''}
         <button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>
@@ -5934,6 +5936,35 @@ async function deleteAsignacion(asigId){
   }catch(err){
     toast(err.message||'Error','err');
   }
+}
+
+
+function generateSignLink(asigId, tipo) {
+  // Get the base URL
+  const baseUrl = window.location.origin;
+  
+  // Generate the signature link
+  const signLink = `${baseUrl}/firma/${asigId}?doc=asignacion&tipo=${tipo}`;
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(signLink).then(() => {
+    toast(`Link copiado: ${signLink}`, 'ok');
+    
+    // Show a dialog with the link
+    const msg = `
+Enlace de firma generado:
+
+${signLink}
+
+Envialo a la persona para que firme la ${tipo === 'entrada' ? 'recepcin' : 'devolucin'} del equipo.
+
+El link ya esta en tu portapapeles.
+    `;
+    alert(msg);
+  }).catch(err => {
+    toast('Error al copiar al portapapeles', 'err');
+    console.error(err);
+  });
 }
 
 async function unassignAsignacion(asigId){

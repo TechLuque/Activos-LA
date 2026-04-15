@@ -366,9 +366,10 @@
         let loanData = null;
         const loanId = window.location.pathname.split('/').pop();
         
-        // Detectar si es firma de devolución
+        // Detectar tipo de documento (prstamo o asignacion)
         const params = new URLSearchParams(window.location.search);
-        const tipoFirma = params.get('tipo') || 'inicial'; // 'inicial' o 'devolucion'
+        const tipoDocumento = params.get('doc') || 'prestamo'; // 'prestamo' o 'asignacion'
+        const tipoFirma = params.get('tipo') || 'inicial'; // 'inicial', 'entrada', 'devolucion', 'salida'
 
         function $(id) {
             return document.getElementById(id);
@@ -383,7 +384,13 @@
 
         async function initPage() {
             try {
-                const url = `/api/prestamos/${loanId}`;
+                // Construir URL segun tipo
+                let url;
+                if (tipoDocumento === 'asignacion') {
+                    url = `/api/asignaciones-equipos/${loanId}/publico`;
+                } else {
+                    url = `/api/prestamos/${loanId}`;
+                }
                 
                 const res = await fetch(url, {credentials: 'include'});
                 
@@ -653,7 +660,12 @@
                 form1.append('numero', 1);
                 form1.append('tipo', tipoFirma);
                 
-                const res1 = await fetch(`/api/prestamos/${loanId}/upload-image`, {
+                // Use correct endpoint based on document type  
+                const uploadEndpoint = tipoDocumento === 'asignacion'
+                  ? `/api/asignaciones-equipos/${loanId}/upload-image-public`
+                  : `/api/prestamos/${loanId}/upload-image`;
+                
+                const res1 = await fetch(uploadEndpoint, {
                     method: 'POST',
                     credentials: 'include',
                     body: form1
@@ -673,7 +685,7 @@
                 form2.append('numero', 2);
                 form2.append('tipo', tipoFirma);
                 
-                const res2 = await fetch(`/api/prestamos/${loanId}/upload-image`, {
+                const res2 = await fetch(uploadEndpoint, {
                     method: 'POST',
                     credentials: 'include',
                     body: form2
@@ -694,7 +706,12 @@
                 form3.append('img1_url', data1.url);
                 form3.append('img2_url', data2.url);
                 
-                const res3 = await fetch(`/api/prestamos/${loanId}/save-signature`, {
+                // Use correct endpoint based on document type
+                const signatureEndpoint = tipoDocumento === 'asignacion'
+                  ? `/api/asignaciones-equipos/${loanId}/save-signature-public`
+                  : `/api/prestamos/${loanId}/save-signature`;
+                
+                const res3 = await fetch(signatureEndpoint, {
                     method: 'POST',
                     credentials: 'include',
                     body: form3
