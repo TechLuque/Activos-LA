@@ -108,14 +108,21 @@ def supabase_request(method, table, query='', data=None):
         else:
             return None
         
+        print(f"DEBUG supabase_request: {method} {table}{query} -> Status: {resp.status_code}")
+        
         if resp.status_code in [200, 201]:
             try:
-                return resp.json()
-            except:
+                json_resp = resp.json()
+                print(f"DEBUG supabase_request: Response JSON: {type(json_resp)} - {json_resp}")
+                return json_resp
+            except Exception as e:
+                print(f"DEBUG supabase_request: No JSON response or parse error: {e}")
                 return {'ok': True}
         else:
+            print(f"DEBUG supabase_request: Error response: {resp.status_code} - {resp.text[:200]}")
             return {'error': resp.text, 'status': resp.status_code}
     except Exception as e:
+        print(f"DEBUG supabase_request: Exception: {e}")
         return {'error': str(e)}
 
 
@@ -2966,18 +2973,51 @@ def create_asignacion_equipo():
         
         print(f"DEBUG: Creando asignación con datos: {asig_data}")
         result = supabase_request('POST', 'asignaciones_equipos', '', asig_data)
+        print(f"DEBUG: Tipo de resultado: {type(result)}")
         print(f"DEBUG: Resultado POST asignaciones: {result}")
+        
+        # Verificar si hay error explícito
+        if isinstance(result, dict) and result.get('error'):
+            print(f"ERROR en resultado: {result.get('error')}")
+            return jsonify({'error': f'Database error: {result.get("error")}'}), 500
         
         # Manejar diferentes formatos de respuesta de Supabase
         asignacion_id = None
+        
+        # Intento 1: Si es lista con datos
         if isinstance(result, list) and len(result) > 0:
             nueva_asig = result[0]
             asignacion_id = nueva_asig.get('id')
-        elif isinstance(result, dict):
-            asignacion_id = result.get('id')
+            print(f"DEBUG: ID from list: {asignacion_id}")
         
+        # Intento 2: Si es dict con id
+        elif isinstance(result, dict) and 'id' in result:
+            asignacion_id = result.get('id')
+            print(f"DEBUG: ID from dict: {asignacion_id}")
+        
+        # Intento 3: Si es lista vacía, intentar GET
+        elif isinstance(result, list) and len(result) == 0:
+            print(f"WARNING: POST retornó lista vacía, intentando GET")
+            # Buscar la asignación más reciente
+            recent = supabase_request('GET', 'asignaciones_equipos', 
+                f'?equipo_id=eq.{equipo_id}&estado=eq.abierta&order=id.desc&limit=1')
+            if isinstance(recent, list) and len(recent) > 0:
+                asignacion_id = recent[0].get('id')
+                print(f"DEBUG: ID from GET fallback: {asignacion_id}")
+        
+        # Si aún no tenemos ID, retornar error
         if not asignacion_id:
-            return jsonify({'error': 'Failed to create assignment: no ID returned'}), 500
+            print(f"ERROR: No asignacion_id found. Result type: {type(result)}, Result: {result}")
+            # Intentar uno más: buscar por equipo_id y usuario_id combinación
+            search_query = f'?equipo_id=eq.{equipo_id}&usuario_id=eq.{usuario_id}&estado=eq.abierta&limit=1'
+            print(f"DEBUG: Intentando búsqueda con query: {search_query}")
+            recent = supabase_request('GET', 'asignaciones_equipos', search_query)
+            if isinstance(recent, list) and len(recent) > 0:
+                asignacion_id = recent[0].get('id')
+                print(f"DEBUG: Final attempt - ID from query search: {asignacion_id}")
+            else:
+                print(f"ERROR: Búsqueda también falló. recent type: {type(recent)}, recent: {recent}")
+                return jsonify({'error': 'Failed to create assignment: ID not found after creation', 'debug': str(result)}), 500
         
         # Actualizar equipos.usuario_id para marcar actual responsable
         supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
