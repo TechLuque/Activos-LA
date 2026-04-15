@@ -18,12 +18,8 @@ IS_VERCEL = 'VERCEL' in os.environ or os.getenv('VERCEL_ENV') == 'production'
 # Debug logging function
 def debug_log(msg):
     """Write debug message to console/stdout (works on Vercel)"""
-    timestamp = datetime.now().isoformat()
-    formatted_msg = f"[{timestamp}] {msg}"
-    
-    # Output to stdout (visible in Vercel logs)
-    print(formatted_msg, file=sys.stdout)
-    sys.stdout.flush()
+    # Debug logging disabled for security
+    pass
 
 # Verificar que las variables se cargaron
 
@@ -108,21 +104,15 @@ def supabase_request(method, table, query='', data=None):
         else:
             return None
         
-        print(f"DEBUG supabase_request: {method} {table}{query} -> Status: {resp.status_code}")
-        
         if resp.status_code in [200, 201]:
             try:
                 json_resp = resp.json()
-                print(f"DEBUG supabase_request: Response JSON: {type(json_resp)} - {json_resp}")
                 return json_resp
             except Exception as e:
-                print(f"DEBUG supabase_request: No JSON response or parse error: {e}")
                 return {'ok': True}
         else:
-            print(f"DEBUG supabase_request: Error response: {resp.status_code} - {resp.text[:200]}")
             return {'error': resp.text, 'status': resp.status_code}
     except Exception as e:
-        print(f"DEBUG supabase_request: Exception: {e}")
         return {'error': str(e)}
 
 
@@ -1080,72 +1070,55 @@ def get_prestamos():
 def get_prestamo(id):
     """Get a specific loan by ID for the public signature page"""
     try:
-        print(f"\n[LOAN_FETCH] Obteniendo préstamo ID {id}...")
         
         # ═══════════════════════════════════════════════════════════════
         # 1. OBTENER PRÉSTAMO
         # ═══════════════════════════════════════════════════════════════
         prestamos = supabase_request('GET', 'prestamos', f'?id=eq.{id}')
-        print(f"[LOAN_FETCH] Respuesta de prestamos: {type(prestamos)} - {str(prestamos)[:200]}")
         
         if isinstance(prestamos, dict) and prestamos.get('error'):
-            print(f"[ERROR] Error en query prestamos: {prestamos.get('error')}")
             return jsonify({'error': f"Error al obtener préstamo: {prestamos.get('error')}"}), 500
         
         if not isinstance(prestamos, list) or len(prestamos) == 0:
-            print(f"[WARN] Préstamo ID {id} no encontrado")
             return jsonify({'error': 'Préstamo no encontrado'}), 404
         
         loan = prestamos[0]
-        print(f"[LOAN_FETCH] Préstamo encontrado: {loan.get('id')} - equipo_id: {loan.get('equipo_id')} - usuario_id: {loan.get('usuario_id')}")
         
         # ═══════════════════════════════════════════════════════════════
         # 2. OBTENER NOMBRE DEL EQUIPO
         # ═══════════════════════════════════════════════════════════════
         equipo_id = loan.get('equipo_id')
         if equipo_id:
-            print(f"[LOAN_FETCH] Buscando equipo ID {equipo_id}...")
             equipos = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}')
-            print(f"[LOAN_FETCH] Respuesta de equipos: {type(equipos)} - {str(equipos)[:200]}")
             
             if isinstance(equipos, list) and len(equipos) > 0:
                 loan['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
                 loan['equipo_tipo'] = equipos[0].get('tipo', 'N/A')
                 loan['equipo_serialno'] = equipos[0].get('serialno', 'N/A')
-                print(f"[LOAN_FETCH] ✅ Equipo encontrado: {loan['equipo_nombre']}")
             else:
                 loan['equipo_nombre'] = 'Equipo desconocido'
-                print(f"[WARN] Equipo no encontrado, usando default")
         else:
             loan['equipo_nombre'] = 'Sin equipo'
-            print(f"[WARN] No hay equipo_id en préstamo")
         
         # ═══════════════════════════════════════════════════════════════
         # 3. OBTENER NOMBRE DEL USUARIO
         # ═══════════════════════════════════════════════════════════════
         usuario_id = loan.get('usuario_id')
         if usuario_id:
-            print(f"[LOAN_FETCH] Buscando usuario ID {usuario_id}...")
             usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
-            print(f"[LOAN_FETCH] Respuesta de usuarios: {type(usuarios)} - {str(usuarios)[:200]}")
             
             if isinstance(usuarios, list) and len(usuarios) > 0:
                 loan['usuario_nombre'] = usuarios[0].get('nombre', 'Usuario desconocido')
                 loan['usuario_email'] = usuarios[0].get('email', '')
                 loan['usuario_telefono'] = usuarios[0].get('telefono', '')
-                print(f"[LOAN_FETCH] ✅ Usuario encontrado: {loan['usuario_nombre']}")
             else:
                 loan['usuario_nombre'] = 'Usuario desconocido'
-                print(f"[WARN] Usuario no encontrado, usando default")
         else:
             loan['usuario_nombre'] = 'Sin responsable'
-            print(f"[WARN] No hay usuario_id en préstamo")
         
         # ═══════════════════════════════════════════════════════════════
         # 4. RETORNAR RESPUESTA COMPLETA
         # ═══════════════════════════════════════════════════════════════
-        print(f"[LOAN_FETCH] ✅ Respuesta final completa:")
-        print(f"  - ID: {loan.get('id')}")
         return jsonify(loan)
         
     except Exception as e:
@@ -1270,7 +1243,7 @@ def get_prestamo_detalle(id):
         return jsonify(loan)
         
     except Exception as e:
-        print(f"[ERROR] get_prestamo_detalle: {e}")
+        pass
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prestamos', methods=['POST'])
@@ -1321,11 +1294,11 @@ def create_prestamo():
                 'ok': True
             }), 201
         else:
-            print(f"Unexpected result format: {result}")
+            pass
             return jsonify({'error': 'Error al crear préstamo', 'result': result}), 500
             
     except Exception as e:
-        print(f"Create prestamo error: {e}")
+        pass
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prestamos/<int:id>/upload-image', methods=['POST'])
@@ -2971,14 +2944,9 @@ def create_asignacion_equipo():
             'estado': 'abierta'
         }
         
-        print(f"DEBUG: Creando asignación con datos: {asig_data}")
         result = supabase_request('POST', 'asignaciones_equipos', '', asig_data)
-        print(f"DEBUG: Tipo de resultado: {type(result)}")
-        print(f"DEBUG: Resultado POST asignaciones: {result}")
         
-        # Verificar si hay error explícito
         if isinstance(result, dict) and result.get('error'):
-            print(f"ERROR en resultado: {result.get('error')}")
             return jsonify({'error': f'Database error: {result.get("error")}'}), 500
         
         # Manejar diferentes formatos de respuesta de Supabase
@@ -2988,35 +2956,27 @@ def create_asignacion_equipo():
         if isinstance(result, list) and len(result) > 0:
             nueva_asig = result[0]
             asignacion_id = nueva_asig.get('id')
-            print(f"DEBUG: ID from list: {asignacion_id}")
         
         # Intento 2: Si es dict con id
         elif isinstance(result, dict) and 'id' in result:
             asignacion_id = result.get('id')
-            print(f"DEBUG: ID from dict: {asignacion_id}")
         
         # Intento 3: Si es lista vacía, intentar GET
         elif isinstance(result, list) and len(result) == 0:
-            print(f"WARNING: POST retornó lista vacía, intentando GET")
             # Buscar la asignación más reciente
             recent = supabase_request('GET', 'asignaciones_equipos', 
                 f'?equipo_id=eq.{equipo_id}&estado=eq.abierta&order=id.desc&limit=1')
             if isinstance(recent, list) and len(recent) > 0:
                 asignacion_id = recent[0].get('id')
-                print(f"DEBUG: ID from GET fallback: {asignacion_id}")
         
         # Si aún no tenemos ID, retornar error
         if not asignacion_id:
-            print(f"ERROR: No asignacion_id found. Result type: {type(result)}, Result: {result}")
             # Intentar uno más: buscar por equipo_id y usuario_id combinación
             search_query = f'?equipo_id=eq.{equipo_id}&usuario_id=eq.{usuario_id}&estado=eq.abierta&limit=1'
-            print(f"DEBUG: Intentando búsqueda con query: {search_query}")
             recent = supabase_request('GET', 'asignaciones_equipos', search_query)
             if isinstance(recent, list) and len(recent) > 0:
                 asignacion_id = recent[0].get('id')
-                print(f"DEBUG: Final attempt - ID from query search: {asignacion_id}")
             else:
-                print(f"ERROR: Búsqueda también falló. recent type: {type(recent)}, recent: {recent}")
                 return jsonify({'error': 'Failed to create assignment: ID not found after creation', 'debug': str(result)}), 500
         
         # Actualizar equipos.usuario_id para marcar actual responsable
@@ -3034,7 +2994,6 @@ def create_asignacion_equipo():
             'responsable': session.get('username', 'Sistema')
         })
         
-        print(f"DEBUG: Asignación creada exitosamente con ID: {asignacion_id}")
         return jsonify({
             'id': asignacion_id,
             'ok': True,
@@ -3042,10 +3001,6 @@ def create_asignacion_equipo():
         }), 201
     
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"ERROR en create_asignacion_equipo: {str(e)}")
-        print(f"TRACEBACK: {error_trace}")
         return jsonify({'error': f'Error al crear asignación: {str(e)}'}), 500
 
 @app.route('/api/asignaciones-equipos/<int:id>/upload-image', methods=['POST'])
@@ -3193,6 +3148,11 @@ def save_firma_salida(id):
         if isinstance(result, dict) and result.get('error'):
             return jsonify({'error': str(result.get('error'))}), 500
         
+        # Limpiar usuario_id del equipo cuando se devuelve (marca como libre)
+        equipoId = asig[0].get('equipo_id')
+        if equipoId:
+            supabase_request('PATCH', 'equipos', f'?id=eq.{equipoId}', {'usuario_id': None})
+        
         # Limpiar usuario_id del equipo (ya no está en posesión de nadie)
         equipo_id = asig[0].get('equipo_id')
         supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
@@ -3249,7 +3209,7 @@ def delete_asignacion(id):
 @app.route('/api/asignaciones-equipos/<int:id>/desasignar', methods=['PATCH'])
 @require_api_login
 def unassign_asignacion(id):
-    """Desasignar equipo: cambiar estado a cerrada y limpiar usuario_id"""
+    """Desasignar equipo: cambiar estado a desasignada, limpiar usuario_id y guardar en historial"""
     try:
         # Verificar que asignacion existe
         asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
@@ -3262,6 +3222,11 @@ def unassign_asignacion(id):
             return jsonify({'error': 'Solo se pueden desasignar asignaciones cerradas'}), 400
         
         equipo_id = asig.get('equipo_id')
+        usuario_id = asig.get('usuario_id')
+        
+        # Obtener datos del usuario para el historial
+        usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+        usuario_nombre = usuario[0].get('nombre') if isinstance(usuario, list) and len(usuario) > 0 else 'Desconocido'
         
         # Limpiar usuario_id del equipo
         if equipo_id:
@@ -3274,7 +3239,17 @@ def unassign_asignacion(id):
             'estado': 'desasignada'
         })
         
-        return jsonify({'ok': True, 'message': 'Equipo desasignado'}), 200
+        # Guardar en hoja_vida el evento de desasignación
+        supabase_request('POST', 'hoja_vida', '', {
+            'equipo_id': equipo_id,
+            'tipo': 'desasignacion',
+            'titulo': f'Desasignado de {usuario_nombre}',
+            'descripcion': f'Equipo desasignado del responsable {usuario_nombre} después de ser devuelto.',
+            'fecha': date.today().isoformat(),
+            'responsable': session.get('username', 'Sistema')
+        })
+        
+        return jsonify({'ok': True, 'message': 'Equipo desasignado y liberado del responsable'}), 200
     except Exception as e:
         return jsonify({'error': f'Error: {str(e)}'}), 500
 
@@ -3337,7 +3312,15 @@ def save_asignacion_signature_public(id):
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         folder = f"asignacion_{id}"
-        prefix = 'firma_entrada' if tipo_firma == 'entrada' else 'firma_salida'
+        
+        # Determinar prefijo según tipo de firma
+        if tipo_firma == 'entrada':
+            prefix = 'firma_entrada'
+        elif tipo_firma == 'desasignacion':
+            prefix = 'firma_desasignacion'
+        else:  # 'salida'
+            prefix = 'firma_salida'
+            
         firma_filename = f"{prefix}_{timestamp}.jpg"
         firma_path = f"{folder}/{firma_filename}"
         
@@ -3356,7 +3339,34 @@ def save_asignacion_signature_public(id):
                 'estado_equipo_entrada': 'bueno',
                 'fecha_firma_entrada': datetime.now().isoformat()
             }
-        else:
+        elif tipo_firma == 'desasignacion':
+            # Desasignación: cambiar estado a desasignada y limpiar usuario_id del equipo
+            update_data = {
+                'firma_desasignacion_url': firma_url,
+                'fecha_firma_desasignacion': datetime.now().isoformat(),
+                'estado': 'desasignada'
+            }
+            equipo_id = asig.get('equipo_id')
+            usuario_id = asig.get('usuario_id')
+            
+            # Obtener nombre del usuario para historial
+            usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+            usuario_nombre = usuario[0].get('nombre') if isinstance(usuario, list) and len(usuario) > 0 else 'Desconocido'
+            
+            # Limpiar usuario_id del equipo
+            if equipo_id:
+                supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'usuario_id': None})
+            
+            # Guardar en hoja_vida el evento de desasignación con firma
+            supabase_request('POST', 'hoja_vida', '', {
+                'equipo_id': equipo_id,
+                'tipo': 'desasignacion',
+                'titulo': f'Desasignado de {usuario_nombre} (con firma)',
+                'descripcion': f'Equipo desasignado del responsable {usuario_nombre} con firma digital confirmada.',
+                'fecha': date.today().isoformat(),
+                'responsable': 'Sistema'
+            })
+        else:  # 'salida'
             update_data = {
                 'firma_salida_url': firma_url,
                 'imagen1_salida_url': img1_url or None,

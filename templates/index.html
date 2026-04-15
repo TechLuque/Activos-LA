@@ -1675,6 +1675,29 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
+<!-- MODAL LINK DESASIGNACIÓN -->
+<div class="overlay" id="ovDesasignLink">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Link para desasignación</h3><p>Envía este link al responsable para firmar la desasignación</p></div>
+      <button class="m-close" onclick="close('ovDesasignLink')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="sig-link-box">
+        <p>Comparte este link con el responsable para que firme digitalmente la desasignación del equipo:</p>
+        <input type="text" id="desasignLink" readonly>
+        <div class="row-flex">
+          <button class="btn btn-primary btn-sm" onclick="copyDesasignLink()">📋 Copiar link</button>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovDesasignLink')">Cancelar</button>
+        <button class="btn btn-primary" onclick="close('ovDesasignLink')">✅ Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DOCUMENTOS PRÉSTAMO -->
 <div class="overlay" id="ovLoanDocs">
   <div class="modal modal-lg">
@@ -1701,66 +1724,7 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
-<!-- FORMULARIO DE FIRMA -->
-<div class="overlay" id="ovSignatureForm">
-  <div class="modal modal-lg">
-    <div class="modal-head">
-      <div><h3 id="sigFormTitle">Firmar Préstamo</h3><p id="sigFormSub">Capturar firma digital e imágenes</p></div>
-      <button class="m-close" onclick="close('ovSignatureForm')">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- Firma Digital -->
-      <div class="card-title" style="margin-top:0">✍️ Firma Digital</div>
-      <div style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);height:180px;position:relative;margin-bottom:16px">
-        <canvas id="signaturePad" style="display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;border-radius:6px"></canvas>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:20px">
-        <button class="btn btn-sm" onclick="clearSignature()" title="Limpiar firma">🗑️ Limpiar</button>
-        <span id="sigStatus" style="flex:1;padding:8px;font-size:13px;color:var(--text3)">Estado: sin firmar</span>
-      </div>
 
-      <!-- Imágenes -->
-      <div class="card-title">📷 Fotografías (2 requeridas)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-        <!-- Imagen 1 -->
-        <div>
-          <label style="display:flex;flex-direction:column;cursor:pointer">
-            <span style="font-size:13px;font-weight:600;margin-bottom:8px">Foto 1</span>
-            <input id="lImg1" type="file" accept="image/*" style="display:none" onchange="previewImage(1)">
-            <div style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);padding:16px;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
-              <div style="font-size:24px;margin-bottom:8px">📸</div>
-              <div style="font-size:12px;color:var(--text3)">Click para seleccionar o arrastra</div>
-            </div>
-          </label>
-          <div id="imgPrev1" style="width:100%;height:120px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin-top:8px;overflow:hidden">
-            <div style="font-size:12px;color:var(--text3)">No seleccionada</div>
-          </div>
-        </div>
-
-        <!-- Imagen 2 -->
-        <div>
-          <label style="display:flex;flex-direction:column;cursor:pointer">
-            <span style="font-size:13px;font-weight:600;margin-bottom:8px">Foto 2</span>
-            <input id="lImg2" type="file" accept="image/*" style="display:none" onchange="previewImage(2)">
-            <div style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);padding:16px;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
-              <div style="font-size:24px;margin-bottom:8px">📸</div>
-              <div style="font-size:12px;color:var(--text3)">Click para seleccionar o arrastra</div>
-            </div>
-          </label>
-          <div id="imgPrev2" style="width:100%;height:120px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin-top:8px;overflow:hidden">
-            <div style="font-size:12px;color:var(--text3)">No seleccionada</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Botones -->
-      <div style="display:flex;gap:8px;margin-top:24px;border-top:1px solid var(--border);padding-top:16px">
-        <button class="btn btn-sm" onclick="close('ovSignatureForm')">Cancelar</button>
-        <button class="btn btn-success btn-sm" onclick="submitSignatureForm()" style="margin-left:auto">✅ Confirmar Firma</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- HOJA DE VIDA -->
 <div class="overlay" id="ovHV">
@@ -1889,69 +1853,7 @@ input[type="file"]::file-selector-button{
   </div>
 </div>
 
-<!-- MODAL: Firma de Entrada -->
-<div class="overlay" id="ovFirmaEntrada">
-  <div class="modal">
-    <div class="modal-head">
-      <div><h3>Firma de Entrada</h3><p>Firma digital para documentar la recepción</p></div>
-      <button class="m-close" onclick="close('ovFirmaEntrada')">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- Firma Digital -->
-      <div class="fg">
-        <label>✍️ Firma Digital *</label>
-        <div id="firmaEntradaContainer" style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);position:relative">
-          <canvas id="firmaEntradaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:300px;background:white"></canvas>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaEntrada()">🗑️ Limpiar firma</button>
-      </div>
-      <div class="form-actions" style="margin-top:20px">
-        <button class="btn btn-ghost" onclick="close('ovFirmaEntrada')">Cancelar</button>
-        <button id="saveFirmaEntradaBtn" class="btn btn-primary" onclick="saveFirmaEntrada()">✓ Guardar firma</button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- MODAL: Firma de Salida/Devolución -->
-<div class="overlay" id="ovFirmaSalida">
-  <div class="modal">
-    <div class="modal-head">
-      <div><h3>Firma de Devolución</h3><p>Firma para documentar la devolución</p></div>
-      <button class="m-close" onclick="close('ovFirmaSalida')">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- Estado y Notas -->
-      <div class="form-grid c1">
-        <div class="fg">
-          <label>Estado del Equipo *</label>
-          <select id="aEstadoSalida">
-            <option value="">Seleccionar…</option>
-            <option value="bueno">Bueno</option>
-            <option value="marginal">Marginal</option>
-            <option value="dañado">Dañado</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Notas de Daños/Comentarios</label>
-          <textarea id="aNotasSalida" placeholder="Describir daños o condición especial…"></textarea>
-        </div>
-      </div>
-      <!-- Firma Digital --> 
-      <div class="fg" style="margin-top:20px">
-        <label>✍️ Firma Digital *</label>
-        <div id="firmaSalidaContainer" style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);position:relative">
-          <canvas id="firmaSalidaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:300px;background:white"></canvas>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaSalida()">🗑️ Limpiar firma</button>
-      </div>
-      <div class="form-actions" style="margin-top:20px">
-        <button class="btn btn-ghost" onclick="close('ovFirmaSalida')">Cancelar</button>
-        <button id="saveFirmaSalidaBtn" class="btn btn-primary" onclick="saveFirmaSalida()">✓ Guardar devolución</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 /* ════════════════════════════════════════════════════
@@ -2679,7 +2581,6 @@ async function loadEqLicenses(eqId){
         </tr>`;}).join('');
     }
   }catch(e){
-    console.error('Error loading equipment licenses:',e);
     $('eqLicensesList').innerHTML='<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--red)">Error cargando licencias</td></tr>';
   }
 }
@@ -2864,7 +2765,6 @@ function updateItemsPerPage(entityType){
       currentPage[entityType]=1;
     }
   }catch(e){
-    console.error('Error in updateItemsPerPage:',e);
   }
 }
 
@@ -3493,11 +3393,7 @@ function updateDptoFromRol(){
 async function saveUsr(){
   if(isSubmitting) return;
   
-  // Debug: mostrar estado de los inputs
   const emailInput = document.getElementById('uEmail');
-  console.log('DEBUG - Email input exists:', !!emailInput);
-  console.log('DEBUG - Email input type:', emailInput?.type);
-  console.log('DEBUG - Email input value:', emailInput?.value);
   
   const nombre = document.getElementById('uNom')?.value.trim() || '';
   const email = document.getElementById('uEmail')?.value.trim() || '';
@@ -3505,8 +3401,6 @@ async function saveUsr(){
   const rolId = parseInt(document.getElementById('uRol')?.value || '0');
   const selectedRol = ROLES.find(r=>r.id===rolId);
   const departamento = selectedRol?.departamento || '';
-  
-  console.log('DEBUG saveUsr FULL:', {nombre, email, password: password?'***':'', rolId, departamento, editUsrId});
   
   // Validaciones
   if(!nombre) { toast('❌ Falta: Nombre completo','err'); return; }
@@ -3544,7 +3438,6 @@ async function saveUsr(){
       editUsrId = null;
     }
   } catch(e) {
-    console.error('Error saveUsr:', e);
     toast('❌ Error: ' + e.message, 'err');
   } finally {
     isSubmitting = false;
@@ -5038,36 +4931,8 @@ document.querySelectorAll('[onclick="open(\'ovAddHV\')"]').forEach(b=>{
 });
 
 /* ════════════════════════════════════════════════════
-   FIRMA DIGITAL - SIGNATURE PAD
+   GENERA LINKS PÚBLICOS PARA FIRMA
 ════════════════════════════════════════════════════ */
-let signPad=null;
-
-function openSignatureForm(loanId, tipo='inicial'){
-  window.currentLoanId=loanId;
-  window.tipoFirma=tipo;
-  
-  // Actualizar título del modal según el tipo
-  const titulo=tipo==='inicial'?'Firmar Préstamo':'Confirmar Devolución';
-  const subtitulo=tipo==='inicial'?'Capturar firma digital e imágenes':'Firma de devolución del equipo';
-  
-  $('sigFormTitle').textContent=titulo;
-  $('sigFormSub').textContent=subtitulo;
-  
-  // Limpiar formulario
-  $('lImg1').value='';
-  $('lImg2').value='';
-  $('imgPrev1').innerHTML='<div style="font-size:12px;color:var(--text3)">No seleccionada</div>';
-  $('imgPrev2').innerHTML='<div style="font-size:12px;color:var(--text3)">No seleccionada</div>';
-  
-  // Inicializar canvas
-  setTimeout(()=>{
-    initSignaturePad();
-    clearSignature();
-    updateSignatureStatus();
-  },100);
-  
-  open('ovSignatureForm');
-}
 
 function showSignatureLinkModal(loanId){
   if(!loanId){
@@ -5123,242 +4988,17 @@ function copyReturnLink(){
   navigator.clipboard.writeText(url).then(()=>{
     toast('Link copiado al portapapeles ✅','ok');
   }).catch(err=>{
-    toast('Error al copiar','err');
+    toast('Error al copiar al portapapeles','err');
   });
 }
 
-function initSignaturePad(){
-  const canvas=document.getElementById('signaturePad');
-  if(!canvas)return;
-  
-  const rect=canvas.parentElement.getBoundingClientRect();
-  canvas.width=rect.width;
-  canvas.height=rect.height;
-  
-  signPad=new SignaturePad(canvas,{
-    penColor:'#3b82f6',
-    backgroundColor:'transparent'
+function copyDesasignLink(){
+  const url=$('desasignLink').value;
+  navigator.clipboard.writeText(url).then(()=>{
+    toast('Link copiado al portapapeles ✅','ok');
+  }).catch(err=>{
+    toast('Error al copiar al portapapeles','err');
   });
-}
-
-function clearSignature(){
-  if(signPad)signPad.clear();
-  updateSignatureStatus();
-}
-
-function updateSignatureStatus(){
-  const status=$('sigStatus');
-  if(!status)return;
-  if(signPad&&!signPad.isEmpty()){
-    status.textContent='Estado: ✅ Firmado';
-    status.style.color='var(--green)';
-  }else{
-    status.textContent='Estado: sin firmar';
-    status.style.color='var(--text3)';
-  }
-}
-
-function previewImage(num){
-  const inputId='lImg'+num;
-  const previewId='imgPrev'+num;
-  const file=$(inputId).files[0];
-  const preview=$(previewId);
-  
-  if(!file){
-    preview.innerHTML='<div class="img-status">No seleccionada</div>';
-    return;
-  }
-  
-  if(!file.type.startsWith('image/')){
-    toast('Por favor selecciona una imagen válida','err');
-    $(inputId).value='';
-    preview.innerHTML='<div class="img-status">Archivo inválido</div>';
-    return;
-  }
-  
-  const fileSizeMB=Math.round(file.size/1024/1024*10)/10;
-  const reader=new FileReader();
-  reader.onload=function(e){
-    preview.innerHTML='<img src="'+e.target.result+'" alt="Imagen '+num+'" style="max-width:100%;max-height:150px"><div class="img-status" style="margin-top:4px;font-size:11px;color:var(--text3)">'+fileSizeMB+'MB → ~15-40KB</div>';
-  };
-  reader.readAsDataURL(file);
-}
-
-// Comprimir imagen - COMPRESIÓN EXTREMA
-async function compressImage(file,maxWidth=400,maxHeight=400,quality=0.15){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=function(event){
-      const img=new Image();
-      img.onload=function(){
-        const canvas=document.createElement('canvas');
-        let width=img.width;
-        let height=img.height;
-        
-        // Escalar manteniendo aspectratio
-        if(width>height){
-          if(width>maxWidth){
-            height=Math.round((height*maxWidth)/width);
-            width=maxWidth;
-          }
-        }else{
-          if(height>maxHeight){
-            width=Math.round((width*maxHeight)/height);
-            height=maxHeight;
-          }
-        }
-        
-        canvas.width=width;
-        canvas.height=height;
-        const ctx=canvas.getContext('2d');
-        ctx.fillStyle='white';
-        ctx.fillRect(0,0,width,height);
-        ctx.drawImage(img,0,0,width,height);
-        
-        // JPEG extremadamente comprimido
-        canvas.toBlob(blob=>{
-          const sizeKB=Math.round(blob.size/1024);
-          console.log(`🖼️ Comprimida: ${sizeKB}KB (${width}x${height})`);
-          resolve(blob);
-        },'image/jpeg',quality);
-      };
-      img.onerror=()=>reject(new Error('No se pudo cargar imagen'));
-      img.src=event.target.result;
-    };
-    reader.onerror=()=>reject(new Error('Error al leer archivo'));
-    reader.readAsDataURL(file);
-  });
-}
-
-// Convertir dataURL a Blob
-function dataURLtoBlob(dataurl){
-  const arr=dataurl.split(',');
-  const mime=arr[0].match(/:(.*?);/)[1];
-  const bstr=atob(arr[1]);
-  let n=bstr.length;
-  const u8arr=new Uint8Array(n);
-  while(n--){
-    u8arr[n]=bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr],{type:mime});
-}
-
-async function submitSignatureForm(){
-  const loanId=window.currentLoanId;
-  const tipoFirma=window.tipoFirma||'inicial';
-  
-  if(!loanId){
-    toast('ID de préstamo no encontrado','err');
-    return;
-  }
-  
-  const img1File=$('lImg1').files[0];
-  const img2File=$('lImg2').files[0];
-  const hasSignature=signPad&&!signPad.isEmpty();
-  
-  if(!img1File||!img2File){
-    toast('Se requieren 2 imágenes','err');
-    return;
-  }
-  
-  if(!hasSignature){
-    toast('Se requiere firma digital','err');
-    return;
-  }
-  
-  toast('Comprimiendo imágenes...','info');
-  
-  try{
-    // COMPRESIÓN EXTREMA: 400x400 @ 0.15 quality
-    const img1Compressed=await compressImage(img1File,400,400,0.15);
-    const img2Compressed=await compressImage(img2File,400,400,0.15);
-    
-    const firmaCanvas=signPad.canvas;
-    const firmaDataURL=firmaCanvas.toDataURL('image/jpeg',0.3);
-    const firmaBlob=dataURLtoBlob(firmaDataURL);
-    
-    const size1KB=Math.round(img1Compressed.size/1024);
-    const size2KB=Math.round(img2Compressed.size/1024);
-    const sigKB=Math.round(firmaBlob.size/1024);
-    
-    console.log(`📦 Img1: ${size1KB}KB | Img2: ${size2KB}KB | Firma: ${sigKB}KB`);
-    
-    // 1️⃣ ENVIAR IMAGEN 1
-    toast(`📤 Img 1 (${size1KB}KB)...`,'info');
-    const form1=new FormData();
-    form1.append('imagen',img1Compressed);
-    form1.append('numero',1);
-    form1.append('tipo',tipoFirma);
-    
-    const res1=await fetch(`/api/prestamos/${loanId}/upload-image`,{
-      method:'POST',
-      credentials:'include',
-      body:form1
-    });
-    
-    if(res1.status===413){
-      toast('❌ Img 1 demasiado grande','err');
-      return;
-    }
-    if(!res1.ok) throw new Error(`Img1 HTTP ${res1.status}`);
-    const data1=await res1.json();
-    if(data1.error) throw new Error(data1.error);
-    
-    // 2️⃣ ENVIAR IMAGEN 2
-    toast(`📤 Img 2 (${size2KB}KB)...`,'info');
-    const form2=new FormData();
-    form2.append('imagen',img2Compressed);
-    form2.append('numero',2);
-    form2.append('tipo',tipoFirma);
-    
-    const res2=await fetch(`/api/prestamos/${loanId}/upload-image`,{
-      method:'POST',
-      credentials:'include',
-      body:form2
-    });
-    
-    if(res2.status===413){
-      toast('❌ Img 2 demasiado grande','err');
-      return;
-    }
-    if(!res2.ok) throw new Error(`Img2 HTTP ${res2.status}`);
-    const data2=await res2.json();
-    if(data2.error) throw new Error(data2.error);
-    
-    // 3️⃣ ENVIAR FIRMA
-    toast(`📤 Firma (${sigKB}KB)...`,'info');
-    const form3=new FormData();
-    form3.append('firma',firmaBlob);
-    form3.append('tipo',tipoFirma);
-    form3.append('img1_url',data1.url);
-    form3.append('img2_url',data2.url);
-    
-    const res3=await fetch(`/api/prestamos/${loanId}/save-signature`,{
-      method:'POST',
-      credentials:'include',
-      body:form3
-    });
-    
-    if(res3.status===413){
-      toast('❌ Firma demasiado grande','err');
-      return;
-    }
-    if(!res3.ok) throw new Error(`Firma HTTP ${res3.status}`);
-    const data3=await res3.json();
-    if(data3.error) throw new Error(data3.error);
-    
-    close('ovSignatureForm');
-    toast(`✅ Firma de ${tipoFirma} guardada`,'ok');
-    
-    await loadAll();
-    renderLoan();
-    renderDashboard();
-    
-    if(tipoFirma==='devolucion') nav('prestamos');
-  }catch(err){
-    toast(`Error: ${err.message}`,'err');
-    console.error(err);
-  }
 }
 
 function toggleUserMenu(){
@@ -5375,10 +5015,6 @@ function toggleUserMenu(){
 /* ════════════════════════════════════════════════════
    ASIGNACIONES DE EQUIPOS
 ════════════════════════════════════════════════════ */
-let currentAsigForFirma=null;
-let currentAsigForFirmaType=null;
-let firmaEntradaPad=null;
-let firmaSalidaPad=null;
 let selectedEquiposAsignacion={}; // {equipo_id: true, ...}
 
 async function loadAsignaciones(){
@@ -5387,7 +5023,6 @@ async function loadAsignaciones(){
     ASIGNACIONES=Array.isArray(res)?res:[];
     renderAsignaciones();
   }catch(err){
-    console.error('Error loading asignaciones:',err);
     ASIGNACIONES=[];
   }
 }
@@ -5424,10 +5059,8 @@ function renderAsignaciones(){
       <td>${tieneEntrada?'✅ Firmada':'⏳ Pendiente'}</td>
       <td><span class="badge ${a.estado==='abierta'?'badge-blue':'badge-green'}">${a.estado}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="openFirmaEntradaModal(${a.id})">Firmar</button>`:''}
-        ${!tieneEntrada?`<button class="btn btn-info btn-sm" onclick="generateSignLink(${a.id}, 'entrada')" style="background:#06b6d4;color:white">🔗 Link</button>`:''}
-        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="openFirmaSalidaModal(${a.id})">Devolver</button>`:''}
-        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-info btn-sm" onclick="generateSignLink(${a.id}, 'salida')" style="background:#06b6d4;color:white">🔗 Link</button>`:''}
+        ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="generateSignLink(${a.id}, 'entrada')">Firmar Entrada</button>`:''}
+        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="generateSignLink(${a.id}, 'salida')">Devolver</button>`:''}
         ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">Ver</button>`:''}
         ${a.estado==='cerrada'?`<button class="btn btn-warning btn-sm" onclick="unassignAsignacion(${a.id})">Desasignar</button>`:''}
         <button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>
@@ -5478,7 +5111,6 @@ function goToAsigPage(page){
 }
 
 function openAsignacionModal(){
-  currentAsigForFirma=null;
   selectedEquiposAsignacion={};
   $('asigModalTitle').textContent='Nueva Asignación de Equipos';
   $('asigModalSub').textContent='Selecciona uno o varios equipos para asignar';
@@ -5593,35 +5225,25 @@ async function saveAsignacion(){
         notas:notas
       };
       
-      console.log(`Creando asignación para equipo ${equipo_id}`,payload);
-      
       const res=await api('/api/asignaciones-equipos','POST',payload);
       
       if(res.id){
         successCount++;
         createdAsignacionIds.push(res.id);
-        console.log(`✓ Asignación creada: ${res.id}`);
       }else{
         errorCount++;
-        console.error(`✗ Error en equipo ${equipo_id}:`,res.error);
       }
     }
     
     // Mostrar resultado
     if(successCount>0){
       close('ovAsignacion');
-      toast(`✓ ${successCount} asignación(nes) creada(s)${errorCount>0?' ('+errorCount+' errores)':''}!`,'ok');
+      toast(`✅ ${successCount} asignación(nes) creada(s) exitosamente${errorCount>0?' - '+errorCount+' errores':''} - Próximo paso: firmar entrada ✍️`,'ok');
       loadAsignaciones();
-      
-      // Abrir firma del primera asignación después de 500ms
-      if(createdAsignacionIds.length>0){
-        setTimeout(()=>openFirmaEntradaModal(createdAsignacionIds[0]),500);
-      }
     }else{
-      toast(`✗ No se pudo crear ninguna asignación`,'err');
+      toast(`❌ No se pudo crear ninguna asignación`,'err');
     }
   }catch(err){
-    console.error('Exception:',err);
     toast(err.message||'Error creando asignaciones','err');
   }finally{
     isSubmitting=false;
@@ -5630,263 +5252,20 @@ async function saveAsignacion(){
   }
 }
 
-function openFirmaEntradaModal(asigId){
-  currentAsigForFirma=asigId;
-  currentAsigForFirmaType='entrada';
-  
-  // Limpiar inputs
-  $('fotoEntrada1Preview').style.backgroundImage='';
-  $('fotoEntrada1Text').style.display='block';
-  $('fotoEntrada2Preview').style.backgroundImage='';
-  $('fotoEntrada2Text').style.display='block';
-  $('fotoEntrada1Input').value='';
-  $('fotoEntrada2Input').value='';
-  
-  // Inicializar firma
-  if(!firmaEntradaPad){
-    const canvas=$('firmaEntradaCanvas');
-    firmaEntradaPad=new SignaturePad(canvas,{backgroundColor:'white',penColor:'#000000'});
-  }else{
-    firmaEntradaPad.clear();
-  }
-  
-  open('ovFirmaEntrada');
-}
 
-function openFirmaSalidaModal(asigId){
-  currentAsigForFirma=asigId;
-  currentAsigForFirmaType='salida';
-  
-  // Limpiar inputs
-  $('fotoSalida1Preview').style.backgroundImage='';
-  $('fotoSalida1Text').style.display='block';
-  $('fotoSalida2Preview').style.backgroundImage='';
-  $('fotoSalida2Text').style.display='block';
-  $('fotoSalida1Input').value='';
-  $('fotoSalida2Input').value='';
-  $('aEstadoSalida').value='bueno';
-  $('aNotasSalida').value='';
-  
-  // Inicializar firma
-  if(!firmaSalidaPad){
-    const canvas=$('firmaSalidaCanvas');
-    firmaSalidaPad=new SignaturePad(canvas,{backgroundColor:'white',penColor:'#000000'});
-  }else{
-    firmaSalidaPad.clear();
-  }
-  
-  open('ovFirmaSalida');
-}
 
-function previsualizarFoto(input,previewId){
-  const preview=$(previewId);
-  const textId=previewId.replace('Preview','Text');
+function generateSignLink(asigId, tipo){
+  if(!asigId) return;
   
-  if(input.files&&input.files[0]){
-    const reader=new FileReader();
-    reader.onload=function(e){
-      preview.style.backgroundImage=`url('${e.target.result}')`;
-      preview.style.backgroundSize='cover';
-      preview.style.backgroundPosition='center';
-      $(textId).style.display='none';
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
-}
-
-function triggerFileInput(inputId){
-  $(inputId).click();
-}
-
-function openCamera(inputId){
-  const input=$(inputId);
-  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-    input.setAttribute('capture','environment');
-    input.click();
-  }else{
-    input.click();
-  }
-}
-
-function clearFirmaEntrada(){
-  if(firmaEntradaPad)firmaEntradaPad.clear();
-}
-
-function clearFirmaSalida(){
-  if(firmaSalidaPad)firmaSalidaPad.clear();
-}
-
-async function saveFirmaEntrada(){
-  if(!currentAsigForFirma){
-    toast('Error: No hay asignación','err');
-    return;
-  }
+  // Construir URL: /firma/{id}?doc=asignacion&tipo=entrada|salida
+  const url = `${window.location.origin}/firma/${asigId}?doc=asignacion&tipo=${tipo}`;
   
-  if(isSubmitting){
-    toast('Por favor espera…','info');
-    return;
-  }
-  
-  if(!firmaEntradaPad||firmaEntradaPad.isEmpty()){
-    toast('Firma digital es requerida','err');
-    return;
-  }
-  
-  isSubmitting=true;
-  $('saveFirmaEntradaBtn').disabled=true;
-  $('saveFirmaEntradaBtn').textContent='Guardando…';
-  
-  try{
-    // Obtener firma como blob usando canvas.toBlob
-    const canvas=document.getElementById('firmaEntradaCanvas');
-    if(!canvas){
-      toast('Error: No se encontró canvas de firma','err');
-      return;
-    }
-    
-    // Usar canvas.toBlob directamente
-    canvas.toBlob(async (blob)=>{
-      if(!blob){
-        toast('Error generando firma','err');
-        isSubmitting=false;
-        $('saveFirmaEntradaBtn').disabled=false;
-        $('saveFirmaEntradaBtn').textContent='✓ Guardar firma';
-        return;
-      }
-      
-      // Crear FormData
-      const formData=new FormData();
-      formData.append('firma',blob);
-      
-      try{
-        const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-entrada`,{
-          method:'POST',
-          credentials:'include',
-          body:formData
-        });
-        
-        if(res.ok){
-          const data=await res.json();
-          toast('Firma de entrada guardada','ok');
-          close('ovFirmaEntrada');
-          loadAsignaciones();
-        }else{
-          const err=await res.json();
-          toast(err.error||'Error guardando firma','err');
-        }
-      }catch(err){
-        toast(err.message||'Error','err');
-      }finally{
-        isSubmitting=false;
-        $('saveFirmaEntradaBtn').disabled=false;
-        $('saveFirmaEntradaBtn').textContent='✓ Guardar firma';
-      }
-    });
-  }catch(err){
-    toast(err.message||'Error','err');
-    isSubmitting=false;
-    $('saveFirmaEntradaBtn').disabled=false;
-    $('saveFirmaEntradaBtn').textContent='✓ Guardar firma';
-  }
-}
-
-async function saveFirmaSalida(){
-  if(!currentAsigForFirma){
-    toast('Error: No hay asignación','err');
-    return;
-  }
-  
-  if(isSubmitting){
-    toast('Por favor espera…','info');
-    return;
-  }
-  
-  const estado=$('aEstadoSalida').value;
-  const notas=$('aNotasSalida').value;
-  
-  if(!estado||!firmaSalidaPad||firmaSalidaPad.isEmpty()){
-    toast('Estado y firma digital son requeridos','err');
-    return;
-  }
-  
-  isSubmitting=true;
-  $('saveFirmaSalidaBtn').disabled=true;
-  $('saveFirmaSalidaBtn').textContent='Guardando…';
-  
-  try{
-    // Obtener firma como blob usando canvas.toBlob
-    const canvas=document.getElementById('firmaSalidaCanvas');
-    if(!canvas){
-      toast('Error: No se encontró canvas de firma','err');
-      return;
-    }
-    
-    // Usar canvas.toBlob directamente
-    canvas.toBlob(async (blob)=>{
-      if(!blob){
-        toast('Error generando firma','err');
-        isSubmitting=false;
-        $('saveFirmaSalidaBtn').disabled=false;
-        $('saveFirmaSalidaBtn').textContent='✓ Guardar devolución';
-        return;
-      }
-      
-      // Crear FormData
-      const formData=new FormData();
-      formData.append('firma',blob);
-      formData.append('estado_equipo',estado);
-      formData.append('notas',notas);
-      
-      try{
-        const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-salida`,{
-          method:'POST',
-          credentials:'include',
-          body:formData
-        });
-        
-        if(res.ok){
-          const data=await res.json();
-          toast('Devolución completada','ok');
-          close('ovFirmaSalida');
-          loadAsignaciones();
-        }else{
-          const err=await res.json();
-          toast(err.error||'Error guardando firma','err');
-        }
-      }catch(err){
-        toast(err.message||'Error','err');
-      }finally{
-        isSubmitting=false;
-        $('saveFirmaSalidaBtn').disabled=false;
-        $('saveFirmaSalidaBtn').textContent='✓ Guardar devolución';
-      }
-    });
-  }catch(err){
-    toast(err.message||'Error','err');
-    isSubmitting=false;
-    $('saveFirmaSalidaBtn').disabled=false;
-    $('saveFirmaSalidaBtn').textContent='✓ Guardar devolución';
-  }
-}
-
-async function uploadAsigImage(asigId,file,numero,tipo){
-  const formData=new FormData();
-  formData.append('imagen',file);
-  formData.append('numero',numero);
-  formData.append('tipo',tipo);
-  
-  try{
-    const res=await fetch(`/api/asignaciones-equipos/${asigId}/upload-image`,{
-      method:'POST',
-      credentials:'include',
-      body:formData
-    });
-    const data=await res.json();
-    return data.url||null;
-  }catch(err){
-    console.error('Error uploading image:',err);
-    return null;
-  }
+  // Copiar al portapapeles
+  navigator.clipboard.writeText(url).then(() => {
+    alert(`Link copiado:\n${url}\n\nEnvía este link al responsable para que firme.`);
+  }).catch(err => {
+    toast('Error al copiar link', 'err');
+  });
 }
 
 function viewAsignacionDetail(asigId){
@@ -5910,15 +5289,13 @@ function viewAsignacionDetail(asigId){
     </div>
   `;
   
-  // Mostrar en modal simple (podría ser un modal dedicado)
-  toast('Ver detalles en consola','info');
-  console.log('Asignación:',asig);
+  toast('Detalles mostrados','info');
 }
 
 
 
 async function deleteAsignacion(asigId){
-  if(!confirm('Eliminar esta asignacion?'))return;
+  if(!confirm('¿Eliminar esta asignación permanentemente? Se borrará el registro completo y todo su historial.'))return;
   
   try{
     const res=await fetch(`/api/asignaciones-equipos/${asigId}`,{
@@ -5927,14 +5304,14 @@ async function deleteAsignacion(asigId){
     });
     
     if(res.ok){
-      toast('Asignacion eliminada','ok');
+      toast('✅ Asignación eliminada permanentemente del sistema','ok');
       loadAsignaciones();
     }else{
       const err=await res.json();
-      toast(err.error||'Error eliminando asignacion','err');
+      toast(err.error||'Error al eliminar la asignación','err');
     }
   }catch(err){
-    toast(err.message||'Error','err');
+    toast(err.message||'Error en la eliminación','err');
   }
 }
 
@@ -5963,28 +5340,22 @@ El link ya esta en tu portapapeles.
     alert(msg);
   }).catch(err => {
     toast('Error al copiar al portapapeles', 'err');
-    console.error(err);
   });
 }
 
 async function unassignAsignacion(asigId){
-  if(!confirm('Desasignar este equipo del responsable?'))return;
+  if(!confirm('Desasignar este equipo del responsable? Se generará un enlace de firma para confirmar la desasignación.'))return;
   
   try{
-    const res=await fetch(`/api/asignaciones-equipos/${asigId}/desasignar`,{
-      method:'PATCH',
-      credentials:'include'
-    });
-    
-    if(res.ok){
-      toast('Equipo desasignado','ok');
-      loadAsignaciones();
-    }else{
-      const err=await res.json();
-      toast(err.error||'Error desasignando','err');
+    // Mostrar modal con enlace de firma para desasignación
+    const desasigUrl=`${window.location.origin}/firma/${asigId}?doc=asignacion&tipo=desasignacion`;
+    const urlInput=$('desasignLink');
+    if(urlInput){
+      urlInput.value=desasigUrl;
     }
+    open('ovDesasignLink');
   }catch(err){
-    toast(err.message||'Error','err');
+    toast(err.message||'Error generando enlace de desasignación','err');
   }
 }
 

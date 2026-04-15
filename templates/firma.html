@@ -407,18 +407,47 @@
                     return;
                 }
                 
-                // Actualizar título según tipo de firma
-                const titulo = tipoFirma === 'devolucion' ? 'Devolución de Equipo' : 'Firma de Préstamo';
-                const subtitulo = tipoFirma === 'devolucion' ? 'Confirma la devolución del equipo' : 'Confirma la recepción del equipo';
+                // Determinar título según tipo de documento
+                let titulo, subtitulo, btnText;
+                if (tipoDocumento === 'asignacion') {
+                    if (tipoFirma === 'desasignacion') {
+                        titulo = 'Desasignación de Equipo';
+                        subtitulo = 'Confirma la desasignación del equipo';
+                        btnText = '✅ Confirmar Desasignación';
+                    } else if (tipoFirma === 'entrada') {
+                        titulo = 'Asignación de Equipo';
+                        subtitulo = 'Confirma la recepción del equipo asignado';
+                        btnText = '✅ Confirmar Firma Entrada';
+                    } else {
+                        titulo = 'Devolución de Equipo';
+                        subtitulo = 'Confirma la devolución del equipo';
+                        btnText = '✅ Confirmar Firma Devolución';
+                    }
+                } else {
+                    titulo = tipoFirma === 'devolucion' ? 'Devolución de Equipo' : 'Firma de Préstamo';
+                    subtitulo = tipoFirma === 'devolucion' ? 'Confirma la devolución del equipo' : 'Confirma la recepción del equipo';
+                    btnText = '✅ Confirmar firma y fotos';
+                }
+                
                 const $header = document.querySelector('.header h1');
                 const $headerp = document.querySelector('.header p');
                 if ($header) $header.textContent = titulo;
                 if ($headerp) $headerp.textContent = subtitulo;
                 
+                // Actualizar texto del botón
+                const $btn = document.querySelector('button[onclick="submitSignatureForm()"]');
+                if ($btn) $btn.textContent = btnText;
+                
+                // Ocultar sección de imágenes para asignaciones y desasignaciones
+                const $imageSection = document.querySelector('.image-section');
+                if ($imageSection) {
+                    $imageSection.style.display = (tipoDocumento === 'asignacion' || tipoDocumento === 'desasignacion' || tipoFirma === 'desasignacion') ? 'none' : 'block';
+                }
+                
                 // Llenar informacion
                 const equipo = loanData.equipo_nombre || loanData.equipo || '—';
                 const responsable = loanData.usuario_nombre || loanData.usuario || '—';
-                const fecha = loanData.fecha_prestamo || '—';
+                const fecha = loanData.fecha_prestamo || loanData.fecha_asignacion || '—';
                 const devol = loanData.fecha_devolucion_esperada || '—';
                 const notas = loanData.notas || 'Sin notas';
                 
@@ -430,9 +459,20 @@
 
                 // Inicializar firma
                 initSignaturePad();
-                const msg = tipoFirma === 'devolucion' ? 
-                  'Información cargada. Completa el formulario y presiona Confirmar Devolución' :
-                  'Información cargada. Completa el formulario y presiona Confirmar Firma';
+                let msg;
+                if (tipoDocumento === 'asignacion') {
+                    if (tipoFirma === 'desasignacion') {
+                        msg = 'Información cargada. Completa el formulario y presiona Confirmar Desasignación';
+                    } else if (tipoFirma === 'entrada') {
+                        msg = 'Información cargada. Completa el formulario y presiona Confirmar Firma Entrada';
+                    } else {
+                        msg = 'Información cargada. Completa el formulario y presiona Confirmar Firma Devolución';
+                    }
+                } else {
+                    msg = tipoFirma === 'devolucion' ? 
+                      'Información cargada. Completa el formulario y presiona Confirmar Devolución' :
+                      'Información cargada. Completa el formulario y presiona Confirmar Firma';
+                }
                 showAlert(msg, 'info');
             } catch (err) {
                 showAlert('Error al cargar datos: ' + err.message, 'error');
@@ -609,20 +649,26 @@
         }
 
         async function submitSignatureForm() {
-            // Validar archivos
-            const img1File = $('lImg1').files[0];
-            const img2File = $('lImg2').files[0];
+            // Para ASIGNACIONES: no se requieren imágenes, solo firma
+            let img1File = null;
+            let img2File = null;
             
-            if (!img1File) {
-                showAlert('Se requiere la Foto 1 (Estado inicial)', 'error');
-                return;
-            }
-            if (!img2File) {
-                showAlert('Se requiere la Foto 2 (Verificación)', 'error');
-                return;
+            // Para PRÉSTAMOS: validar imágenes
+            if (tipoDocumento === 'prestamo') {
+                img1File = $('lImg1').files[0];
+                img2File = $('lImg2').files[0];
+                
+                if (!img1File) {
+                    showAlert('Se requiere la Foto 1 (Estado inicial)', 'error');
+                    return;
+                }
+                if (!img2File) {
+                    showAlert('Se requiere la Foto 2 (Verificación)', 'error');
+                    return;
+                }
             }
             
-            // Validar firma
+            // Validar firma (requerida para ambos)
             if (!signPad) {
                 showAlert('Error: Canvas de firma no disponible', 'error');
                 return;
@@ -638,73 +684,94 @@
             $('alertBox').style.display = 'none';
             
             try {
-                // COMPRESIÓN EXTREMA: 400x400 @ 0.15 quality
-                showAlert('Comprimiendo imágenes...', 'info');
-                const img1Compressed = await compressImage(img1File, 400, 400, 0.15);
-                const img2Compressed = await compressImage(img2File, 400, 400, 0.15);
+                let img1Compressed = null;
+                let img2Compressed = null;
+                let data1 = null;
+                let data2 = null;
+                
+                // Comprimir imágenes solo si las hay (préstamos)
+                if (img1File && img2File) {
+                    showAlert('Comprimiendo imágenes...', 'info');
+                    img1Compressed = await compressImage(img1File, 400, 400, 0.15);
+                    img2Compressed = await compressImage(img2File, 400, 400, 0.15);
+                }
                 
                 const firmaCanvas = signPad.canvas;
                 const firmaDataURL = firmaCanvas.toDataURL('image/jpeg', 0.3);
                 const firmaBlob = dataURLtoBlob(firmaDataURL);
                 
-                const size1KB = Math.round(img1Compressed.size / 1024);
-                const size2KB = Math.round(img2Compressed.size / 1024);
                 const sigKB = Math.round(firmaBlob.size / 1024);
+                let size1KB = 0, size2KB = 0;
+                if (img1Compressed) size1KB = Math.round(img1Compressed.size / 1024);
+                if (img2Compressed) size2KB = Math.round(img2Compressed.size / 1024);
                 
-                console.log(`📦 Img1: ${size1KB}KB | Img2: ${size2KB}KB | Firma: ${sigKB}KB`);
-                
-                // 1️⃣ ENVIAR IMAGEN 1
-                showAlert(`📤 Img 1 (${size1KB}KB)...`, 'info');
-                const form1 = new FormData();
-                form1.append('imagen', img1Compressed);
-                form1.append('numero', 1);
-                form1.append('tipo', tipoFirma);
-                
-                // Use correct endpoint based on document type  
-                const uploadEndpoint = tipoDocumento === 'asignacion'
-                  ? `/api/asignaciones-equipos/${loanId}/upload-image-public`
-                  : `/api/prestamos/${loanId}/upload-image`;
-                
-                const res1 = await fetch(uploadEndpoint, {
-                    method: 'POST',
-                    credentials: 'include',
-                    body: form1
-                });
-                
-                if (res1.status === 413) {
-                    throw new Error('Img 1 demasiado grande');
+                if (img1Compressed && img2Compressed) {
+                    // Files prepared silently
+                } else {
+                    // Files prepared silently
                 }
-                if (!res1.ok) throw new Error(`Img1 HTTP ${res1.status}`);
-                const data1 = await res1.json();
-                if (data1.error) throw new Error(data1.error);
                 
-                // 2️⃣ ENVIAR IMAGEN 2
-                showAlert(`📤 Img 2 (${size2KB}KB)...`, 'info');
-                const form2 = new FormData();
-                form2.append('imagen', img2Compressed);
-                form2.append('numero', 2);
-                form2.append('tipo', tipoFirma);
-                
-                const res2 = await fetch(uploadEndpoint, {
-                    method: 'POST',
-                    credentials: 'include',
-                    body: form2
-                });
-                
-                if (res2.status === 413) {
-                    throw new Error('Img 2 demasiado grande');
+                // 1️⃣ ENVIAR IMAGEN 1 (solo si existe para prestamos)
+                if (img1Compressed) {
+                    showAlert(`📤 Img 1 (${size1KB}KB)...`, 'info');
+                    const form1 = new FormData();
+                    form1.append('imagen', img1Compressed);
+                    form1.append('numero', 1);
+                    form1.append('tipo', tipoFirma);
+                    
+                    const uploadEndpoint = `/api/prestamos/${loanId}/upload-image`;
+                    
+                    const res1 = await fetch(uploadEndpoint, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: form1
+                    });
+                    
+                    if (res1.status === 413) {
+                        throw new Error('Img 1 demasiado grande');
+                    }
+                    if (!res1.ok) throw new Error(`Img1 HTTP ${res1.status}`);
+                    data1 = await res1.json();
+                    if (data1.error) throw new Error(data1.error);
                 }
-                if (!res2.ok) throw new Error(`Img2 HTTP ${res2.status}`);
-                const data2 = await res2.json();
-                if (data2.error) throw new Error(data2.error);
+                
+                // 2️⃣ ENVIAR IMAGEN 2 (solo si existe para prestamos)
+                if (img2Compressed) {
+                    showAlert(`📤 Img 2 (${size2KB}KB)...`, 'info');
+                    const form2 = new FormData();
+                    form2.append('imagen', img2Compressed);
+                    form2.append('numero', 2);
+                    form2.append('tipo', tipoFirma);
+                    
+                    const uploadEndpoint = `/api/prestamos/${loanId}/upload-image`;
+                    
+                    const res2 = await fetch(uploadEndpoint, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: form2
+                    });
+                    
+                    if (res2.status === 413) {
+                        throw new Error('Img 2 demasiado grande');
+                    }
+                    if (!res2.ok) throw new Error(`Img2 HTTP ${res2.status}`);
+                    data2 = await res2.json();
+                    if (data2.error) throw new Error(data2.error);
+                }
                 
                 // 3️⃣ ENVIAR FIRMA
                 showAlert(`📤 Firma (${sigKB}KB)...`, 'info');
                 const form3 = new FormData();
                 form3.append('firma', firmaBlob);
                 form3.append('tipo', tipoFirma);
-                form3.append('img1_url', data1.url);
-                form3.append('img2_url', data2.url);
+                
+                // Solo agregar URLs de imágenes si existen (prestamos)
+                if (data1 && data1.url) {
+                    form3.append('img1_url', data1.url);
+                }
+                if (data2 && data2.url) {
+                    form3.append('img2_url', data2.url);
+                }
                 
                 // Use correct endpoint based on document type
                 const signatureEndpoint = tipoDocumento === 'asignacion'
@@ -725,10 +792,30 @@
                 if (data3.error) throw new Error(data3.error);
                 
                 // ✅ ÉXITO - Mostrar mensaje
-                const titulo = tipoFirma === 'devolucion' ? 'Devolución Confirmada' : 'Préstamo Firmado';
-                const desc = tipoFirma === 'devolucion' ? 'Devolución del equipo registrada exitosamente' : 'Documentación registrada exitosamente';
-                const foto1Desc = tipoFirma === 'devolucion' ? 'Foto 1 (Estado devolución)' : 'Foto 1 (Estado inicial)';
-                const foto2Desc = tipoFirma === 'devolucion' ? 'Foto 2 (Confirmación)' : 'Foto 2 (Verificación)';
+                let titulo, desc, photoList, successMsg;
+                
+                if (tipoDocumento === 'asignacion') {
+                    if (tipoFirma === 'desasignacion') {
+                        titulo = 'Desasignación Confirmada';
+                        desc = 'Desasignación del equipo registrada exitosamente';
+                        photoList = '<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>';
+                        successMsg = 'Equipo desasignado exitosamente.';
+                    } else {
+                        titulo = 'Asignación Confirmada';
+                        desc = 'Firma digital registrada exitosamente';
+                        photoList = '<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>';
+                        successMsg = 'Equipo asignado exitosamente.';
+                    }
+                } else {
+                    titulo = tipoFirma === 'devolucion' ? 'Devolución Confirmada' : 'Préstamo Firmado';
+                    desc = tipoFirma === 'devolucion' ? 'Devolución del equipo registrada exitosamente' : 'Documentación registrada exitosamente';
+                    const foto1Desc = tipoFirma === 'devolucion' ? 'Foto 1 (Estado devolución)' : 'Foto 1 (Estado inicial)';
+                    const foto2Desc = tipoFirma === 'devolucion' ? 'Foto 2 (Confirmación)' : 'Foto 2 (Verificación)';
+                    photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
+                                <li>✅ <strong>${foto1Desc}</strong> (${img1File.name}) - Guardada</li>
+                                <li>✅ <strong>${foto2Desc}</strong> (${img2File.name}) - Guardada</li>`;
+                    successMsg = tipoFirma === 'devolucion' ? 'Equipo devuelto exitosamente.' : 'El préstamo ha sido completado y registrado en el sistema.';
+                }
                 
                 document.body.innerHTML = `
                     <div class="container">
@@ -740,11 +827,9 @@
                         <div class="card">
                             <h2 style="margin-bottom: 16px;">Información guardada:</h2>
                             <ul style="line-height: 2.2; color: var(--text2); font-size: 14px;">
-                                <li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
-                                <li>✅ <strong>${foto1Desc}</strong> (${img1File.name}) - Guardada</li>
-                                <li>✅ <strong>${foto2Desc}</strong> (${img2File.name}) - Guardada</li>
+                                ${photoList}
                             </ul>
-                            <p style="margin-top: 24px; color: var(--green); font-size: 12px; font-weight: 600;">🎉 ${tipoFirma === 'devolucion' ? 'Equipo devuelto exitosamente.' : 'El préstamo ha sido completado y registrado en el sistema.'}</p>
+                            <p style="margin-top: 24px; color: var(--green); font-size: 12px; font-weight: 600;">🎉 ${successMsg}</p>
                             <p style="margin-top: 8px; color: var(--text3); font-size: 12px;">Puedes cerrar esta ventana. Los administradores podrán ver los documentos en el sistema.</p>
                         </div>
                     </div>
