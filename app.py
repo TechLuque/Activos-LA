@@ -3097,7 +3097,7 @@ def save_firma_entrada(id):
         img2_url = request.form.get('img2_url')
         
         if not firma_file or not img1_url or not img2_url:
-            return jsonify({'error': 'Missing required data (firma, img1_url, img2_url)'}), 400
+            return jsonify({'error': 'Missing required data (firma)'}), 400
         
         # Verificar que asignación existe
         asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
@@ -3124,8 +3124,6 @@ def save_firma_entrada(id):
         # Actualizar asignación con datos de entrada
         update_data = {
             'firma_entrada_url': firma_url,
-            'imagen1_entrada_url': img1_url,
-            'imagen2_entrada_url': img2_url,
             'fecha_firma_entrada': datetime.now().isoformat()
         }
         
@@ -3153,7 +3151,7 @@ def save_firma_salida(id):
         notas = request.form.get('notas', '').strip()
         
         if not firma_file or not img1_url or not img2_url:
-            return jsonify({'error': 'Missing required data (firma, img1_url, img2_url)'}), 400
+            return jsonify({'error': 'Missing required data (firma)'}), 400
         
         # Verificar que asignación existe y está abierta
         asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
@@ -3183,8 +3181,6 @@ def save_firma_salida(id):
         # Actualizar asignación con datos de salida y cerrarla
         update_data = {
             'firma_salida_url': firma_url,
-            'imagen1_salida_url': img1_url,
-            'imagen2_salida_url': img2_url,
             'estado_equipo_salida': estado_equipo,
             'notas_salida': notas,
             'fecha_firma_salida': datetime.now().isoformat(),
@@ -3222,6 +3218,66 @@ def save_firma_salida(id):
         }), 200
     except Exception as e:
         return jsonify({'error': f'Error: {str(e)}'}), 500
+
+
+@app.route('/api/asignaciones-equipos/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_asignacion(id):
+    """Eliminar una asignacion de equipo"""
+    try:
+        # Verificar que asignacion existe
+        asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
+        if not isinstance(asig, list) or len(asig) == 0:
+            return jsonify({'error': 'Asignacion no encontrada'}), 404
+        
+        asig = asig[0]
+        equipo_id = asig.get('equipo_id')
+        
+        # Limpiar usuario_id del equipo
+        if equipo_id:
+            supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                'usuario_id': None
+            })
+        
+        # Eliminar asignacion
+        result = supabase_request('DELETE', 'asignaciones_equipos', f'?id=eq.{id}')
+        
+        return jsonify({'ok': True, 'message': 'Asignacion eliminada'}), 200
+    except Exception as e:
+        return jsonify({'error': f'Error: {str(e)}'}), 500
+
+@app.route('/api/asignaciones-equipos/<int:id>/desasignar', methods=['PATCH'])
+@require_api_login
+def unassign_asignacion(id):
+    """Desasignar equipo: cambiar estado a cerrada y limpiar usuario_id"""
+    try:
+        # Verificar que asignacion existe
+        asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
+        if not isinstance(asig, list) or len(asig) == 0:
+            return jsonify({'error': 'Asignacion no encontrada'}), 404
+        
+        asig = asig[0]
+        
+        if asig.get('estado') != 'cerrada':
+            return jsonify({'error': 'Solo se pueden desasignar asignaciones cerradas'}), 400
+        
+        equipo_id = asig.get('equipo_id')
+        
+        # Limpiar usuario_id del equipo
+        if equipo_id:
+            supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                'usuario_id': None
+            })
+        
+        # Cambiar estado a desasignada
+        result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', {
+            'estado': 'desasignada'
+        })
+        
+        return jsonify({'ok': True, 'message': 'Equipo desasignado'}), 200
+    except Exception as e:
+        return jsonify({'error': f'Error: {str(e)}'}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

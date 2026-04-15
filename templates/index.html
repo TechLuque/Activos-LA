@@ -1891,45 +1891,23 @@ input[type="file"]::file-selector-button{
 
 <!-- MODAL: Firma de Entrada -->
 <div class="overlay" id="ovFirmaEntrada">
-  <div class="modal modal-lg">
+  <div class="modal">
     <div class="modal-head">
-      <div><h3>Firma de Entrada</h3><p>Captura fotos y firma digital para documentar la recepción</p></div>
+      <div><h3>Firma de Entrada</h3><p>Firma digital para documentar la recepción</p></div>
       <button class="m-close" onclick="close('ovFirmaEntrada')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid c2">
-        <!-- Foto 1 -->
-        <div class="fg">
-          <label>📸 Foto 1 (ID/Documento)</label>
-          <div id="fotoEntrada1Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoEntrada1Input')">
-            <div id="fotoEntrada1Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
-            <input type="file" id="fotoEntrada1Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoEntrada1Preview')">
-            <span id="fotoEntrada1Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
-          </div>
-          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoEntrada1Input')">📷 Usar Cámara</button>
-        </div>
-        <!-- Foto 2 -->
-        <div class="fg">
-          <label>📸 Foto 2 (Equipo)</label>
-          <div id="fotoEntrada2Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoEntrada2Input')">
-            <div id="fotoEntrada2Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
-            <input type="file" id="fotoEntrada2Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoEntrada2Preview')">
-            <span id="fotoEntrada2Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
-          </div>
-          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoEntrada2Input')">📷 Usar Cámara</button>
-        </div>
-      </div>
       <!-- Firma Digital -->
-      <div class="fg" style="margin-top:20px">
+      <div class="fg">
         <label>✍️ Firma Digital *</label>
         <div id="firmaEntradaContainer" style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);position:relative">
-          <canvas id="firmaEntradaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:250px;background:white"></canvas>
+          <canvas id="firmaEntradaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:300px;background:white"></canvas>
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaEntrada()">Limpiar firma</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaEntrada()">🗑️ Limpiar firma</button>
       </div>
       <div class="form-actions" style="margin-top:20px">
         <button class="btn btn-ghost" onclick="close('ovFirmaEntrada')">Cancelar</button>
-        <button id="saveFirmaEntradaBtn" class="btn btn-primary" onclick="saveFirmaEntrada()">Guardar firma de entrada</button>
+        <button id="saveFirmaEntradaBtn" class="btn btn-primary" onclick="saveFirmaEntrada()">✓ Guardar firma</button>
       </div>
     </div>
   </div>
@@ -1937,36 +1915,14 @@ input[type="file"]::file-selector-button{
 
 <!-- MODAL: Firma de Salida/Devolución -->
 <div class="overlay" id="ovFirmaSalida">
-  <div class="modal modal-lg">
+  <div class="modal">
     <div class="modal-head">
-      <div><h3>Firma de Salida (Devolución)</h3><p>Verifica condición del equipo y documenta con firma</p></div>
+      <div><h3>Firma de Devolución</h3><p>Firma para documentar la devolución</p></div>
       <button class="m-close" onclick="close('ovFirmaSalida')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid c2">
-        <!-- Foto 1 -->
-        <div class="fg">
-          <label>📸 Foto 1 (Equipo)</label>
-          <div id="fotoSalida1Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoSalida1Input')">
-            <div id="fotoSalida1Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
-            <input type="file" id="fotoSalida1Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoSalida1Preview')">
-            <span id="fotoSalida1Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
-          </div>
-          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoSalida1Input')">📷 Usar Cámara</button>
-        </div>
-        <!-- Foto 2 -->
-        <div class="fg">
-          <label>📸 Foto 2 (Detalles)</label>
-          <div id="fotoSalida2Container" style="aspect-ratio:1;border:2px dashed var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;background:var(--surface2)" onclick="triggerFileInput('fotoSalida2Input')">
-            <div id="fotoSalida2Preview" style="width:100%;height:100%;background-size:cover;background-position:center"></div>
-            <input type="file" id="fotoSalida2Input" accept="image/*" style="display:none" onchange="previsualizarFoto(this,'fotoSalida2Preview')">
-            <span id="fotoSalida2Text" style="position:absolute;text-align:center;color:var(--text3);font-size:12px">Click para capturar…</span>
-          </div>
-          <button class="btn btn-success btn-sm" style="width:100%;margin-top:6px" onclick="openCamera('fotoSalida2Input')">📷 Usar Cámara</button>
-        </div>
-      </div>
-      <!-- Condición y Notas -->
-      <div class="form-grid c2" style="margin-top:20px">
+      <!-- Estado y Notas -->
+      <div class="form-grid c1">
         <div class="fg">
           <label>Estado del Equipo *</label>
           <select id="aEstadoSalida">
@@ -1985,13 +1941,13 @@ input[type="file"]::file-selector-button{
       <div class="fg" style="margin-top:20px">
         <label>✍️ Firma Digital *</label>
         <div id="firmaSalidaContainer" style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);position:relative">
-          <canvas id="firmaSalidaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:250px;background:white"></canvas>
+          <canvas id="firmaSalidaCanvas" style="border-radius:var(--radius-sm);cursor:crosshair;display:block;width:100%;height:300px;background:white"></canvas>
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaSalida()">Limpiar firma</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="clearFirmaSalida()">🗑️ Limpiar firma</button>
       </div>
       <div class="form-actions" style="margin-top:20px">
         <button class="btn btn-ghost" onclick="close('ovFirmaSalida')">Cancelar</button>
-        <button id="saveFirmaSalidaBtn" class="btn btn-primary" onclick="saveFirmaSalida()">Guardar devolución</button>
+        <button id="saveFirmaSalidaBtn" class="btn btn-primary" onclick="saveFirmaSalida()">✓ Guardar devolución</button>
       </div>
     </div>
   </div>
@@ -5467,11 +5423,14 @@ function renderAsignaciones(){
       <td><span class="badge">${a.estado_equipo_entrada||'—'}</span></td>
       <td>${tieneEntrada?'✅ Firmada':'⏳ Pendiente'}</td>
       <td><span class="badge ${a.estado==='abierta'?'badge-blue':'badge-green'}">${a.estado}</span></td>
-      <td>
-        ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="openFirmaEntradaModal(${a.id})">📋 Firmar Entrada</button>`:''}
-        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="openFirmaSalidaModal(${a.id})">📤 Devolver</button>`:''}
-        ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">👁️ Ver</button>`:''}
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="openFirmaEntradaModal(${a.id})">Firmar</button>`:''}
+        ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="openFirmaSalidaModal(${a.id})">Devolver</button>`:''}
+        ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">Ver</button>`:''}
+        ${a.estado==='cerrada'?`<button class="btn btn-warning btn-sm" onclick="unassignAsignacion(${a.id})">Desasignar</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>
       </td>
+
     </tr>`;
   }).join('');
   
@@ -5766,11 +5725,8 @@ async function saveFirmaEntrada(){
     return;
   }
   
-  const foto1=document.getElementById('fotoEntrada1Input').files[0];
-  const foto2=document.getElementById('fotoEntrada2Input').files[0];
-  
-  if(!foto1||!foto2||!firmaEntradaPad||firmaEntradaPad.isEmpty()){
-    toast('Fotos y firma son requeridas','err');
+  if(!firmaEntradaPad||firmaEntradaPad.isEmpty()){
+    toast('Firma digital es requerida','err');
     return;
   }
   
@@ -5779,45 +5735,56 @@ async function saveFirmaEntrada(){
   $('saveFirmaEntradaBtn').textContent='Guardando…';
   
   try{
-    // Subir fotos
-    const img1Url=await uploadAsigImage(currentAsigForFirma,foto1,'1','entrada');
-    const img2Url=await uploadAsigImage(currentAsigForFirma,foto2,'2','entrada');
-    
-    if(!img1Url||!img2Url){
-      toast('Error subiendo fotos','err');
+    // Obtener firma como blob usando canvas.toBlob
+    const canvas=document.getElementById('firmaEntradaCanvas');
+    if(!canvas){
+      toast('Error: No se encontró canvas de firma','err');
       return;
     }
     
-    // Obtener firma como blob
-    const firmaBlob=await new Promise(resolve=>firmaEntradaPad.toBlob(blob=>resolve(blob)));
-    
-    // Crear FormData para la firma
-    const formData=new FormData();
-    formData.append('firma',firmaBlob);
-    formData.append('img1_url',img1Url);
-    formData.append('img2_url',img2Url);
-    
-    const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-entrada`,{
-      method:'POST',
-      credentials:'include',
-      body:formData
+    // Usar canvas.toBlob directamente
+    canvas.toBlob(async (blob)=>{
+      if(!blob){
+        toast('Error generando firma','err');
+        isSubmitting=false;
+        $('saveFirmaEntradaBtn').disabled=false;
+        $('saveFirmaEntradaBtn').textContent='✓ Guardar firma';
+        return;
+      }
+      
+      // Crear FormData
+      const formData=new FormData();
+      formData.append('firma',blob);
+      
+      try{
+        const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-entrada`,{
+          method:'POST',
+          credentials:'include',
+          body:formData
+        });
+        
+        if(res.ok){
+          const data=await res.json();
+          toast('Firma de entrada guardada','ok');
+          close('ovFirmaEntrada');
+          loadAsignaciones();
+        }else{
+          const err=await res.json();
+          toast(err.error||'Error guardando firma','err');
+        }
+      }catch(err){
+        toast(err.message||'Error','err');
+      }finally{
+        isSubmitting=false;
+        $('saveFirmaEntradaBtn').disabled=false;
+        $('saveFirmaEntradaBtn').textContent='✓ Guardar firma';
+      }
     });
-    
-    if(res.ok){
-      const data=await res.json();
-      toast('Firma de entrada guardada','ok');
-      close('ovFirmaEntrada');
-      loadAsignaciones();
-    }else{
-      const err=await res.json();
-      toast(err.error||'Error guardando firma','err');
-    }
   }catch(err){
     toast(err.message||'Error','err');
-  }finally{
     isSubmitting=false;
     $('saveFirmaEntradaBtn').disabled=false;
-    $('saveFirmaEntradaBtn').textContent='Guardar firma de entrada';
+    $('saveFirmaEntradaBtn').textContent='✓ Guardar firma';
   }
 }
 
@@ -5832,13 +5799,11 @@ async function saveFirmaSalida(){
     return;
   }
   
-  const foto1=document.getElementById('fotoSalida1Input').files[0];
-  const foto2=document.getElementById('fotoSalida2Input').files[0];
   const estado=$('aEstadoSalida').value;
   const notas=$('aNotasSalida').value;
   
-  if(!foto1||!foto2||!estado||!firmaSalidaPad||firmaSalidaPad.isEmpty()){
-    toast('Fotos, estado y firma son requeridas','err');
+  if(!estado||!firmaSalidaPad||firmaSalidaPad.isEmpty()){
+    toast('Estado y firma digital son requeridos','err');
     return;
   }
   
@@ -5847,47 +5812,58 @@ async function saveFirmaSalida(){
   $('saveFirmaSalidaBtn').textContent='Guardando…';
   
   try{
-    // Subir fotos
-    const img1Url=await uploadAsigImage(currentAsigForFirma,foto1,'1','salida');
-    const img2Url=await uploadAsigImage(currentAsigForFirma,foto2,'2','salida');
-    
-    if(!img1Url||!img2Url){
-      toast('Error subiendo fotos','err');
+    // Obtener firma como blob usando canvas.toBlob
+    const canvas=document.getElementById('firmaSalidaCanvas');
+    if(!canvas){
+      toast('Error: No se encontró canvas de firma','err');
       return;
     }
     
-    // Obtener firma como blob
-    const firmaBlob=await new Promise(resolve=>firmaSalidaPad.toBlob(blob=>resolve(blob)));
-    
-    // Crear FormData
-    const formData=new FormData();
-    formData.append('firma',firmaBlob);
-    formData.append('img1_url',img1Url);
-    formData.append('img2_url',img2Url);
-    formData.append('estado_equipo',estado);
-    formData.append('notas',notas);
-    
-    const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-salida`,{
-      method:'POST',
-      credentials:'include',
-      body:formData
+    // Usar canvas.toBlob directamente
+    canvas.toBlob(async (blob)=>{
+      if(!blob){
+        toast('Error generando firma','err');
+        isSubmitting=false;
+        $('saveFirmaSalidaBtn').disabled=false;
+        $('saveFirmaSalidaBtn').textContent='✓ Guardar devolución';
+        return;
+      }
+      
+      // Crear FormData
+      const formData=new FormData();
+      formData.append('firma',blob);
+      formData.append('estado_equipo',estado);
+      formData.append('notas',notas);
+      
+      try{
+        const res=await fetch(`/api/asignaciones-equipos/${currentAsigForFirma}/firma-salida`,{
+          method:'POST',
+          credentials:'include',
+          body:formData
+        });
+        
+        if(res.ok){
+          const data=await res.json();
+          toast('Devolución completada','ok');
+          close('ovFirmaSalida');
+          loadAsignaciones();
+        }else{
+          const err=await res.json();
+          toast(err.error||'Error guardando firma','err');
+        }
+      }catch(err){
+        toast(err.message||'Error','err');
+      }finally{
+        isSubmitting=false;
+        $('saveFirmaSalidaBtn').disabled=false;
+        $('saveFirmaSalidaBtn').textContent='✓ Guardar devolución';
+      }
     });
-    
-    if(res.ok){
-      const data=await res.json();
-      toast('Devolución completada','ok');
-      close('ovFirmaSalida');
-      loadAsignaciones();
-    }else{
-      const err=await res.json();
-      toast(err.error||'Error guardando firma','err');
-    }
   }catch(err){
     toast(err.message||'Error','err');
-  }finally{
     isSubmitting=false;
     $('saveFirmaSalidaBtn').disabled=false;
-    $('saveFirmaSalidaBtn').textContent='Guardar devolución';
+    $('saveFirmaSalidaBtn').textContent='✓ Guardar devolución';
   }
 }
 
@@ -5935,6 +5911,50 @@ function viewAsignacionDetail(asigId){
   // Mostrar en modal simple (podría ser un modal dedicado)
   toast('Ver detalles en consola','info');
   console.log('Asignación:',asig);
+}
+
+
+
+async function deleteAsignacion(asigId){
+  if(!confirm('Eliminar esta asignacion?'))return;
+  
+  try{
+    const res=await fetch(`/api/asignaciones-equipos/${asigId}`,{
+      method:'DELETE',
+      credentials:'include'
+    });
+    
+    if(res.ok){
+      toast('Asignacion eliminada','ok');
+      loadAsignaciones();
+    }else{
+      const err=await res.json();
+      toast(err.error||'Error eliminando asignacion','err');
+    }
+  }catch(err){
+    toast(err.message||'Error','err');
+  }
+}
+
+async function unassignAsignacion(asigId){
+  if(!confirm('Desasignar este equipo del responsable?'))return;
+  
+  try{
+    const res=await fetch(`/api/asignaciones-equipos/${asigId}/desasignar`,{
+      method:'PATCH',
+      credentials:'include'
+    });
+    
+    if(res.ok){
+      toast('Equipo desasignado','ok');
+      loadAsignaciones();
+    }else{
+      const err=await res.json();
+      toast(err.error||'Error desasignando','err');
+    }
+  }catch(err){
+    toast(err.message||'Error','err');
+  }
 }
 
 /* ════════════════════════════════════════════════════
