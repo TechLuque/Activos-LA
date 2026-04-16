@@ -1092,7 +1092,7 @@ def get_prestamo(id):
             
             if isinstance(equipos, list) and len(equipos) > 0:
                 loan['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
-                loan['equipo_codigo'] = equipos[0].get('codigo', 'N/A')
+                loan['equipo_codigo'] = equipos[0].get('serial', 'N/A')
                 loan['equipo_tipo'] = equipos[0].get('tipo', 'N/A')
                 loan['equipo_serialno'] = equipos[0].get('serialno', 'N/A')
             else:
@@ -3273,7 +3273,7 @@ def get_asignacion_publico(id):
             equipos = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}')
             if isinstance(equipos, list) and len(equipos) > 0:
                 asig['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
-                asig['equipo_codigo'] = equipos[0].get('codigo', 'N/A')
+                asig['equipo_codigo'] = equipos[0].get('serial', 'N/A')
                 asig['equipo_serial'] = equipos[0].get('serial', '')
         
         usuario_id = asig.get('usuario_id')
