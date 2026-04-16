@@ -26,7 +26,7 @@ def set_response_headers(response):
     if 'text/html' in response.content_type:
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     # Cache static assets for 1 year
-    elif any(ext in response.path for ext in ['.js', '.css', '.png', '.jpg', '.gif', '.svg']):
+    elif any(ext in request.path for ext in ['.js', '.css', '.png', '.jpg', '.gif', '.svg']):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     # Add security headers
     response.headers['X-Content-Type-Options'] = 'nosniff'
