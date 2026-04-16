@@ -276,8 +276,12 @@
         <div id="alertBox" class="alert"></div>
 
         <div class="card">
-            <div class="card-title">Información del préstamo</div>
+            <div class="card-title" id="infoCardTitle">Información del préstamo</div>
             <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Código del Equipo</div>
+                    <div class="info-value" id="infCodigoEquipo">—</div>
+                </div>
                 <div class="info-item">
                     <div class="info-label">Equipo</div>
                     <div class="info-value" id="infEquipo">—</div>
@@ -287,10 +291,10 @@
                     <div class="info-value" id="infResponsable">—</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Fecha de Préstamo</div>
+                    <div class="info-label" id="fechaLabel">Fecha de Préstamo</div>
                     <div class="info-value" id="infFecha">—</div>
                 </div>
-                <div class="info-item">
+                <div class="info-item" id="devolItem" style="display: grid;">
                     <div class="info-label">Devolución Esperada</div>
                     <div class="info-value" id="infDevol">—</div>
                 </div>
@@ -473,11 +477,29 @@
                 
                 // Llenar informacion
                 const equipo = loanData.equipo_nombre || loanData.equipo || '—';
+                const codigoEquipo = loanData.equipo_codigo || loanData.codigo || '—';
                 const responsable = loanData.usuario_nombre || loanData.usuario || '—';
-                const fecha = loanData.fecha_prestamo || loanData.fecha_asignacion || '—';
+                let fecha = loanData.fecha_prestamo || loanData.fecha_asignacion || '—';
+                // Formatear fecha a solo mostrar la fecha sin hora
+                if (fecha !== '—' && fecha.includes('T')) {
+                    fecha = fecha.split('T')[0];
+                }
                 const devol = loanData.fecha_devolucion_esperada || '—';
                 const notas = loanData.notas || 'Sin notas';
                 
+                // Actualizar etiquetas según tipo de documento
+                if (tipoDocumento === 'asignacion') {
+                    $('infoCardTitle').textContent = 'Información de la Asignación';
+                    $('fechaLabel').textContent = 'Fecha de Asignación';
+                    // Ocultar columna Devolución Esperada para asignaciones
+                    $('devolItem').style.display = 'none';
+                } else {
+                    $('infoCardTitle').textContent = 'Información del Préstamo';
+                    $('fechaLabel').textContent = 'Fecha de Préstamo';
+                    $('devolItem').style.display = 'grid';
+                }
+                
+                $('infCodigoEquipo').textContent = codigoEquipo;
                 $('infEquipo').textContent = equipo;
                 $('infResponsable').textContent = responsable;
                 $('infFecha').textContent = fecha;
