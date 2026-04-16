@@ -1,4 +1,4 @@
-# ActivosEQ — Gestión de Activos Empresariales
+# ActivosLA — Gestión de Activos Empresariales
 
 Aplicación web completa para gestionar activos de tu empresa con **Supabase** como backend.
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ActivosEQ — Gestión de Activos</title>
+<title>ActivosLA — Gestión de Activos</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <style>
@@ -525,7 +525,7 @@ input[type="file"]::file-selector-button{
     <div class="sb-logo">
       <div class="sb-icon">📦</div>
       <div>
-        <div class="sb-name">ActivosEQ</div>
+        <div class="sb-name">ActivosLA</div>
         <div class="sb-sub">Panel de control</div>
       </div>
     </div>
@@ -677,19 +677,19 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchEq" type="text" placeholder="Buscar nombre, serial…" oninput="renderEq()">
-          <select id="ftTipo" onchange="renderEq()"><option value="">Todos los tipos</option></select>
-          <select id="ftEst" onchange="renderEq()">
+          <input id="srchEq" type="text" placeholder="Buscar nombre, serial…" oninput="currentPage['eq']=1;renderEq()">
+          <select id="ftTipo" onchange="currentPage['eq']=1;renderEq()"><option value="">Todos los tipos</option></select>
+          <select id="ftEst" onchange="currentPage['eq']=1;renderEq()">
             <option value="">Todos los estados</option>
             <option value="bueno">Bueno</option><option value="regular">Regular</option>
             <option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option>
           </select>
-          <select id="ftSerial" onchange="renderEq()">
+          <select id="ftSerial" onchange="currentPage['eq']=1;renderEq()">
             <option value="">Ordenar por serial</option>
             <option value="asc">Serial A-Z</option>
             <option value="desc">Serial Z-A</option>
           </select>
-          <select id="ftDueno" onchange="renderEq()">
+          <select id="ftDueno" onchange="currentPage['eq']=1;renderEq()">
             <option value="">Todos los dueños</option>
           </select>
         </div>
@@ -721,12 +721,12 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico…" oninput="renderMant()">
-          <select id="ftMantTipo" onchange="renderMant()">
+          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico…" oninput="currentPage['mant']=1;renderMant()">
+          <select id="ftMantTipo" onchange="currentPage['mant']=1;renderMant()">
             <option value="">Todos los tipos</option>
             <option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option>
           </select>
-          <select id="ftMantEst" onchange="renderMant()">
+          <select id="ftMantEst" onchange="currentPage['mant']=1;renderMant()">
             <option value="">Todos los estados</option>
             <option value="completado">Completado</option>
             <option value="en_proceso">En proceso</option>
@@ -761,15 +761,15 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="renderLicenses()">
-          <select id="ftLicenseTipo" onchange="renderLicenses()">
+          <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="currentPage['license']=1;renderLicenses()">
+          <select id="ftLicenseTipo" onchange="currentPage['license']=1;renderLicenses()">
             <option value="">Todos los tipos</option>
             <option value="Software">Software</option>
             <option value="Hardware">Hardware</option>
             <option value="Comercial">Comercial</option>
             <option value="Otro">Otro</option>
           </select>
-          <select id="ftLicenseEst" onchange="renderLicenses()">
+          <select id="ftLicenseEst" onchange="currentPage['license']=1;renderLicenses()">
             <option value="">Todos los estados</option>
             <option value="activa">Activa</option>
             <option value="por_vencer">Por vencer</option>
@@ -805,15 +805,15 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="renderAplicativos()">
-          <select id="ftAplicativoPeriodicidad" onchange="renderAplicativos()">
+          <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="currentPage['aplicativo']=1;renderAplicativos()">
+          <select id="ftAplicativoPeriodicidad" onchange="currentPage['aplicativo']=1;renderAplicativos()">
             <option value="">Todas las periodicidades</option>
             <option value="Mensual">Mensual</option>
             <option value="Trimestral">Trimestral</option>
             <option value="Semestral">Semestral</option>
             <option value="Anual">Anual</option>
           </select>
-          <select id="ftAplicativoEst" onchange="renderAplicativos()">
+          <select id="ftAplicativoEst" onchange="currentPage['aplicativo']=1;renderAplicativos()">
             <option value="">Todos los estados</option>
             <option value="activo">Activo</option>
             <option value="por_vencer">Por vencer</option>
@@ -849,8 +849,8 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="renderCelulares()">
-          <select id="ftCelularWhatsapp" onchange="renderCelulares()">
+          <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="currentPage['celular']=1;renderCelulares()">
+          <select id="ftCelularWhatsapp" onchange="currentPage['celular']=1;renderCelulares()">
             <option value="">Todos los WhatsApp</option>
             <option value="activo">WhatsApp Activo</option>
             <option value="bloqueado">WhatsApp Bloqueado</option>
@@ -884,15 +884,15 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="renderSimcards()">
-          <select id="ftSimcardOperador" onchange="renderSimcards()">
+          <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="currentPage['simcard']=1;renderSimcards()">
+          <select id="ftSimcardOperador" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los operadores</option>
             <option value="Movistar">Movistar</option>
             <option value="Claro">Claro</option>
             <option value="Tigo">Tigo</option>
             <option value="WOM">WOM</option>
           </select>
-          <select id="ftSimcardEst" onchange="renderSimcards()">
+          <select id="ftSimcardEst" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los estados</option>
             <option value="activo">Activo</option>
             <option value="desactivado">Desactivado</option>
@@ -926,11 +926,11 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="renderUsr()">
-          <select id="ftUsrDpto" onchange="renderUsr()">
+          <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="currentPage['usu']=1;renderUsr()">
+          <select id="ftUsrDpto" onchange="currentPage['usu']=1;renderUsr()">
             <option value="">Todos los departamentos</option>
           </select>
-          <select id="ftUsrEst" onchange="renderUsr()">
+          <select id="ftUsrEst" onchange="currentPage['usu']=1;renderUsr()">
             <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
           </select>
         </div>
@@ -962,8 +962,8 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchAsig" type="text" placeholder="Buscar equipo, responsable…" oninput="renderAsignaciones()">
-          <select id="ftAsigEst" onchange="renderAsignaciones()">
+          <input id="srchAsig" type="text" placeholder="Buscar equipo, responsable…" oninput="currentPage['asignaciones']=1;renderAsignaciones()">
+          <select id="ftAsigEst" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
             <option value="">Todos los estados</option>
             <option value="abierta">Abierta (En posesión)</option>
             <option value="cerrada">Cerrada (Devuelta)</option>
@@ -998,8 +998,8 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable…" oninput="renderLoan()">
-          <select id="ftLoanEst" onchange="renderLoan()">
+          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable…" oninput="currentPage['loan']=1;renderLoan()">
+          <select id="ftLoanEst" onchange="currentPage['loan']=1;renderLoan()">
             <option value="">Todos los estados</option>
             <option value="solicitado">Solicitado</option>
             <option value="firmado">Firmado</option>
@@ -1065,7 +1065,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchTipo" type="text" placeholder="Buscar tipo…" oninput="renderTipos()">
+          <input id="srchTipo" type="text" placeholder="Buscar tipo…" oninput="currentPage['tipos']=1;renderTipos()">
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -1095,7 +1095,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchRol" type="text" placeholder="Buscar rol…" oninput="renderRoles()">
+          <input id="srchRol" type="text" placeholder="Buscar rol…" oninput="currentPage['roles']=1;renderRoles()">
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -2825,6 +2825,12 @@ function goToPage(page,entityType){
   else if(entityType==='loan')renderLoan();
   else if(entityType==='asignaciones')renderAsignaciones();
   else if(entityType==='mant')renderMant();
+  else if(entityType==='celular')renderCelulares();
+  else if(entityType==='simcard')renderSimcards();
+  else if(entityType==='license')renderLicenses();
+  else if(entityType==='aplicativo')renderAplicativos();
+  else if(entityType==='tipos')renderTipos();
+  else if(entityType==='roles')renderRoles();
 }
 
 function paginateArray(arr,entityType){
@@ -2847,7 +2853,6 @@ let editTipoId=null;
 
 function renderTipos(){
   const srch=$('srchTipo').value.toLowerCase();
-  currentPage['tipos']=1;
   const filtered=TIPOS.filter(t=>t.nombre.toLowerCase().includes(srch)||t.descripcion?.toLowerCase().includes(srch));
   
   $('tiposCount').textContent=`${filtered.length} tipo${filtered.length!==1?'s':''}`;
@@ -2966,7 +2971,6 @@ let editRolId=null;
 
 function renderRoles(){
   const srch=$('srchRol').value.toLowerCase();
-  currentPage['roles']=1;
   const filtered=ROLES.filter(r=>r.nombre.toLowerCase().includes(srch)||r.descripcion?.toLowerCase().includes(srch));
   
   $('rolesCount').textContent=`${filtered.length} rol${filtered.length!==1?'es':''}`;
@@ -3109,16 +3113,24 @@ function renderMant(){
   const tipo=$('ftMantTipo')?.value||'';
   const est=$('ftMantEst')?.value||'';
   
-  // Reset pagination when filters change
-  currentPage['mant']=1;
-  
-  const rows=MANTS.filter(m=>
+  let rows=MANTS.filter(m=>
     (!q||(m.equipo_nombre||'').toLowerCase().includes(q)||(m.tecnico||'').toLowerCase().includes(q)||(m.descripcion||'').toLowerCase().includes(q))&&
     (!tipo||m.tipo===tipo)&&(!est||m.estado===est));
+  
   $('mantCount').textContent=`${rows.length} registro(s)`;
+  
+  // Paginación
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'mant');
+  
   const tb=$('mantTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔧</div><h3>Sin registros</h3><p>Agrega mantenimientos desde aquí o desde la hoja de vida</p></div></td></tr>`;return}
-  tb.innerHTML=rows.map(m=>{
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔧</div><h3>Sin registros</h3><p>Agrega mantenimientos desde aquí o desde la hoja de vida</p></div></td></tr>`;
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="mant"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  tb.innerHTML=pageData.map(m=>{
     const overdue=m.proxima_revision&&m.proxima_revision<TODAY&&m.estado==='completado';
     return`<tr>
       <td data-label="Equipo"><div class="av-cell">
@@ -3137,6 +3149,23 @@ function renderMant(){
         <button class="btn btn-danger btn-icon btn-sm" onclick="delMant(${m.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
+  
+  // Agregar/actualizar controles de paginación si hay múltiples páginas
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="mant"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','mant');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'mant');
+  }else{
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="mant"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
 }
 
 function openMantModal(equipoId=null){
@@ -3308,14 +3337,22 @@ function renderUsr(){
   const dpto=$('ftUsrDpto')?.value||'';
   const est=$('ftUsrEst')?.value||'';
   
-  // Reset pagination when filters change
-  currentPage['usu']=1;
+  let rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!dpto||u.departamento===dpto)&&(!est||u.estado===est));
   
-  const rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!dpto||u.departamento===dpto)&&(!est||u.estado===est));
   $('usrCount').textContent=`${rows.length} usuario(s)`;
+  
+  // Paginación
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'usu');
+  
   const tb=$('usrTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;return}
-  tb.innerHTML=rows.map((u,i)=>{
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="usu"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  tb.innerHTML=pageData.map((u,i)=>{
     const rol=ROLES.find(r=>r.id===u.rol_id);
     return `<tr>
       <td data-label="Nombre"><div class="av-cell">
@@ -3333,6 +3370,23 @@ function renderUsr(){
       </div></td>
     </tr>`;
   }).join('');
+  
+  // Agregar/actualizar controles de paginación si hay múltiples páginas
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="usu"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','usu');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'usu');
+  }else{
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="usu"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
 }
 function openUsrModal(){
   editUsrId=null;
@@ -3474,9 +3528,6 @@ function renderLicenses(){
   const q=($('srchLicense')?.value||'').toLowerCase();
   const tipo=$('ftLicenseTipo')?.value||'';
   const est=$('ftLicenseEst')?.value||'';
-  
-  // Reset pagination when filters change
-  currentPage['license']=1;
   
   let rows=LICENCIAS.filter(l=>
     (!q||(l.nombre||'').toLowerCase().includes(q)||(l.proveedor||'').toLowerCase().includes(q))&&
@@ -3633,8 +3684,6 @@ function renderAplicativos(){
   const q=($('srchAplicativo')?.value||'').toLowerCase();
   const periodicidad=$('ftAplicativoPeriodicidad')?.value||'';
   const est=$('ftAplicativoEst')?.value||'';
-  
-  currentPage['aplicativo']=1;
   
   let rows=APLICATIVOS.filter(a=>
     (!q||(a.nombre||'').toLowerCase().includes(q))&&
@@ -3903,8 +3952,6 @@ function renderCelulares(){
   const q=($('srchCelular')?.value||'').toLowerCase();
   const whatsapp=$('ftCelularWhatsapp')?.value||'';
   
-  currentPage['celular']=1;
-  
   let rows=CELULARES.filter(c=>
     (!q||(c.nombre||'').toLowerCase().includes(q)||(c.marca||'').toLowerCase().includes(q)||(c.imei||'').toLowerCase().includes(q)||(c.imei2||'').toLowerCase().includes(q))&&
     (!whatsapp||c.whatsapp===whatsapp));
@@ -4156,8 +4203,6 @@ function renderSimcards(){
   const q=($('srchSimcard')?.value||'').toLowerCase();
   const operador=$('ftSimcardOperador')?.value||'';
   const estado=$('ftSimcardEst')?.value||'';
-  
-  currentPage['simcard']=1;
   
   let rows=SIMCARDS.filter(s=>
     (!q||(s.numero||'').toLowerCase().includes(q)||(s.operador||'').toLowerCase().includes(q))&&
@@ -4412,14 +4457,22 @@ function renderLoan(){
   const q=($('srchLoan')?.value||'').toLowerCase();
   const est=$('ftLoanEst')?.value||'';
   
-  // Reset pagination when filters change
-  currentPage['loan']=1;
+  let rows=LOANS.filter(p=>(!q||(p.equipo_nombre||'').toLowerCase().includes(q)||(p.usuario_nombre||'').toLowerCase().includes(q))&&(!est||p.estado===est));
   
-  const rows=LOANS.filter(p=>(!q||(p.equipo_nombre||'').toLowerCase().includes(q)||(p.usuario_nombre||'').toLowerCase().includes(q))&&(!est||p.estado===est));
   $('loanCount').textContent=`${rows.length} préstamo(s)`;
+  
+  // Paginación
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'loan');
+  
   const tb=$('loanTbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;return}
-  tb.innerHTML=rows.map(p=>{
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;
+    const wrapper=tb.parentElement.parentElement;
+    const oldPagination=wrapper.querySelector('[data-pagination="loan"]');
+    if(oldPagination) oldPagination.remove();
+    return;
+  }
+  tb.innerHTML=pageData.map(p=>{
     const overdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
     const dl=daysLeft(p.fecha_devolucion_esperada);
     const near=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
@@ -4445,6 +4498,23 @@ function renderLoan(){
         <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️ Eliminar</button>
       </div></td>
     </tr>`;}).join('');
+  
+  // Agregar/actualizar controles de paginación si hay múltiples páginas
+  if(totalPages>1){
+    const wrapper=tb.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="loan"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','loan');
+      paginationContainer.style.padding='0 20px 20px 20px';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'loan');
+  }else{
+    const wrapper=tb.parentElement.parentElement;
+    const paginationContainer=wrapper.querySelector('[data-pagination="loan"]');
+    if(paginationContainer) paginationContainer.remove();
+  }
 }
 function openLoanModal(loan_id=null){
   editLoanId=null;
