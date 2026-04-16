@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, session, render_template, redirect, url_for
+from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 import os
 import requests
 from datetime import datetime, date, timedelta
@@ -10,26 +10,28 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Cargar variables de entorno
 load_dotenv()
 
-import sys
-
-# Detectar si estamos en Vercel (read-only filesystem)
-IS_VERCEL = 'VERCEL' in os.environ or os.getenv('VERCEL_ENV') == 'production'
-
-# Debug logging function
-def debug_log(msg):
-    """Write debug message to console/stdout (works on Vercel)"""
-    # Debug logging disabled for security
-    pass
-
-# Verificar que las variables se cargaron
-
+# Flask app configuration for Vercel
 app = Flask(
     __name__,
-    static_folder='static' if not IS_VERCEL else None,
+    static_folder=None,
     template_folder='templates'
 )
 app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-marzo-2026')
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # Máximo 20 MB para uploads
+
+# Cache y headers de rendimiento
+@app.after_request
+def set_response_headers(response):
+    # Disable caching for HTML pages (to always get latest)
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    # Cache static assets for 1 year
+    elif any(ext in response.path for ext in ['.js', '.css', '.png', '.jpg', '.gif', '.svg']):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    # Add security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    return response
 
 # Credenciales de Supabase
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -485,7 +487,6 @@ def get_equipos():
             return jsonify(result)
         return jsonify([])
     except Exception as e:
-        debug_log(f"[ERROR] Error getting equipos: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/tipos-equipos', methods=['GET'])
@@ -497,7 +498,6 @@ def get_tipos_equipos():
             return jsonify(result), 200
         return jsonify([]), 200
     except Exception as e:
-        debug_log(f"[ERROR] Error getting tipos_equipos: {e}")
         return jsonify([]), 200
 
 @app.route('/api/tipos-equipos', methods=['POST'])
@@ -709,7 +709,6 @@ def get_roles():
             return jsonify(result), 200
         return jsonify([]), 200
     except Exception as e:
-        debug_log(f"[ERROR] Error getting roles: {e}")
         return jsonify([]), 200
 
 @app.route('/api/roles', methods=['POST'])
@@ -1349,6 +1348,7 @@ def save_signature_complete(id):
         tipo_firma = request.form.get('tipo', 'inicial')
         img1_url = request.form.get('img1_url')
         img2_url = request.form.get('img2_url')
+        terminos_aceptados = request.form.get('terminos_aceptados', 'false').lower() == 'true'
         
         if not firma_file or not img1_url or not img2_url:
             return jsonify({'error': 'Missing required data'}), 400
@@ -1378,7 +1378,9 @@ def save_signature_complete(id):
                 'imagen1_url': img1_url,
                 'imagen2_url': img2_url,
                 'estado': 'firmado',
-                'fecha_firma': datetime.now().isoformat()
+                'fecha_firma': datetime.now().isoformat(),
+                'terminos_aceptados': terminos_aceptados,
+                'fecha_aceptacion_terminos': datetime.now().isoformat()
             }
         else:
             update_data = {
@@ -1474,7 +1476,7 @@ def update_prestamo(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ========== DEBUG ENDPOINT ==========
+# ========== PRÉSTAMOS - DELETE ==========
 @app.route('/api/prestamos/<int:id>', methods=['DELETE'])
 def delete_prestamo(id):
     try:
@@ -1543,7 +1545,6 @@ def create_licencia():
         
         # Verificar si hay error en la respuesta
         if isinstance(result, dict) and result.get('error'):
-            debug_log(f"[ERROR] Supabase error creating licencia: {result.get('error')}")
             return jsonify({'error': f"Error en Supabase: {result.get('error')}"}), 500
         
         if isinstance(result, list) and len(result) > 0:
@@ -1551,10 +1552,8 @@ def create_licencia():
         elif isinstance(result, dict) and 'id' in result:
             return jsonify({'id': result.get('id'), 'ok': True}), 201
         else:
-            debug_log(f"[WARN] Unexpected response from Supabase: {result}")
             return jsonify({'error': 'Respuesta inesperada de Supabase', 'details': str(result)}), 500
     except Exception as e:
-        debug_log(f"[ERROR] Exception in create_licencia: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/licencias/<int:id>', methods=['PUT'])
@@ -1595,13 +1594,10 @@ def update_licencia(id):
         result = supabase_request('PATCH', 'licencias', f'?id=eq.{id}', update_data)
         
         if isinstance(result, dict) and result.get('error'):
-            debug_log(f"[ERROR] Supabase error updating licencia {id}: {result.get('error')}")
             return jsonify({'error': f"Error en Supabase: {result.get('error')}"}), 500
         
-        debug_log(f"[OK] Licencia {id} actualizada exitosamente")
         return jsonify({'ok': True, 'id': id}), 200
     except Exception as e:
-        debug_log(f"[ERROR] Exception in update_licencia: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/licencias/<int:id>', methods=['DELETE'])
@@ -1682,10 +1678,8 @@ def remove_licencia_from_equipo(equipo_id, licencia_id):
     """Desasignar una licencia de un equipo (método antiguo - por compatibilidad)"""
     try:
         result = supabase_request('DELETE', 'equipos_licencias', f'?equipo_id=eq.{equipo_id}&licencia_id=eq.{licencia_id}')
-        debug_log(f"[OK] Licencia {licencia_id} removida de equipo {equipo_id}")
         return jsonify({'ok': True})
     except Exception as e:
-        debug_log(f"[ERROR] Error removiendo licencia: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/equipos-licencias/<int:asignacion_id>', methods=['DELETE'])
@@ -1694,10 +1688,8 @@ def delete_equipos_licencias(asignacion_id):
     """Desasignar una licencia de un equipo por ID de asignación"""
     try:
         result = supabase_request('DELETE', 'equipos_licencias', f'?id=eq.{asignacion_id}')
-        debug_log(f"[OK] Asignación {asignacion_id} eliminada")
         return jsonify({'ok': True})
     except Exception as e:
-        debug_log(f"[ERROR] Error eliminando asignación: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # ========== CALENDARIO ==========
@@ -1795,7 +1787,6 @@ def get_calendario():
         events.sort(key=lambda x: x['date'])
         return jsonify(events)
     except Exception as e:
-        debug_log(f"[ERROR] Error in get_calendario: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health')
@@ -1822,12 +1813,6 @@ def health():
             'message': 'Health check failed',
             'error': str(e)
         }), 500
-
-# @app.route('/uploads/<path:filename>')
-# def serve_uploads(filename):
-#     """Serve uploaded files from uploads directory - DISABLED in Vercel (read-only FS)"""
-#     # All files are now in Supabase Storage, not local uploads/
-#     return send_from_directory('uploads', filename)
 
 # ========== BÚSQUEDA GLOBAL AVANZADA ==========
 @app.route('/api/busqueda-global', methods=['GET'])
@@ -2072,7 +2057,7 @@ def cambiar_responsable(id):
         
         # Log pero no fallar si hoja_vida no se puede registrar
         if isinstance(hv_result, dict) and hv_result.get('error'):
-            debug_log(f"Warning: Could not register in hoja_vida: {hv_result.get('error')}")
+            pass
         
         return jsonify({
             'ok': True,
@@ -3304,6 +3289,7 @@ def save_asignacion_signature_public(id):
     try:
         firma_file = request.files.get('firma')
         tipo_firma = request.form.get('tipo', 'entrada')
+        politica_aceptada = request.form.get('politica_aceptada', 'false').lower() == 'true'
         
         if not firma_file:
             return jsonify({'error': 'Missing signature'}), 400
@@ -3344,6 +3330,8 @@ def save_asignacion_signature_public(id):
         if tipo_firma == 'entrada':
             update_data['firma_entrada_url'] = firma_url
             update_data['fecha_firma_entrada'] = datetime.now().isoformat()
+            update_data['politica_aceptada'] = politica_aceptada
+            update_data['fecha_aceptacion_politica'] = datetime.now().isoformat()
         elif tipo_firma == 'desasignacion':
             update_data['firma_desasignacion_url'] = firma_url
             update_data['fecha_firma_desasignacion'] = datetime.now().isoformat()
@@ -3372,4 +3360,5 @@ def save_asignacion_signature_public(id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -3993,14 +3993,10 @@ function renderCelulares(){
   
   tb.innerHTML=pageData.map(c=>{
     const sims=Array.isArray(c.simcard)?c.simcard:[];
-    const operadorColors={'Movistar':'var(--blue)','Claro':'var(--amber)','Tigo':'var(--red)','WOM':'var(--teal)'};
-    const operadorColorsSoft={'Movistar':'var(--blue-soft)','Claro':'var(--amber-soft)','Tigo':'var(--red-soft)','WOM':'var(--teal-soft)'};
     const simsDisplay=sims.slice(0,3).map(s=>{
-      const opColor=operadorColors[s.operador]||'var(--blue)';
-      const opColorSoft=operadorColorsSoft[s.operador]||'var(--blue-soft)';
       const appLabel=s.app==='whatsapp_business'?'WA Business':'WA Messenger';
-      const numColor=s.estado==='bloqueado'?'var(--red)':opColor;
-      const bgColor=s.estado==='bloqueado'?'var(--red-soft)':opColorSoft;
+      const numColor=s.estado==='bloqueado'?'var(--red)':'var(--blue)';
+      const bgColor=s.estado==='bloqueado'?'var(--red-soft)':'var(--blue-soft)';
       return `<div style="font-size:11px;padding:4px 6px;background:${bgColor};color:${numColor};border-radius:4px;margin-bottom:3px;font-weight:500"><div style="font-size:10px;opacity:0.8">${appLabel}</div>${s.numero}</div>`;
     }).join('');
     const masIndicador=sims.length>3?`<div style="font-size:10px;color:var(--text3);padding:4px 6px;font-weight:600">+${sims.length-3} más</div>`:'';
@@ -4518,6 +4514,7 @@ function renderLoan(){
       </td>
       <td data-label="Devuelto" class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
       <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
+      <td data-label="T&C"><span style="font-weight:600;color:${p.terminos_aceptados?'var(--green)':'var(--text3)'}">${p.terminos_aceptados?'✅ Aceptó':'⏳ Pendiente'}</span></td>
       <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
       <td data-label="Acciones"><div class="act-cell">
         ${p.estado==='solicitado'?`<button class="btn btn-warning btn-sm" onclick="openLoanModal(${p.id})">✏️ Editar</button>`:``}
@@ -5170,6 +5167,7 @@ function renderAsignaciones(){
       <td>${fechaAsig}</td>
       <td><span class="badge">${a.estado_equipo_entrada||'—'}</span></td>
       <td>${tieneEntrada?'✅ Firmada':'⏳ Pendiente'}</td>
+      <td><span style="font-weight:600;color:${a.politica_aceptada?'var(--green)':'var(--text3)'}">${a.politica_aceptada?'✅ Aceptó':'⏳ Pendiente'}</span></td>
       <td><span class="badge ${a.estado==='abierta'?'badge-blue':'badge-green'}">${a.estado}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="generateSignLink(${a.id}, 'entrada')">Firmar Entrada</button>`:''}
@@ -5377,7 +5375,7 @@ function generateSignLink(asigId, tipo){
   
   // Copiar al portapapeles
   navigator.clipboard.writeText(url).then(() => {
-    alert(`Link copiado:\n${url}\n\nEnvía este link al responsable para que firme.`);
+    toast(`Link de firma copiado al portapapeles`, 'ok');
   }).catch(err => {
     toast('Error al copiar link', 'err');
   });
@@ -5482,11 +5480,11 @@ Enlace de firma generado:
 
 ${signLink}
 
-Envialo a la persona para que firme la ${tipo === 'entrada' ? 'recepcin' : 'devolucin'} del equipo.
+Envíalo a la persona para que firme la ${tipo === 'entrada' ? 'recepción' : 'devolución'} del equipo.
 
-El link ya esta en tu portapapeles.
+El link ya está en tu portapapeles.
     `;
-    alert(msg);
+    toast(msg, 'ok');
   }).catch(err => {
     toast('Error al copiar al portapapeles', 'err');
   });

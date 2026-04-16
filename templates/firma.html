@@ -348,6 +348,22 @@
                 </div>
             </div>
 
+            <!-- Checkbox para Préstamos -->
+            <div id="checkboxPrestamo" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 16px; margin-top: 24px; margin-bottom: 20px; display: none;">
+                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 14px; line-height: 1.5;">
+                    <input type="checkbox" id="aceptarTerminos" style="margin-top: 2px; cursor: pointer; accent-color: var(--blue);">
+                    <span>Al marcar esta casilla, declaro que acepto los <strong>Términos y Condiciones de la Política LA-PL-008</strong> y asumo la <strong>Responsabilidad Patrimonial</strong> sobre el activo, autorizando el descuento en caso de daño o pérdida.</span>
+                </label>
+            </div>
+
+            <!-- Checkbox para Asignaciones -->
+            <div id="checkboxAsignacion" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 16px; margin-top: 24px; margin-bottom: 20px; display: none;">
+                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 14px; line-height: 1.5;">
+                    <input type="checkbox" id="aceptarPoliticaAsignacion" style="margin-top: 2px; cursor: pointer; accent-color: var(--blue);">
+                    <span>He leído y acepto la <strong>Política de Préstamos y Salida de Equipos</strong>. Me constituyo como <strong>custodio del activo</strong> y acepto la <strong>Responsabilidad Patrimonial</strong> sobre el mismo. Me comprometo a reportar cualquier novedad de forma inmediata y acepto que la omisión de dicho reporte me hará responsable económico de cualquier desperfecto detectado al momento de la devolución.</span>
+                </label>
+            </div>
+
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button class="btn btn-primary" onclick="submitSignatureForm()" style="flex: 1;">
                     ✅ Confirmar Firma
@@ -442,6 +458,17 @@
                 const $imageSection = document.querySelector('.image-section');
                 if ($imageSection) {
                     $imageSection.style.display = (tipoDocumento === 'asignacion' || tipoDocumento === 'desasignacion' || tipoFirma === 'desasignacion') ? 'none' : 'block';
+                }
+                
+                // Mostrar checkbox correspondiente según tipo de documento
+                const $checkboxPrestamo = document.getElementById('checkboxPrestamo');
+                const $checkboxAsignacion = document.getElementById('checkboxAsignacion');
+                if (tipoDocumento === 'asignacion') {
+                    if ($checkboxAsignacion) $checkboxAsignacion.style.display = 'block';
+                    if ($checkboxPrestamo) $checkboxPrestamo.style.display = 'none';
+                } else {
+                    if ($checkboxPrestamo) $checkboxPrestamo.style.display = 'block';
+                    if ($checkboxAsignacion) $checkboxAsignacion.style.display = 'none';
                 }
                 
                 // Llenar informacion
@@ -649,6 +676,21 @@
         }
 
         async function submitSignatureForm() {
+            // Validar checkbox de aceptación según tipo de documento
+            if (tipoDocumento === 'asignacion') {
+                const checkboxAsignacion = document.getElementById('aceptarPoliticaAsignacion');
+                if (!checkboxAsignacion || !checkboxAsignacion.checked) {
+                    showAlert('⚠️ Debes aceptar la Política de Préstamos y Salida de Equipos para continuar', 'error');
+                    return;
+                }
+            } else {
+                const checkboxPrestamo = document.getElementById('aceptarTerminos');
+                if (!checkboxPrestamo || !checkboxPrestamo.checked) {
+                    showAlert('⚠️ Debes aceptar los Términos y Condiciones de la Política LA-PL-008 para continuar', 'error');
+                    return;
+                }
+            }
+            
             // Para ASIGNACIONES: no se requieren imágenes, solo firma
             let img1File = null;
             let img2File = null;
@@ -764,6 +806,15 @@
                 const form3 = new FormData();
                 form3.append('firma', firmaBlob);
                 form3.append('tipo', tipoFirma);
+                
+                // Agregar información de aceptación de términos
+                if (tipoDocumento === 'asignacion') {
+                    const checkboxAsignacion = document.getElementById('aceptarPoliticaAsignacion');
+                    form3.append('politica_aceptada', checkboxAsignacion ? checkboxAsignacion.checked : false);
+                } else {
+                    const checkboxPrestamo = document.getElementById('aceptarTerminos');
+                    form3.append('terminos_aceptados', checkboxPrestamo ? checkboxPrestamo.checked : false);
+                }
                 
                 // Solo agregar URLs de imágenes si existen (prestamos)
                 if (data1 && data1.url) {
