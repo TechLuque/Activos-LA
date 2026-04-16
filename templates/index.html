@@ -5171,8 +5171,9 @@ function renderAsignaciones(){
       <td><span class="badge ${a.estado==='abierta'?'badge-blue':'badge-green'}">${a.estado}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         ${!tieneEntrada?`<button class="btn btn-primary btn-sm" onclick="generateSignLink(${a.id}, 'entrada')">Firmar Entrada</button>`:''}
+        ${tieneEntrada?`<button class="btn btn-info btn-sm" onclick="viewSignature(${a.id}, 'entrada')">👁️ Ver Firma</button>`:''}
         ${tieneEntrada&&!tieneSalida?`<button class="btn btn-teal btn-sm" onclick="generateSignLink(${a.id}, 'salida')">Devolver</button>`:''}
-        ${tieneSalida?`<button class="btn btn-ghost btn-sm" onclick="viewAsignacionDetail(${a.id})">Ver</button>`:''}
+        ${tieneSalida?`<button class="btn btn-secondary btn-sm" onclick="viewSignature(${a.id}, 'salida')">👁️ Ver Salida</button>`:''}
         ${a.estado==='cerrada'?`<button class="btn btn-warning btn-sm" onclick="unassignAsignacion(${a.id})">Desasignar</button>`:''}
         ${a.estado!=='desasignada'?`<button class="btn btn-danger btn-sm" onclick="deleteAsignacion(${a.id})" style="background:var(--error);color:white">Eliminar</button>`:''}
       </td>
@@ -5219,6 +5220,38 @@ function renderPaginationAsig(totalPages){
 function goToAsigPage(page){
   currentPage.asignaciones=page;
   renderAsignaciones();
+}
+
+function viewSignature(asigId, tipo){
+  const asig = ASIGNACIONES.find(a => a.id === asigId);
+  if (!asig) return;
+  
+  const firmaUrl = tipo === 'entrada' ? asig.firma_entrada_url : asig.firma_salida_url;
+  if (!firmaUrl) {
+    toast('No hay firma disponible', 'error');
+    return;
+  }
+  
+  const titulo = tipo === 'entrada' ? 'Firma de Entrada' : 'Firma de Salida';
+  const container = document.createElement('div');
+  container.id = 'firmaViewerContainer';
+  container.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;z-index:9999;background:rgba(0,0,0,0.7)';
+  container.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0;max-width:600px;width:90%;max-height:80vh;display:flex;flex-direction:column">
+      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">${titulo}</h3>
+        <button onclick="document.getElementById('firmaViewerContainer').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;padding:0">✕</button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:16px;text-align:center">
+        <img src="${firmaUrl}" style="max-width:100%;max-height:100%;object-fit:contain;border:1px solid var(--border);border-radius:4px">
+      </div>
+      <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+        <a href="${firmaUrl}" target="_blank" class="btn btn-primary btn-sm">📥 Descargar</a>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('firmaViewerContainer').remove()">Cerrar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(container);
 }
 
 function openAsignacionModal(){

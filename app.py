@@ -3289,7 +3289,7 @@ def get_asignacion_publico(id):
 
 @app.route('/api/asignaciones-equipos/<int:id>/save-signature-public', methods=['POST'])
 def save_asignacion_signature_public(id):
-    """Guardar firma de asignacion desde link publico"""
+    """Guardar firma de asignacion desde link publico (máximo 1 intento)"""
     try:
         firma_file = request.files.get('firma')
         tipo_firma = request.form.get('tipo', 'entrada')
@@ -3303,6 +3303,14 @@ def save_asignacion_signature_public(id):
             return jsonify({'error': 'Asignacion no encontrada'}), 404
         
         asig = asig[0]
+        
+        # Validar que solo se puede firmar 1 vez por tipo
+        if tipo_firma == 'entrada' and asig.get('firma_entrada_url'):
+            return jsonify({'error': 'Esta asignación ya ha sido firmada en entrada. No se permite firmar de nuevo.'}), 403
+        elif tipo_firma == 'salida' and asig.get('firma_salida_url'):
+            return jsonify({'error': 'Esta asignación ya ha sido firmada en salida. No se permite firmar de nuevo.'}), 403
+        elif tipo_firma == 'desasignacion' and asig.get('firma_desasignacion_url'):
+            return jsonify({'error': 'Esta desasignación ya ha sido firmada. No se permite firmar de nuevo.'}), 403
         firma_content = firma_file.read()
         if not firma_content:
             return jsonify({'error': 'Signature is empty'}), 400
