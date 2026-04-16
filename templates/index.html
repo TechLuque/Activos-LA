@@ -245,6 +245,7 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 .bs-en_reparacion{background:var(--amber-soft);color:var(--amber)}.bs-en_reparacion::before{background:var(--amber)}
 .bs-activo{background:var(--green-soft);color:var(--green)}.bs-activo::before{background:var(--green)}
 .bs-inactivo{background:var(--surface3);color:var(--text3)}.bs-inactivo::before{background:var(--text3)}
+.bs-bloqueado{background:var(--red-soft);color:var(--red)}.bs-bloqueado::before{background:var(--red)}
 .bs-solicitado{background:var(--blue-soft);color:var(--blue)}.bs-solicitado::before{background:var(--blue)}
 .bs-firmado{background:var(--green-soft);color:var(--green)}.bs-firmado::before{background:var(--green)}
 .bs-devuelto{background:var(--surface3);color:var(--text3)}.bs-devuelto::before{background:var(--text3)}
@@ -895,7 +896,7 @@ input[type="file"]::file-selector-button{
           <select id="ftSimcardEst" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los estados</option>
             <option value="activo">Activo</option>
-            <option value="desactivado">Desactivado</option>
+            <option value="bloqueado">Bloqueado</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
@@ -1479,7 +1480,7 @@ input[type="file"]::file-selector-button{
         <div class="fg"><label>WhatsApp *</label>
           <select id="cWhatsapp">
             <option value="activo">Activo</option>
-            <option value="bloqueado">Desactivado</option>
+            <option value="bloqueado">Bloqueado</option>
           </select>
         </div>
       </div>
@@ -1513,7 +1514,7 @@ input[type="file"]::file-selector-button{
         <div class="fg"><label>Estado *</label>
           <select id="sEstado">
             <option value="activo">Activo</option>
-            <option value="desactivado">Bloqueado</option>
+            <option value="bloqueado">Bloqueado</option>
           </select>
         </div>
         <div class="fg"><label>App *</label>
@@ -1931,7 +1932,7 @@ const AV_COLORS=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#f
 
 function bsClass(s){
   const m={bueno:'bs-bueno',regular:'bs-regular','dañado':'bs-dañado',en_reparacion:'bs-en_reparacion',
-    activo:'bs-activo',inactivo:'bs-inactivo',devuelto:'bs-devuelto',
+    activo:'bs-activo',inactivo:'bs-inactivo',bloqueado:'bs-bloqueado',devuelto:'bs-devuelto',
     completado:'bs-completado',en_proceso:'bs-en_proceso',pendiente:'bs-pendiente',
     preventivo:'bs-preventivo',correctivo:'bs-correctivo',
     solicitado:'bs-solicitado',firmado:'bs-firmado'};
@@ -1939,7 +1940,7 @@ function bsClass(s){
 }
 function bsLabel(s){
   const m={bueno:'Bueno',regular:'Regular','dañado':'Dañado',en_reparacion:'En reparación',
-    activo:'Activo',inactivo:'Inactivo',devuelto:'Devuelto',
+    activo:'Activo',inactivo:'Inactivo',bloqueado:'Bloqueado',devuelto:'Devuelto',
     completado:'Completado',en_proceso:'En proceso',pendiente:'Pendiente',
     preventivo:'Preventivo',correctivo:'Correctivo',
     solicitado:'Solicitado',firmado:'Firmado'};
@@ -2715,6 +2716,8 @@ async function saveNewTipo(){
       TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
       toast(`Tipo "${nombre}" agregado correctamente`,'ok');
       close('ovAgregarTipo');
+      await loadAll();
+      renderTipos();
       updateTiposInModal();
       setTimeout(()=>{$('eTipo').value=nombre;},100);
     }else{
@@ -2939,6 +2942,7 @@ async function saveEditarTipo(){
     }
     
     TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    await loadAll();
     renderTipos();
     updateTiposInModal();
     close('ovEditarTipo');
@@ -2956,6 +2960,7 @@ async function deleteTipo(id,nombre){
   
   if(res.ok){
     TIPOS=TIPOS.filter(t=>t.id!==id);
+    await loadAll();
     renderTipos();
     updateTiposInModal();
     toast(`Tipo "${nombre}" eliminado`,'info');
@@ -3082,6 +3087,7 @@ async function saveRol(){
     }
     
     ROLES.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    await loadAll();
     renderRoles();
     close('ovTipoRol');
     toast(editRolId?'Rol actualizado correctamente ✅':'Rol creado correctamente ✅','ok');
@@ -3098,6 +3104,7 @@ async function deleteRol(id,nombre){
   
   if(res.ok){
     ROLES=ROLES.filter(r=>r.id!==id);
+    await loadAll();
     renderRoles();
     toast(`Rol "${nombre}" eliminado`,'info');
   }else{
@@ -3518,7 +3525,7 @@ async function saveUsr(){
 
 async function delUsr(id){
   if(!confirm('¿Eliminar este responsable?'))return;
-  await api('/api/usuarios/'+id,'DELETE');await loadAll();renderUsr();toast('Usuario eliminado','info');
+  await api('/api/usuarios/'+id,'DELETE');await loadAll();renderUsr();renderDashboard();toast('Usuario eliminado','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -3670,7 +3677,7 @@ async function saveLicense(){
 
 async function delLicense(id){
   if(!confirm('¿Eliminar esta licencia?'))return;
-  await api('/api/licencias/'+id,'DELETE');await loadAll();renderLicenses();toast('Licencia eliminada','info');
+  await api('/api/licencias/'+id,'DELETE');await loadAll();renderLicenses();renderDashboard();toast('Licencia eliminada','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -3862,7 +3869,7 @@ async function saveAplicativo(){
   try{
     const res=editAplicativoId?await api('/api/aplicativos/'+editAplicativoId,'PUT',data):await api('/api/aplicativos','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovAplicativo');await loadAll();renderAplicativos();
+    close('ovAplicativo');await loadAll();renderAplicativos();renderDashboard();
     toast(editAplicativoId?'Aplicativo actualizado':'Aplicativo registrado','ok');editAplicativoId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -3876,7 +3883,7 @@ async function saveAplicativo(){
 
 async function delAplicativo(id){
   if(!confirm('¿Eliminar este aplicativo?'))return;
-  await api('/api/aplicativos/'+id,'DELETE');await loadAll();renderAplicativos();toast('Aplicativo eliminado','info');
+  await api('/api/aplicativos/'+id,'DELETE');await loadAll();renderAplicativos();renderDashboard();toast('Aplicativo eliminado','info');
 }
 
 function addPagoModal(){
@@ -4065,7 +4072,7 @@ async function saveCelular(){
   try{
     const res=editCelularId?await api('/api/celulares/'+editCelularId,'PUT',data):await api('/api/celulares','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovCelular');await loadAll();renderCelulares();
+    close('ovCelular');await loadAll();renderCelulares();renderDashboard();
     toast(editCelularId?'Celular actualizado':'Celular registrado','ok');editCelularId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -4079,7 +4086,7 @@ async function saveCelular(){
 
 async function delCelular(id){
   if(!confirm('¿Eliminar este celular?'))return;
-  await api('/api/celulares/'+id,'DELETE');await loadAll();renderCelulares();toast('Celular eliminado','info');
+  await api('/api/celulares/'+id,'DELETE');await loadAll();renderCelulares();renderDashboard();toast('Celular eliminado','info');
 }
 
 async function showSimsDelCelular(celular_id){
@@ -4224,8 +4231,9 @@ function renderSimcards(){
   
   tb.innerHTML=pageData.map(s=>{
     const cel=s.celular?s.celular:null;
+    const mostrarNumero=s.estado!=='bloqueado';
     return`<tr>
-      <td data-label="Número" class="mono"><strong>${s.numero}</strong></td>
+      <td data-label="Número" class="mono"><strong>${mostrarNumero?s.numero:'🚫 Bloqueado'}</strong></td>
       <td data-label="Operador"><span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:4px 8px;border-radius:4px;display:inline-block">${s.operador}</span></td>
       <td data-label="Serial" class="mono">${s.serial||'—'}</td>
       <td data-label="App"><span style="font-size:12px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:4px;display:inline-block">${s.app==='whatsapp'?'WhatsApp':'WA Business'}</span></td>
@@ -4373,7 +4381,7 @@ async function saveSimcard(){
   try{
     const res=editSimcardId?await api('/api/simcards/'+editSimcardId,'PUT',data):await api('/api/simcards','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovSimcard');await loadAll();renderSimcards();
+    close('ovSimcard');await loadAll();renderSimcards();renderDashboard();
     toast(editSimcardId?'SIM Card actualizada':'SIM Card registrada','ok');editSimcardId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -4387,7 +4395,7 @@ async function saveSimcard(){
 
 async function delSimcard(id){
   if(!confirm('¿Eliminar esta SIM Card?'))return;
-  await api('/api/simcards/'+id,'DELETE');await loadAll();renderSimcards();toast('SIM Card eliminada','info');
+  await api('/api/simcards/'+id,'DELETE');await loadAll();renderSimcards();renderDashboard();toast('SIM Card eliminada','info');
 }
 
 function addBloqueoModal(){
@@ -4873,7 +4881,7 @@ async function returnLoan(id){
 }
 async function delLoan(id){
   if(!confirm('¿Eliminar este préstamo?'))return;
-  await api('/api/prestamos/'+id,'DELETE');await loadAll();renderLoan();toast('Préstamo eliminado','info');
+  await api('/api/prestamos/'+id,'DELETE');await loadAll();renderLoan();renderDashboard();toast('Préstamo eliminado','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -5324,7 +5332,9 @@ async function saveAsignacion(){
     if(successCount>0){
       close('ovAsignacion');
       toast(`✅ ${successCount} asignación(nes) creada(s) exitosamente${errorCount>0?' - '+errorCount+' errores':''} - Próximo paso: firmar entrada ✍️`,'ok');
-      loadAsignaciones();
+      await loadAll();
+      renderAsignaciones();
+      renderDashboard();
     }else{
       toast(`❌ No se pudo crear ninguna asignación`,'err');
     }

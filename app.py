@@ -2475,7 +2475,7 @@ def create_simcard():
             return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
         
         # Validar estado
-        ESTADOS = ['activo', 'desactivado']
+        ESTADOS = ['activo', 'bloqueado']
         if d.get('estado') and d.get('estado') not in ESTADOS:
             return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
         
@@ -2546,7 +2546,7 @@ def update_simcard(id):
         
         # Validar estado si fue proporcionado
         if d.get('estado'):
-            ESTADOS = ['activo', 'desactivado']
+            ESTADOS = ['activo', 'bloqueado']
             if d.get('estado') not in ESTADOS:
                 return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
         
@@ -2747,7 +2747,7 @@ def add_bloqueo_simcard(simcard_id):
         
         # Actualizar estado de SIM a bloqueado
         supabase_request('PATCH', 'simcards', f'?id=eq.{simcard_id}', {
-            'estado': 'desactivado'
+            'estado': 'bloqueado'
         })
         
         if isinstance(result, list) and len(result) > 0:
