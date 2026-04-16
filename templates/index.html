@@ -246,6 +246,7 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 .bs-activo{background:var(--green-soft);color:var(--green)}.bs-activo::before{background:var(--green)}
 .bs-inactivo{background:var(--surface3);color:var(--text3)}.bs-inactivo::before{background:var(--text3)}
 .bs-bloqueado{background:var(--red-soft);color:var(--red)}.bs-bloqueado::before{background:var(--red)}
+.bs-reserva{background:var(--amber-soft);color:var(--amber)}.bs-reserva::before{background:var(--amber)}
 .bs-solicitado{background:var(--blue-soft);color:var(--blue)}.bs-solicitado::before{background:var(--blue)}
 .bs-firmado{background:var(--green-soft);color:var(--green)}.bs-firmado::before{background:var(--green)}
 .bs-devuelto{background:var(--surface3);color:var(--text3)}.bs-devuelto::before{background:var(--text3)}
@@ -851,11 +852,6 @@ input[type="file"]::file-selector-button{
       <div class="tbl-toolbar">
         <div class="filter-row">
           <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="currentPage['celular']=1;renderCelulares()">
-          <select id="ftCelularWhatsapp" onchange="currentPage['celular']=1;renderCelulares()">
-            <option value="">Todos los WhatsApp</option>
-            <option value="activo">WhatsApp Activo</option>
-            <option value="bloqueado">WhatsApp Bloqueado</option>
-          </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -872,7 +868,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Nombre</th><th>Marca</th><th>IMEI</th><th>IMEI 2</th><th>WhatsApp</th><th>Números SIM</th><th>Estado</th><th>Acciones</th>
+          <th>Nombre</th><th>Marca</th><th>IMEI</th><th>IMEI 2</th><th>Números SIM</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="celularTbody"></tbody></table>
       </div>
     </section>
@@ -896,6 +892,7 @@ input[type="file"]::file-selector-button{
           <select id="ftSimcardEst" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los estados</option>
             <option value="activo">Activo</option>
+            <option value="reserva">Reserva</option>
             <option value="bloqueado">Bloqueado</option>
           </select>
         </div>
@@ -1483,6 +1480,16 @@ input[type="file"]::file-selector-button{
             <option value="bloqueado">Bloqueado</option>
           </select>
         </div>
+        <div class="fg"><label>Estado del Celular *</label>
+          <select id="cEstado">
+            <option value="bueno">Bueno</option>
+            <option value="regular">Regular</option>
+            <option value="dañado">Dañado</option>
+            <option value="en_reparacion">En reparación</option>
+            <option value="bloqueado">Bloqueado</option>
+            <option value="reserva">Reserva</option>
+          </select>
+        </div>
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovCelular')">Cancelar</button>
@@ -1514,6 +1521,7 @@ input[type="file"]::file-selector-button{
         <div class="fg"><label>Estado *</label>
           <select id="sEstado">
             <option value="activo">Activo</option>
+            <option value="reserva">Reserva</option>
             <option value="bloqueado">Bloqueado</option>
           </select>
         </div>
@@ -1932,18 +1940,18 @@ const AV_COLORS=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#f
 
 function bsClass(s){
   const m={bueno:'bs-bueno',regular:'bs-regular','dañado':'bs-dañado',en_reparacion:'bs-en_reparacion',
-    activo:'bs-activo',inactivo:'bs-inactivo',bloqueado:'bs-bloqueado',devuelto:'bs-devuelto',
+    activo:'bs-activo',inactivo:'bs-inactivo',bloqueado:'bs-bloqueado',reserva:'bs-reserva',devuelto:'bs-devuelto',
     completado:'bs-completado',en_proceso:'bs-en_proceso',pendiente:'bs-pendiente',
     preventivo:'bs-preventivo',correctivo:'bs-correctivo',
-    solicitado:'bs-solicitado',firmado:'bs-firmado'};
+    solicitado:'bs-solicitado',firmado:'bs-firmado',vencido:'bs-vencido','por_vencer':'bs-amber'};
   return m[s]||'';
 }
 function bsLabel(s){
   const m={bueno:'Bueno',regular:'Regular','dañado':'Dañado',en_reparacion:'En reparación',
-    activo:'Activo',inactivo:'Inactivo',bloqueado:'Bloqueado',devuelto:'Devuelto',
+    activo:'Activo',inactivo:'Inactivo',bloqueado:'Bloqueado',reserva:'Reserva',devuelto:'Devuelto',
     completado:'Completado',en_proceso:'En proceso',pendiente:'Pendiente',
     preventivo:'Preventivo',correctivo:'Correctivo',
-    solicitado:'Solicitado',firmado:'Firmado'};
+    solicitado:'Solicitado',firmado:'Firmado',vencido:'Vencido','por_vencer':'Por vencer'};
   return m[s]||s;
 }
 
@@ -3692,10 +3700,19 @@ function renderAplicativos(){
   const periodicidad=$('ftAplicativoPeriodicidad')?.value||'';
   const est=$('ftAplicativoEst')?.value||'';
   
-  let rows=APLICATIVOS.filter(a=>
-    (!q||(a.nombre||'').toLowerCase().includes(q))&&
-    (!periodicidad||a.periodicidad===periodicidad)&&
-    (!est||a.estado===est));
+  let rows=APLICATIVOS.filter(a=>{
+    if(q&&!(a.nombre||'').toLowerCase().includes(q))return false;
+    if(periodicidad&&a.periodicidad!==periodicidad)return false;
+    if(est){
+      const hoy=TODAY;
+      const vencido=a.fecha_caducidad<hoy&&a.estado!=='inactivo';
+      const porvencer=a.fecha_caducidad>=hoy&&a.fecha_caducidad<=new Date(new Date().setDate(new Date().getDate()+30)).toISOString().split('T')[0]&&a.estado!=='inactivo';
+      if(est==='vencido'&&!vencido)return false;
+      if(est==='por_vencer'&&!porvencer)return false;
+      if(est!=='vencido'&&est!=='por_vencer'&&a.estado!==est)return false;
+    }
+    return true;
+  });
   
   $('aplicativoCount').textContent=`${rows.length} aplicativo(s)`;
   
@@ -3957,11 +3974,9 @@ let editCelularId=null;
 
 function renderCelulares(){
   const q=($('srchCelular')?.value||'').toLowerCase();
-  const whatsapp=$('ftCelularWhatsapp')?.value||'';
   
   let rows=CELULARES.filter(c=>
-    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.marca||'').toLowerCase().includes(q)||(c.imei||'').toLowerCase().includes(q)||(c.imei2||'').toLowerCase().includes(q))&&
-    (!whatsapp||c.whatsapp===whatsapp));
+    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.marca||'').toLowerCase().includes(q)||(c.imei||'').toLowerCase().includes(q)||(c.imei2||'').toLowerCase().includes(q)));
   
   $('celularCount').textContent=`${rows.length} celular(es)`;
   
@@ -3969,7 +3984,7 @@ function renderCelulares(){
   
   const tb=$('celularTbody');
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📞</div><h3>Sin celulares</h3></div></td></tr>`;
+    tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">📞</div><h3>Sin celulares</h3></div></td></tr>`;
     const wrapper=tb.parentElement.parentElement;
     const oldPagination=wrapper.querySelector('[data-pagination="celular"]');
     if(oldPagination) oldPagination.remove();
@@ -3983,7 +3998,10 @@ function renderCelulares(){
     const simsDisplay=sims.slice(0,3).map(s=>{
       const opColor=operadorColors[s.operador]||'var(--blue)';
       const opColorSoft=operadorColorsSoft[s.operador]||'var(--blue-soft)';
-      return `<div style="font-size:11px;padding:4px 6px;background:${opColorSoft};color:${opColor};border-radius:4px;margin-bottom:3px;font-weight:500">${s.numero}</div>`;
+      const appLabel=s.app==='whatsapp_business'?'WA Business':'WA Messenger';
+      const numColor=s.estado==='bloqueado'?'var(--red)':opColor;
+      const bgColor=s.estado==='bloqueado'?'var(--red-soft)':opColorSoft;
+      return `<div style="font-size:11px;padding:4px 6px;background:${bgColor};color:${numColor};border-radius:4px;margin-bottom:3px;font-weight:500"><div style="font-size:10px;opacity:0.8">${appLabel}</div>${s.numero}</div>`;
     }).join('');
     const masIndicador=sims.length>3?`<div style="font-size:10px;color:var(--text3);padding:4px 6px;font-weight:600">+${sims.length-3} más</div>`:'';
     return`<tr>
@@ -3991,8 +4009,7 @@ function renderCelulares(){
       <td data-label="Marca">${c.marca}</td>
       <td data-label="IMEI" class="mono">${c.imei}</td>
       <td data-label="IMEI 2" class="mono">${c.imei2?c.imei2:'—'}</td>
-      <td data-label="WhatsApp"><span class="bs ${c.whatsapp==='activo'?'bs-ok':'bs-err'}">${c.whatsapp}</span></td>
-      <td data-label="Números SIM"><div style="max-width:140px">${simsDisplay?simsDisplay+masIndicador:'<span style="color:var(--text3)">—</span>'}</div></td>
+      <td data-label="Números SIM"><div style="max-width:180px">${simsDisplay?simsDisplay+masIndicador:'<span style="color:var(--text3)">—</span>'}</div></td>
       <td data-label="Estado"><span class="bs ${bsClass(c.estado)}">${bsLabel(c.estado)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-secondary btn-sm" onclick="showSimsDelCelular(${c.id})" title="Ver todas las SIM">📋 SIM</button>
@@ -4032,6 +4049,7 @@ function openCelularModal(cel_id=null){
     $('cImei').value=cel.imei;
     $('cImei2').value=cel.imei2||'';
     $('cWhatsapp').value=cel.whatsapp;
+    $('cEstado').value=cel.estado||'bueno';
   }else{
     $('celularModalTitle').textContent='Nuevo Celular';
     $('celularModalSub').textContent='Registrar nuevo dispositivo';
@@ -4040,6 +4058,7 @@ function openCelularModal(cel_id=null){
     $('cImei').value='';
     $('cImei2').value='';
     $('cWhatsapp').value='activo';
+    $('cEstado').value='bueno';
   }
   open('ovCelular');
 }
@@ -4055,13 +4074,14 @@ async function saveCelular(){
   const imei=$('cImei').value.trim();
   const imei2=$('cImei2').value.trim();
   const whatsapp=$('cWhatsapp').value;
+  const estado=$('cEstado').value;
   
   if(!nombre||!marca||!imei){
     toast('Nombre, marca e IMEI son requeridos','err');
     return;
   }
   
-  const data={nombre:nombre,marca:marca,imei:imei,imei2:imei2,whatsapp:whatsapp};
+  const data={nombre:nombre,marca:marca,imei:imei,imei2:imei2,whatsapp:whatsapp,estado:estado};
   
   isSubmitting=true;
   const btn=$('saveCelularBtn');
@@ -4231,12 +4251,12 @@ function renderSimcards(){
   
   tb.innerHTML=pageData.map(s=>{
     const cel=s.celular?s.celular:null;
-    const mostrarNumero=s.estado!=='bloqueado';
+    const numColor=s.estado==='bloqueado'?'var(--red)':'var(--text)';
+    const appLabel=s.app==='whatsapp_business'?'📱 WA Business':'💬 WA Messenger';
     return`<tr>
-      <td data-label="Número" class="mono"><strong>${mostrarNumero?s.numero:'🚫 Bloqueado'}</strong></td>
+      <td data-label="Número" class="mono"><strong style="color:${numColor}">${s.numero}</strong><br><small style="font-size:11px;opacity:0.7">${appLabel}</small></td>
       <td data-label="Operador"><span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:4px 8px;border-radius:4px;display:inline-block">${s.operador}</span></td>
       <td data-label="Serial" class="mono">${s.serial||'—'}</td>
-      <td data-label="App"><span style="font-size:12px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:4px;display:inline-block">${s.app==='whatsapp'?'WhatsApp':'WA Business'}</span></td>
       <td data-label="Celular">${cel?cel.nombre:'—'}</td>
       <td data-label="Estado"><span class="bs ${bsClass(s.estado)}">${bsLabel(s.estado)}</span></td>
       <td data-label="Bloqueos"><button class="btn btn-secondary btn-sm" onclick="showBloqueoDetalle(${s.id})">📋</button></td>

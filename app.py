@@ -2340,13 +2340,18 @@ def create_celular():
         if d.get('whatsapp') and d.get('whatsapp') not in WHATSAPP_STATUS:
             return jsonify({'error': f'WhatsApp debe ser: {", ".join(WHATSAPP_STATUS)}'}), 400
         
+        # Validar Estado
+        ESTADO_CELULAR = ['bueno', 'regular', 'dañado', 'en_reparacion', 'bloqueado', 'reserva']
+        if d.get('estado') and d.get('estado') not in ESTADO_CELULAR:
+            return jsonify({'error': f'Estado debe ser: {", ".join(ESTADO_CELULAR)}'}), 400
+        
         result = supabase_request('POST', 'celulares', '', {
             'nombre': d['nombre'].strip(),
             'marca': d['marca'].strip(),
             'imei': d['imei'].strip(),
             'imei2': d.get('imei2', '').strip(),
             'whatsapp': d.get('whatsapp', 'activo'),
-            'estado': 'activo'
+            'estado': d.get('estado', 'bueno')
         })
         
         if isinstance(result, dict) and result.get('error'):
@@ -2379,13 +2384,19 @@ def update_celular(id):
             if d.get('whatsapp') not in WHATSAPP_STATUS:
                 return jsonify({'error': f'WhatsApp debe ser: {", ".join(WHATSAPP_STATUS)}'}), 400
         
+        # Validar Estado si fue proporcionado
+        if d.get('estado'):
+            ESTADO_CELULAR = ['bueno', 'regular', 'dañado', 'en_reparacion', 'bloqueado', 'reserva']
+            if d.get('estado') not in ESTADO_CELULAR:
+                return jsonify({'error': f'Estado debe ser: {", ".join(ESTADO_CELULAR)}'}), 400
+        
         update_data = {
             'nombre': d.get('nombre', cel_exist[0].get('nombre')).strip(),
             'marca': d.get('marca', cel_exist[0].get('marca')).strip(),
             'imei': d.get('imei', cel_exist[0].get('imei')).strip(),
             'imei2': d.get('imei2', cel_exist[0].get('imei2', '')).strip(),
             'whatsapp': d.get('whatsapp', cel_exist[0].get('whatsapp', 'activo')),
-            'estado': d.get('estado', cel_exist[0].get('estado', 'activo'))
+            'estado': d.get('estado', cel_exist[0].get('estado', 'bueno'))
         }
         
         result = supabase_request('PATCH', 'celulares', f'?id=eq.{id}', update_data)
@@ -2475,7 +2486,7 @@ def create_simcard():
             return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
         
         # Validar estado
-        ESTADOS = ['activo', 'bloqueado']
+        ESTADOS = ['activo', 'reserva', 'bloqueado']
         if d.get('estado') and d.get('estado') not in ESTADOS:
             return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
         
@@ -2546,7 +2557,7 @@ def update_simcard(id):
         
         # Validar estado si fue proporcionado
         if d.get('estado'):
-            ESTADOS = ['activo', 'bloqueado']
+            ESTADOS = ['activo', 'reserva', 'bloqueado']
             if d.get('estado') not in ESTADOS:
                 return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
         
