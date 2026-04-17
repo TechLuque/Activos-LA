@@ -312,9 +312,9 @@
                 </div>
             </div>
             <div>
-                <div class="info-label">Notas</div>
-                <div style="background: var(--surface2); padding: 12px; border-radius: 6px; color: var(--text2); font-size: 14px;">
-                    <span id="infNotas">—</span>
+                <div class="info-label">📋 Observaciones Importantes</div>
+                <div style="background: var(--surface2); padding: 12px; border-radius: 6px; color: var(--text2); font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; min-height: 50px; border-left: 3px solid var(--blue);">
+                    <div id="infNotas">Sin observaciones</div>
                 </div>
             </div>
         </div>
@@ -537,7 +537,14 @@
                 $('infResponsable').textContent = responsable;
                 $('infFecha').textContent = fecha;
                 $('infDevol').textContent = devol;
-                $('infNotas').textContent = notas;
+                
+                // Mostrar notas con formato preservado
+                const notasEl = $('infNotas');
+                if (notas && notas !== 'Sin observaciones') {
+                    notasEl.textContent = notas;
+                } else {
+                    notasEl.textContent = 'Sin observaciones';
+                }
 
                 // Inicializar firma
                 initSignaturePad();

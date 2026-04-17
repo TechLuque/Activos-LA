@@ -1119,7 +1119,28 @@ def get_prestamo(id):
             loan['usuario_nombre'] = 'Sin responsable'
         
         # ═══════════════════════════════════════════════════════════════
-        # 4. RETORNAR RESPUESTA COMPLETA
+        # 4. ENRIQUECER NOTAS CON INFORMACIÓN DEL EQUIPO
+        # ═══════════════════════════════════════════════════════════════
+        notas_list = []
+        
+        # Notas del préstamo
+        if loan.get('notas'):
+            notas_list.append(f"📝 Observaciones del préstamo:\n{loan.get('notas')}")
+        
+        # Descripción/notas del equipo
+        if equipo_id and isinstance(equipos, list) and len(equipos) > 0:
+            desc_equipo = equipos[0].get('descripcion') or equipos[0].get('notas')
+            if desc_equipo:
+                notas_list.append(f"💻 Notas del equipo:\n{desc_equipo}")
+        
+        # Combinar todas las notas
+        if notas_list:
+            loan['notas'] = '\n\n'.join(notas_list)
+        elif not loan.get('notas'):
+            loan['notas'] = 'Sin observaciones'
+        
+        # ═══════════════════════════════════════════════════════════════
+        # 5. RETORNAR RESPUESTA COMPLETA
         # ═══════════════════════════════════════════════════════════════
         return jsonify(loan)
         
@@ -3269,18 +3290,47 @@ def get_asignacion_publico(id):
         asig = asig[0]
         
         equipo_id = asig.get('equipo_id')
+        equipo_data = {}
         if equipo_id:
             equipos = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}')
             if isinstance(equipos, list) and len(equipos) > 0:
-                asig['equipo_nombre'] = equipos[0].get('nombre', 'Equipo desconocido')
-                asig['equipo_codigo'] = equipos[0].get('serial', 'N/A')
-                asig['equipo_serial'] = equipos[0].get('serial', '')
+                equipo_data = equipos[0]
+                asig['equipo_nombre'] = equipo_data.get('nombre', 'Equipo desconocido')
+                asig['equipo_codigo'] = equipo_data.get('serial', 'N/A')
+                asig['equipo_serial'] = equipo_data.get('serial', '')
         
         usuario_id = asig.get('usuario_id')
         if usuario_id:
             usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
             if isinstance(usuarios, list) and len(usuarios) > 0:
                 asig['usuario_nombre'] = usuarios[0].get('nombre', 'Usuario desconocido')
+        
+        # ═══════════════════════════════════════════════════════════════
+        # Construir campo de notas combinadas (asignación + equipo)
+        # ═══════════════════════════════════════════════════════════════
+        notas_list = []
+        
+        # Notas de la asignación (según el tipo de firma)
+        tipo_firma = 'entrada'  # Default
+        notas_asig = asig.get('notas_entrada') or asig.get('notas_salida') or asig.get('notas')
+        if notas_asig:
+            notas_list.append(f"📝 Observaciones de la asignación:\n{notas_asig}")
+        
+        # Descripción/notas del equipo
+        desc_equipo = equipo_data.get('descripcion') or equipo_data.get('notas')
+        if desc_equipo:
+            notas_list.append(f"💻 Notas del equipo:\n{desc_equipo}")
+        
+        # Estado del equipo si existe
+        estado_equipo = asig.get('estado_equipo_entrada')
+        if estado_equipo:
+            notas_list.append(f"⚙️ Estado del equipo: {estado_equipo}")
+        
+        # Combinar todas las notas
+        if notas_list:
+            asig['notas'] = '\n\n'.join(notas_list)
+        else:
+            asig['notas'] = 'Sin observaciones'
         
         return jsonify(asig)
     except Exception as e:
