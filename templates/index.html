@@ -960,22 +960,22 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchAsig" type="text" placeholder="🔍 Buscar equipo, persona, serial…" oninput="currentPage['asignaciones']=1;renderAsignaciones()" style="flex:1;max-width:300px">
+          <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial…" oninput="currentPage['asignaciones']=1;renderAsignaciones()" style="flex:1;max-width:300px">
           <select id="ftAsigResponsable" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="min-width:150px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">👤 Todos</option>
+            <option value="">Responsable</option>
           </select>
           <select id="ftAsigEquipo" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="min-width:150px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">💻 Todos</option>
+            <option value="">Equipo</option>
           </select>
           <select id="ftAsigFirma" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">📋 Firma: Todos</option>
-            <option value="pendiente">⏳ Pendiente</option>
-            <option value="firmado">✅ Firmado</option>
+            <option value="">Firma: Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="firmado">Firmado</option>
           </select>
           <select id="ftAsigEst" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">📊 Estado: Todos</option>
-            <option value="abierta">🔵 Abierta</option>
-            <option value="cerrada">🟢 Cerrada</option>
+            <option value="">Estado: Todos</option>
+            <option value="abierta">Abierta</option>
+            <option value="cerrada">Cerrada</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
@@ -5245,10 +5245,8 @@ function actualizarFiltrosAsignaciones(){
   // Llenar filtro de responsables (solo activos)
   const ftResp=$('ftAsigResponsable');
   if(ftResp){
-    // Guardar opción default y limpiar
-    const defaultOpt=ftResp.querySelector('option[value=""]');
-    const defaultText=defaultOpt?.textContent||'👤 Todos';
-    ftResp.innerHTML=`<option value="">${defaultText}</option>`;
+    // Limpiar opciones excepto la primera
+    while(ftResp.options.length>1) ftResp.removeChild(ftResp.lastChild);
     
     // Obtener usuarios que han tenido asignaciones
     const responsablesIds=new Set(ASIGNACIONES.map(a=>a.usuario_id).filter(Boolean));
@@ -5257,7 +5255,7 @@ function actualizarFiltrosAsignaciones(){
     responsables.forEach(u=>{
       const opt=document.createElement('option');
       opt.value=u.id;
-      opt.textContent='👤 '+u.nombre;
+      opt.textContent=u.nombre;
       ftResp.appendChild(opt);
     });
   }
@@ -5265,10 +5263,8 @@ function actualizarFiltrosAsignaciones(){
   // Llenar filtro de equipos
   const ftEq=$('ftAsigEquipo');
   if(ftEq){
-    // Guardar opción default y limpiar
-    const defaultOpt=ftEq.querySelector('option[value=""]');
-    const defaultText=defaultOpt?.textContent||'💻 Todos';
-    ftEq.innerHTML=`<option value="">${defaultText}</option>`;
+    // Limpiar opciones excepto la primera
+    while(ftEq.options.length>1) ftEq.removeChild(ftEq.lastChild);
     
     // Obtener equipos que han sido asignados
     const equiposIds=new Set(ASIGNACIONES.map(a=>a.equipo_id).filter(Boolean));
@@ -5277,7 +5273,7 @@ function actualizarFiltrosAsignaciones(){
     equipos.forEach(e=>{
       const opt=document.createElement('option');
       opt.value=e.id;
-      opt.textContent='💻 '+e.nombre+' ('+( e.serial||'—')+')';
+      opt.textContent=e.nombre+' ('+( e.serial||'—')+')';
       ftEq.appendChild(opt);
     });
   }
