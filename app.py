@@ -3348,6 +3348,13 @@ def save_asignacion_signature_public(id):
             update_data['firma_desasignacion_url'] = firma_url
             update_data['fecha_firma_desasignacion'] = datetime.now().isoformat()
             update_data['estado'] = 'desasignada'  # ✅ Cambiar estado
+            
+            # Limpiar usuario_id del equipo (dejar sin dueño)
+            equipo_id = asig.get('equipo_id')
+            if equipo_id:
+                supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                    'usuario_id': None
+                })
         else:  # 'salida'
             update_data['firma_salida_url'] = firma_url
             update_data['fecha_firma_salida'] = datetime.now().isoformat()

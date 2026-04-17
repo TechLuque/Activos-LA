@@ -1712,7 +1712,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovDesasignLink')">Cancelar</button>
-        <button class="btn btn-primary" onclick="close('ovDesasignLink')">✅ Listo</button>
+        <button class="btn btn-primary" onclick="completeDesasignAndAssign()">✅ Ir a nueva asignación</button>
       </div>
     </div>
   </div>
@@ -5552,6 +5552,16 @@ async function unassignAsignacion(asigId){
   if(!confirm('Desasignar este equipo del responsable? Se generará un enlace de firma para confirmar la desasignación.'))return;
   
   try{
+    // Obtener datos de la asignación para saber el equipo
+    const asig = ASIGNACIONES.find(a => a.id === asigId);
+    if(!asig){
+      toast('Asignación no encontrada','err');
+      return;
+    }
+    
+    // Guardar el equipo_id para usarlo después
+    window.equipoDesasignadoId = asig.equipo_id;
+    
     // Mostrar modal con enlace de firma para desasignación
     const desasigUrl=`${window.location.origin}/firma/${asigId}?doc=asignacion&tipo=desasignacion`;
     const urlInput=$('desasignLink');
@@ -5561,6 +5571,30 @@ async function unassignAsignacion(asigId){
     open('ovDesasignLink');
   }catch(err){
     toast(err.message||'Error generando enlace de desasignación','err');
+  }
+}
+
+function completeDesasignAndAssign(){
+  close('ovDesasignLink');
+  
+  // Abrir modal de nueva asignación
+  openAsignacionModal();
+  
+  // Pre-seleccionar el equipo que se acaba de desasignar
+  if(window.equipoDesasignadoId){
+    selectedEquiposAsignacion[window.equipoDesasignadoId] = true;
+    
+    // Actualizar UI
+    const checkbox = document.querySelector(`input[data-eq-id="${window.equipoDesasignadoId}"]`);
+    if(checkbox) checkbox.checked = true;
+    updateAEqCount();
+    
+    // Scroll al equipo seleccionado
+    const equipoEl = document.querySelector(`input[data-eq-id="${window.equipoDesasignadoId}"]`);
+    if(equipoEl) equipoEl.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    
+    // Limpiar la variable
+    window.equipoDesasignadoId = null;
   }
 }
 
