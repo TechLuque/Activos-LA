@@ -960,11 +960,22 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchAsig" type="text" placeholder="Buscar equipo, responsable…" oninput="currentPage['asignaciones']=1;renderAsignaciones()">
-          <select id="ftAsigEst" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
-            <option value="">Todos los estados</option>
-            <option value="abierta">Abierta (En posesión)</option>
-            <option value="cerrada">Cerrada (Devuelta)</option>
+          <input id="srchAsig" type="text" placeholder="🔍 Buscar equipo, persona, serial…" oninput="currentPage['asignaciones']=1;renderAsignaciones()" style="flex:1;max-width:300px">
+          <select id="ftAsigResponsable" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="min-width:150px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="">👤 Todos</option>
+          </select>
+          <select id="ftAsigEquipo" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="min-width:150px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="">💻 Todos</option>
+          </select>
+          <select id="ftAsigFirma" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="">📋 Firma: Todos</option>
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="firmado">✅ Firmado</option>
+          </select>
+          <select id="ftAsigEst" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="">📊 Estado: Todos</option>
+            <option value="abierta">🔵 Abierta</option>
+            <option value="cerrada">🟢 Cerrada</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
@@ -2531,10 +2542,10 @@ function openEqModal(reset=true){
   // Actualizar tipos
   updateTiposInModal();
   
-  // Cargar usuarios en el select
+  // Cargar usuarios activos en el select
   const selResp=$('eResponsable');
   if(selResp.options.length<=1){
-    USR.forEach(u=>{
+    USR.filter(u=>u.estado==='activo').forEach(u=>{
       const opt=document.createElement('option');
       opt.value=u.id;
       opt.textContent=u.nombre;
@@ -2555,10 +2566,10 @@ function editEq(id){
   updateTiposInModal();
   setTimeout(()=>{$('eTipo').value=e.tipo_nombre||e.tipo;},50);
   
-  // Cargar usuarios en el select si no están ya cargados
+  // Cargar usuarios activos en el select si no están ya cargados
   const selResp=$('eResponsable');
   if(selResp.options.length<=1){
-    USR.forEach(u=>{
+    USR.filter(u=>u.estado==='activo').forEach(u=>{
       const opt=document.createElement('option');
       opt.value=u.id;
       opt.textContent=u.nombre;
@@ -5131,6 +5142,7 @@ async function loadAsignaciones(){
   try{
     const res=await api('/api/asignaciones-equipos','GET');
     ASIGNACIONES=Array.isArray(res)?res:[];
+    actualizarFiltrosAsignaciones();
     renderAsignaciones();
   }catch(err){
     ASIGNACIONES=[];
@@ -5139,15 +5151,24 @@ async function loadAsignaciones(){
 
 function renderAsignaciones(){
   const search=$('srchAsig')?.value||'';
+  const responsable=$('ftAsigResponsable')?.value||'';
+  const equipoFil=$('ftAsigEquipo')?.value||'';
+  const firma=$('ftAsigFirma')?.value||'';
   const estado=$('ftAsigEst')?.value||'';
   
   let filtered=ASIGNACIONES.filter(a=>{
     const matchText=search.toLowerCase();
-    const equipo=a.equipo||{};
-    const usuario=a.usuario||{};
-    const matchesSearch=!search||equipo.nombre?.toLowerCase().includes(matchText)||usuario.nombre?.toLowerCase().includes(matchText);
+    const eqData=a.equipo||{};
+    const usrData=a.usuario||{};
+    const tieneEntrada=!!a.firma_entrada_url;
+    
+    const matchesSearch=!search||(eqData.nombre?.toLowerCase().includes(matchText)||eqData.serial?.toLowerCase().includes(matchText)||usrData.nombre?.toLowerCase().includes(matchText)||usrData.departamento?.toLowerCase().includes(matchText));
+    const matchesResponsable=!responsable||a.usuario_id==responsable;
+    const matchesEquipo=!equipoFil||a.equipo_id==equipoFil;
+    const matchesFirma=!firma||((firma==='pendiente'&&!tieneEntrada)||(firma==='firmado'&&tieneEntrada));
     const matchesEstado=!estado||a.estado===estado;
-    return matchesSearch&&matchesEstado;
+    
+    return matchesSearch&&matchesResponsable&&matchesEquipo&&matchesFirma&&matchesEstado;
   });
   
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'asignaciones');
@@ -5182,44 +5203,10 @@ function renderAsignaciones(){
   }).join('');
   
   // Renderizar paginación
-  renderPaginationAsig(totalPages);
+  $('asigPaginationContainer').innerHTML=createPaginationControls(cp,totalPages,'asignaciones');
   
   // Actualizar contador
   $('asigCount').textContent=`${filtered.length} de ${ASIGNACIONES.length}`;
-}
-
-function renderPaginationAsig(totalPages){
-  const container=$('asigPaginationContainer');
-  if(!container)return;
-  
-  currentPage.asignaciones=currentPage.asignaciones||1;
-  if(totalPages<=1){
-    container.innerHTML='';
-    return;
-  }
-  
-  let html=`<div class="pagination">`;
-  if(currentPage.asignaciones>1)
-    html+=`<button onclick="goToAsigPage(${currentPage.asignaciones-1})">← Anterior</button>`;
-  
-  for(let i=1;i<=totalPages;i++){
-    if(Math.abs(i-currentPage.asignaciones)<=2||i===1||i===totalPages){
-      html+=`<button onclick="goToAsigPage(${i})" ${i===currentPage.asignaciones?'class="active"':''}>${i}</button>`;
-    }else if(Math.abs(i-currentPage.asignaciones)===3){
-      html+=`<span>...</span>`;
-    }
-  }
-  
-  if(currentPage.asignaciones<totalPages)
-    html+=`<button onclick="goToAsigPage(${currentPage.asignaciones+1})">Siguiente →</button>`;
-  
-  html+=`</div>`;
-  container.innerHTML=html;
-}
-
-function goToAsigPage(page){
-  currentPage.asignaciones=page;
-  renderAsignaciones();
 }
 
 function viewSignature(asigId, tipo){
@@ -5252,6 +5239,34 @@ function viewSignature(asigId, tipo){
     </div>
   `;
   document.body.appendChild(container);
+}
+
+function actualizarFiltrosAsignaciones(){
+  // Llenar filtro de responsables (solo activos)
+  const ftResp=$('ftAsigResponsable');
+  if(ftResp && ftResp.options.length<=1){
+    const responsablesIds=new Set(ASIGNACIONES.map(a=>a.usuario_id).filter(Boolean));
+    const responsables=USR.filter(u=>responsablesIds.has(u.id) && u.estado==='activo').sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    responsables.forEach(u=>{
+      const opt=document.createElement('option');
+      opt.value=u.id;
+      opt.textContent='👤 '+u.nombre;
+      ftResp.appendChild(opt);
+    });
+  }
+  
+  // Llenar filtro de equipos
+  const ftEq=$('ftAsigEquipo');
+  if(ftEq && ftEq.options.length<=1){
+    const equiposIds=new Set(ASIGNACIONES.map(a=>a.equipo_id).filter(Boolean));
+    const equipos=EQ.filter(e=>equiposIds.has(e.id)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    equipos.forEach(e=>{
+      const opt=document.createElement('option');
+      opt.value=e.id;
+      opt.textContent='💻 '+e.nombre+' ('+( e.serial||'—')+')';
+      ftEq.appendChild(opt);
+    });
+  }
 }
 
 function openAsignacionModal(){

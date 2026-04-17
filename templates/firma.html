@@ -310,15 +310,36 @@
         <div class="card">
             <div class="signature-section">
                 <div class="signature-label">Firma digital *</div>
-                <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Dibuja tu firma en el recuadro:</p>
-                <div class="signature-container">
-                    <canvas id="signaturePad" class="signature-canvas"></canvas>
+                <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border)">
+                    <button id="tabDibujar" class="btn btn-ghost" onclick="cambiarModofirma('dibujar')" style="flex:1;border-bottom:3px solid var(--blue);border-radius:0">✏️ Dibujar firma</button>
+                    <button id="tabSubir" class="btn btn-ghost" onclick="cambiarModofirma('subir')" style="flex:1;border-bottom:none;border-radius:0;color:var(--text3)">📤 Subir imagen</button>
                 </div>
-                <div class="button-group">
-                    <button class="btn btn-ghost" onclick="clearSignature()">🗑️ Limpiar</button>
-                    <span id="sigStatus" style="color: var(--text3); font-size: 12px; align-self: center;">
-                        Sin firmar
-                    </span>
+
+                <!-- Modo DIBUJAR -->
+                <div id="modoDibujar">
+                    <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Dibuja tu firma en el recuadro:</p>
+                    <div class="signature-container">
+                        <canvas id="signaturePad" class="signature-canvas"></canvas>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-ghost" onclick="clearSignature()">🗑️ Limpiar</button>
+                        <span id="sigStatus" style="color: var(--text3); font-size: 12px; align-self: center;">
+                            Sin firmar
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Modo SUBIR -->
+                <div id="modoSubir" style="display:none">
+                    <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Sube una imagen de tu firma:</p>
+                    <input type="file" id="firmaImagen" class="file-input" accept="image/*" onchange="previewFirmaImagen()">
+                    <label for="firmaImagen" class="file-input-label" id="labelFirmaImagen">
+                        <p>📷 Selecciona imagen</p>
+                        <div class="size">JPG, PNG (máx 5MB)</div>
+                    </label>
+                    <div class="image-preview" id="previewFirmaImagen">
+                        <p style="color: var(--text3); font-size: 12px;">Sin imagen</p>
+                    </div>
                 </div>
             </div>
 
@@ -613,6 +634,70 @@
             }
         }
 
+        function cambiarModofirma(modo) {
+            const modoDibujar = $('modoDibujar');
+            const modoSubir = $('modoSubir');
+            const tabDibujar = $('tabDibujar');
+            const tabSubir = $('tabSubir');
+            
+            if (modo === 'dibujar') {
+                modoDibujar.style.display = 'block';
+                modoSubir.style.display = 'none';
+                tabDibujar.style.borderBottom = '3px solid var(--blue)';
+                tabDibujar.style.color = 'var(--text)';
+                tabSubir.style.borderBottom = 'none';
+                tabSubir.style.color = 'var(--text3)';
+                // Limpiar imagen subida
+                $('firmaImagen').value = '';
+                previewFirmaImagen();
+            } else {
+                modoDibujar.style.display = 'none';
+                modoSubir.style.display = 'block';
+                tabDibujar.style.borderBottom = 'none';
+                tabDibujar.style.color = 'var(--text3)';
+                tabSubir.style.borderBottom = '3px solid var(--blue)';
+                tabSubir.style.color = 'var(--text)';
+                // Limpiar canvas dibujado
+                clearSignature();
+            }
+        }
+
+        function previewFirmaImagen() {
+            const inputId = 'firmaImagen';
+            const labelId = 'labelFirmaImagen';
+            const previewId = 'previewFirmaImagen';
+            const file = $(inputId).files[0];
+            const preview = $(previewId);
+            const label = $(labelId);
+
+            if (!file) {
+                preview.innerHTML = '<p style="color: var(--text3); font-size: 12px;">Sin imagen</p>';
+                label.classList.remove('has-file');
+                return;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                showAlert('Por favor selecciona una imagen válida', 'error');
+                $(inputId).value = '';
+                preview.innerHTML = '<p style="color: var(--red); font-size: 12px;">Archivo inválido</p>';
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showAlert('La imagen es muy grande (máx 5MB)', 'error');
+                $(inputId).value = '';
+                preview.innerHTML = '<p style="color: var(--red); font-size: 12px;">Archivo muy grande</p>';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Firma">`;
+                label.classList.add('has-file');
+            };
+            reader.readAsDataURL(file);
+        }
+
         function previewImage(num) {
             const inputId = `lImg${num}`;
             const labelId = `label${num}`;
@@ -732,15 +817,35 @@
                 }
             }
             
-            // Validar firma (requerida para ambos)
-            if (!signPad) {
-                showAlert('Error: Canvas de firma no disponible', 'error');
-                return;
-            }
+            // Validar firma: puede ser dibujada O subida como imagen
+            const modoDibujarVisible = $('modoDibujar').style.display !== 'none';
+            const firmaImagenFile = $('firmaImagen').files[0];
             
-            if (signPad.isEmpty()) {
-                showAlert('⚠️ Por favor dibuja tu firma en el área antes de confirmar', 'error');
-                return;
+            let firmaBlob = null;
+            
+            if (modoDibujarVisible) {
+                // Modo DIBUJAR: validar canvas
+                if (!signPad) {
+                    showAlert('Error: Canvas de firma no disponible', 'error');
+                    return;
+                }
+                
+                if (signPad.isEmpty()) {
+                    showAlert('⚠️ Por favor dibuja tu firma en el área antes de confirmar', 'error');
+                    return;
+                }
+                
+                const firmaCanvas = signPad.canvas;
+                const firmaDataURL = firmaCanvas.toDataURL('image/jpeg', 0.3);
+                firmaBlob = dataURLtoBlob(firmaDataURL);
+            } else {
+                // Modo SUBIR: validar archivo
+                if (!firmaImagenFile) {
+                    showAlert('⚠️ Por favor sube una imagen de tu firma antes de confirmar', 'error');
+                    return;
+                }
+                
+                firmaBlob = firmaImagenFile;
             }
             
             // Mostrar loading
@@ -760,9 +865,12 @@
                     img2Compressed = await compressImage(img2File, 400, 400, 0.15);
                 }
                 
-                const firmaCanvas = signPad.canvas;
-                const firmaDataURL = firmaCanvas.toDataURL('image/jpeg', 0.3);
-                const firmaBlob = dataURLtoBlob(firmaDataURL);
+                const firmaCanvas = signPad ? signPad.canvas : null;
+                let firmaDataURL = null;
+                if (firmaCanvas && !firmaBlob) {
+                    firmaDataURL = firmaCanvas.toDataURL('image/jpeg', 0.3);
+                    firmaBlob = dataURLtoBlob(firmaDataURL);
+                }
                 
                 const sigKB = Math.round(firmaBlob.size / 1024);
                 let size1KB = 0, size2KB = 0;
@@ -857,11 +965,35 @@
                     body: form3
                 });
                 
+                // Parsear respuesta
+                const data3 = await res3.json();
+                
+                // Validar error 403 (ya firmado)
+                if (res3.status === 403) {
+                    document.querySelector('.loading').style.display = 'none';
+                    $('alertBox').style.display = 'block';
+                    
+                    // Mostrar modal de error personalizado (sin detalles técnicos)
+                    const errorModal = document.createElement('div');
+                    errorModal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;z-index:10000;background:rgba(0,0,0,0.7)';
+                    errorModal.innerHTML = `
+                        <div style="background:var(--surface);border:2px solid var(--amber);border-radius:12px;padding:32px;max-width:500px;width:90%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
+                            <div style="font-size:48px;margin-bottom:16px">✅</div>
+                            <h2 style="margin:0 0 12px;color:var(--text);font-size:20px">Ya está registrada</h2>
+                            <p style="color:var(--text2);font-size:14px;line-height:1.6;margin:12px 0 24px">
+                                Tu firma ya ha sido registrada exitosamente en el sistema.
+                            </p>
+                            <button onclick="window.close()" class="btn btn-primary" style="width:100%;cursor:pointer">Cerrar</button>
+                        </div>
+                    `;
+                    document.body.appendChild(errorModal);
+                    return;
+                }
+                
                 if (res3.status === 413) {
                     throw new Error('Firma demasiado grande');
                 }
-                if (!res3.ok) throw new Error(`Firma HTTP ${res3.status}`);
-                const data3 = await res3.json();
+                if (!res3.ok) throw new Error(`${data3.error || 'Error al guardar firma'}`);
                 if (data3.error) throw new Error(data3.error);
                 
                 // ✅ ÉXITO - Mostrar mensaje
