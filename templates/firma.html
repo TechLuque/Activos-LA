@@ -215,6 +215,18 @@
             max-height: 100%;
             object-fit: contain;
         }
+        .firma-upload-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .firma-upload-container .file-input-label {
+            width: 100%;
+        }
+        .firma-upload-container .image-preview {
+            width: 100%;
+        }
         .loading {
             display: none;
             text-align: center;
@@ -330,8 +342,8 @@
                 </div>
 
                 <!-- Modo SUBIR -->
-                <div id="modoSubir" style="display:none">
-                    <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Sube una imagen de tu firma:</p>
+                <div id="modoSubir" style="display:none" class="firma-upload-container">
+                    <p style="color: var(--text3); font-size: 12px;">Sube una imagen de tu firma:</p>
                     <input type="file" id="firmaImagen" class="file-input" accept="image/*" onchange="previewFirmaImagen()">
                     <label for="firmaImagen" class="file-input-label" id="labelFirmaImagen">
                         <p>📷 Selecciona imagen</p>

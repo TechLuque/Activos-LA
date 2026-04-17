@@ -1511,7 +1511,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- SIMCARD MODAL -->
-<div class="overlay" id="ovSimcard">
+<div class="overlay" id="ovSimcard" style="z-index:300">
   <div class="modal modal-lg">
     <div class="modal-head">
       <div><h3 id="simcardModalTitle">Nueva SIM Card</h3><p id="simcardModalSub">Registrar tarjeta SIM</p></div>
@@ -5151,8 +5151,8 @@ async function loadAsignaciones(){
 
 function renderAsignaciones(){
   const search=$('srchAsig')?.value||'';
-  const responsable=$('ftAsigResponsable')?.value||'';
-  const equipoFil=$('ftAsigEquipo')?.value||'';
+  const responsable=parseInt($('ftAsigResponsable')?.value)||0;
+  const equipoFil=parseInt($('ftAsigEquipo')?.value)||0;
   const firma=$('ftAsigFirma')?.value||'';
   const estado=$('ftAsigEst')?.value||'';
   
@@ -5163,8 +5163,8 @@ function renderAsignaciones(){
     const tieneEntrada=!!a.firma_entrada_url;
     
     const matchesSearch=!search||(eqData.nombre?.toLowerCase().includes(matchText)||eqData.serial?.toLowerCase().includes(matchText)||usrData.nombre?.toLowerCase().includes(matchText)||usrData.departamento?.toLowerCase().includes(matchText));
-    const matchesResponsable=!responsable||a.usuario_id==responsable;
-    const matchesEquipo=!equipoFil||a.equipo_id==equipoFil;
+    const matchesResponsable=!responsable||a.usuario_id===responsable;
+    const matchesEquipo=!equipoFil||a.equipo_id===equipoFil;
     const matchesFirma=!firma||((firma==='pendiente'&&!tieneEntrada)||(firma==='firmado'&&tieneEntrada));
     const matchesEstado=!estado||a.estado===estado;
     
@@ -5244,9 +5244,16 @@ function viewSignature(asigId, tipo){
 function actualizarFiltrosAsignaciones(){
   // Llenar filtro de responsables (solo activos)
   const ftResp=$('ftAsigResponsable');
-  if(ftResp && ftResp.options.length<=1){
+  if(ftResp){
+    // Guardar opción default y limpiar
+    const defaultOpt=ftResp.querySelector('option[value=""]');
+    const defaultText=defaultOpt?.textContent||'👤 Todos';
+    ftResp.innerHTML=`<option value="">${defaultText}</option>`;
+    
+    // Obtener usuarios que han tenido asignaciones
     const responsablesIds=new Set(ASIGNACIONES.map(a=>a.usuario_id).filter(Boolean));
     const responsables=USR.filter(u=>responsablesIds.has(u.id) && u.estado==='activo').sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    
     responsables.forEach(u=>{
       const opt=document.createElement('option');
       opt.value=u.id;
@@ -5257,9 +5264,16 @@ function actualizarFiltrosAsignaciones(){
   
   // Llenar filtro de equipos
   const ftEq=$('ftAsigEquipo');
-  if(ftEq && ftEq.options.length<=1){
+  if(ftEq){
+    // Guardar opción default y limpiar
+    const defaultOpt=ftEq.querySelector('option[value=""]');
+    const defaultText=defaultOpt?.textContent||'💻 Todos';
+    ftEq.innerHTML=`<option value="">${defaultText}</option>`;
+    
+    // Obtener equipos que han sido asignados
     const equiposIds=new Set(ASIGNACIONES.map(a=>a.equipo_id).filter(Boolean));
     const equipos=EQ.filter(e=>equiposIds.has(e.id)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    
     equipos.forEach(e=>{
       const opt=document.createElement('option');
       opt.value=e.id;
