@@ -139,7 +139,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .user-name{font-size:13px;font-weight:600;color:var(--text)}
 .user-role{font-size:10px;color:var(--text3)}
 
-.page-content{flex:1;overflow-y:auto;padding:28px;display:flex;flex-direction:column;min-height:0;height:100%}
+.page-content{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;min-height:0;height:100%}
 
 /* ═══════════════ PAGES ══════════════════ */
 .page{display:none;animation:fadeUp .3s ease}
@@ -151,7 +151,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .card-header{padding:18px 20px 0;display:flex;justify-content:space-between;align-items:flex-start}
 .card-title{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--text)}
 .card-sub{font-size:11.5px;color:var(--text3);margin-top:2px}
-.card-body{padding:16px 20px 20px;display:block}
+.card-body{padding:12px 16px 16px;display:block}
 .card-body-scrollable{max-height:320px;overflow-y:auto;overflow-x:hidden;padding:16px 20px 20px;display:block}
 .card-body-scrollable::-webkit-scrollbar{width:6px}
 .card-body-scrollable::-webkit-scrollbar-track{background:transparent}
@@ -159,30 +159,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .card-body-scrollable::-webkit-scrollbar-thumb:hover{background:var(--text2)}
 
 /* ═══════════════ STAT CARDS ════════════ */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .stat-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:20px;position:relative;overflow:hidden;cursor:default;
-  transition:border-color .2s, transform .2s;
-}
+  padding:12px;position:relative;overflow:hidden;cursor:default;
+  transition:border-color .2s, transform .2s;}
 .stat-card:hover{transform:translateY(-2px)}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-color,var(--blue));opacity:.6}
 .stat-card .glow-dot{
-  position:absolute;top:20px;right:20px;width:36px;height:36px;border-radius:50%;
+  position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;
   background:var(--accent-color,var(--blue));opacity:.15;filter:blur(10px);
 }
-.stat-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
-.stat-value{font-family:var(--font-d);font-size:34px;font-weight:800;letter-spacing:-2px;line-height:1}
-.stat-sub{font-size:11.5px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:4px}
+.stat-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.stat-value{font-family:var(--font-d);font-size:24px;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:3px}
 .stat-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
 
 /* ═══════════════ DASHBOARD GRID ════════ */
-.dash-grid{display:grid;grid-template-columns:1fr 380px;gap:18px}
-.dash-left{display:flex;flex-direction:column;gap:18px}
-.dash-right{display:flex;flex-direction:column;gap:14px}
+.dash-grid{display:grid;grid-template-columns:1fr 360px;gap:14px}
+.dash-left{display:flex;flex-direction:column;gap:12px}
+.dash-right{display:flex;flex-direction:column;gap:10px}
 
 /* ═══════════════ ALERTS STRIP ══════════ */
-.alert-strip{background:linear-gradient(135deg,rgba(248,113,113,.08),rgba(251,146,60,.08));border:1px solid rgba(248,113,113,.2);border-radius:var(--radius);padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.alert-strip{background:linear-gradient(135deg,rgba(248,113,113,.08),rgba(251,146,60,.08));border:1px solid rgba(248,113,113,.2);border-radius:var(--radius);padding:12px 16px;display:flex;flex-direction:column;gap:6px}
 .alert-strip-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .alert-strip-header h3{font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--red)}
 .alert-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,0,0,.25);border-radius:var(--radius-sm);cursor:pointer;transition:background .18s}
@@ -198,14 +197,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .alert-proximo .alert-item-date{background:var(--amber-soft);color:var(--amber)}
 
 /* ═══════════════ BAR CHART ════════════ */
-.bar-wrap{display:flex;align-items:flex-end;gap:8px;height:140px;padding-top:8px}
+.bar-wrap{display:flex;align-items:flex-end;gap:8px;height:110px;padding-top:6px}
 .bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end;gap:6px}
 .bar{width:100%;border-radius:6px 6px 0 0;min-height:6px;position:relative;overflow:hidden}
 .bar::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent)}
 .bar-lbl{font-size:10px;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-weight:500}
 
 /* ═══════════════ DONUT ════════════════ */
-.donut-row{display:flex;align-items:center;gap:16px}
+.donut-row{display:flex;align-items:center;gap:12px}
 .legend{display:flex;flex-direction:column;gap:8px;flex:1}
 .legend-item{display:flex;align-items:center;justify-content:space-between}
 .legend-left{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text2)}
@@ -247,6 +246,7 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 .bs-inactivo{background:var(--surface3);color:var(--text3)}.bs-inactivo::before{background:var(--text3)}
 .bs-bloqueado{background:var(--red-soft);color:var(--red)}.bs-bloqueado::before{background:var(--red)}
 .bs-reserva{background:var(--amber-soft);color:var(--amber)}.bs-reserva::before{background:var(--amber)}
+.bs-desactivado{background:rgba(139,146,168,0.2);color:var(--text3);opacity:0.6}.bs-desactivado::before{background:var(--text3)}
 .bs-solicitado{background:var(--blue-soft);color:var(--blue)}.bs-solicitado::before{background:var(--blue)}
 .bs-firmado{background:var(--green-soft);color:var(--green)}.bs-firmado::before{background:var(--green)}
 .bs-devuelto{background:var(--surface3);color:var(--text3)}.bs-devuelto::before{background:var(--text3)}
@@ -440,6 +440,7 @@ input[type="file"]::file-selector-button{
   .main{margin-left:0}
   .page-content{padding:16px;flex:1;overflow-y:auto}
   .stats-row{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+  .dash-grid{grid-template-columns:1fr;gap:12px}
   .topbar{padding:12px 14px;flex-wrap:wrap}
   .topbar-left h1{font-size:16px}
   .search-wrap{flex:1;min-width:120px;max-width:none;margin-left:0;margin-top:8px}
@@ -626,7 +627,7 @@ input[type="file"]::file-selector-button{
       <div class="stats-row" id="statsRow"></div>
       <!-- Alerts strip: loans expiring -->
       <div id="alertsStrip"></div>
-      <div class="dash-grid" style="margin-top:18px">
+      <div class="dash-grid" style="margin-top:10px">
         <div class="dash-left">
           <div class="card">
             <div class="card-header">
@@ -651,10 +652,10 @@ input[type="file"]::file-selector-button{
             </div>
             <div class="card-body">
               <div class="donut-row">
-                <svg width="110" height="110" viewBox="0 0 110 110" id="donutSvg" style="flex-shrink:0"></svg>
+                <svg width="90" height="90" viewBox="0 0 110 110" id="donutSvg" style="flex-shrink:0"></svg>
                 <div class="legend" id="donutLegend"></div>
               </div>
-              <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:14px" onclick="nav('equipos')">Ver todos los equipos →</button>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="nav('equipos')">Ver todos los equipos →</button>
             </div>
           </div>
           <div class="card">
@@ -894,6 +895,7 @@ input[type="file"]::file-selector-button{
             <option value="activo">Activo</option>
             <option value="reserva">Reserva</option>
             <option value="bloqueado">Bloqueado</option>
+            <option value="desactivado">Desactivado</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
@@ -959,25 +961,50 @@ input[type="file"]::file-selector-button{
         <button class="btn btn-primary" onclick="openAsignacionModal()">+ Nueva asignación</button>
       </div>
       <div class="tbl-toolbar">
+        <!-- Búsqueda Principal -->
         <div class="filter-row">
-          <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial…" oninput="currentPage['asignaciones']=1;renderAsignaciones()" style="flex:1;max-width:300px">
-          <select id="ftAsigResponsable" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="min-width:150px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">Responsable</option>
+          <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial, departamento…" oninput="currentPage['asignaciones']=1;renderAsignaciones()" style="flex:1;max-width:350px">
+          
+          <!-- Selector de Variable para Filtro -->
+          <select id="ftAsigVariable" onchange="updateAsigFilterUI()" style="min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <option value="">+ Filtrar por…</option>
+            <option value="responsable">Responsable</option>
+            <option value="equipo">Equipo</option>
+            <option value="firma">Estado Firma</option>
+            <option value="estado">Estado Asignación</option>
+            <option value="politica">Política Aceptada</option>
+            <option value="fecha">Fecha de Asignación</option>
           </select>
-          <select id="ftAsigEquipo" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="min-width:150px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">Equipo</option>
-          </select>
-          <select id="ftAsigFirma" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">Firma: Todos</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="firmado">Firmado</option>
-          </select>
-          <select id="ftAsigEst" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">Estado: Todos</option>
-            <option value="abierta">Abierta</option>
-            <option value="cerrada">Cerrada</option>
-          </select>
+          
+          <!-- Inputs dinámicos para valores -->
+          <div id="asigFilterValueContainer" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;flex:1;min-height:32px">
+            <select id="ftAsigResponsableValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+              <option value="">Seleccionar…</option>
+            </select>
+            <select id="ftAsigEquipoValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+              <option value="">Seleccionar…</option>
+            </select>
+            <select id="ftAsigFirmaValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+              <option value="">Todos</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="firmado">Firmado</option>
+            </select>
+            <select id="ftAsigEstadoValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+              <option value="">Todos</option>
+              <option value="abierta">Abierta</option>
+              <option value="cerrada">Cerrada</option>
+            </select>
+            <select id="ftAsigPoliticaValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+              <option value="">Todos</option>
+              <option value="si">Aceptó</option>
+              <option value="no">No aceptó</option>
+            </select>
+            <input id="ftAsigFechaValue" type="date" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <button class="btn btn-ghost btn-sm" onclick="clearAsigFilters()" title="Limpiar filtro" style="display:none;align-self:center;flex-shrink:0" id="btClearAsigFilter">✕</button>
+          </div>
         </div>
+        
+        <!-- Mostrar/ocultar opciones -->
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
           <select id="itemsPerPageAsig" onchange="updateItemsPerPage('asignaciones');renderAsignaciones()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
@@ -1205,7 +1232,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL: ASIGNAR LICENCIA A EQUIPO -->
-<div class="overlay" id="ovAssignLicense">
+<div class="overlay" id="ovAssignLicense" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Asignar licencia</h3><p id="assignLicenseSubtitle">Selecciona una licencia para asignar</p></div>
@@ -1235,7 +1262,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- AGREGAR TIPO DE EQUIPO -->
-<div class="overlay" id="ovAgregarTipo">
+<div class="overlay" id="ovAgregarTipo" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Agregar tipo de equipo</h3><p>Crea una nueva categoría</p></div>
@@ -1255,7 +1282,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- EDITAR TIPO DE EQUIPO -->
-<div class="overlay" id="ovEditarTipo">
+<div class="overlay" id="ovEditarTipo" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Editar tipo de equipo</h3><p>Actualiza los datos</p></div>
@@ -1275,7 +1302,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- NUEVO ROL -->
-<div class="overlay" id="ovTipoRol">
+<div class="overlay" id="ovTipoRol" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
       <div><h3 id="rolModalTitle">Nuevo rol</h3><p>Define un rol de usuario</p></div>
@@ -1435,7 +1462,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL AGREGAR PAGO -->
-<div class="overlay" id="ovAgregarPago">
+<div class="overlay" id="ovAgregarPago" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Agregar Pago</h3><p>Registrar nuevo pago para el aplicativo</p></div>
@@ -1456,7 +1483,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL HISTORIAL PAGOS DETALLADO -->
-<div class="overlay" id="ovPagosDetalle">
+<div class="overlay" id="ovPagosDetalle" style="z-index:250">
   <div class="modal modal-lg">
     <div class="modal-head">
       <div><h3>Historial de Pagos</h3><p id="pagosDetalleTitle">Historial completo de pagos</p></div>
@@ -1534,6 +1561,7 @@ input[type="file"]::file-selector-button{
             <option value="activo">Activo</option>
             <option value="reserva">Reserva</option>
             <option value="bloqueado">Bloqueado</option>
+            <option value="desactivado">Desactivado</option>
           </select>
         </div>
         <div class="fg"><label>App *</label>
@@ -1545,6 +1573,12 @@ input[type="file"]::file-selector-button{
         <div class="fg"><label>Celular Asociado</label>
           <select id="sCelularId">
             <option value="">Ninguno</option>
+          </select>
+        </div>
+        <div class="fg"><label>SendFlow</label>
+          <select id="sSendflow">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
           </select>
         </div>
       </div>
@@ -1579,7 +1613,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL AGREGAR BLOQUEO -->
-<div class="overlay" id="ovAgregarBloqueo">
+<div class="overlay" id="ovAgregarBloqueo" style="z-index:350">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Registrar Bloqueo de SIM</h3><p>Registrar motivo y fecha del bloqueo</p></div>
@@ -1600,7 +1634,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL HISTORIAL BLOQUEOS DETALLADO -->
-<div class="overlay" id="ovBloqueoDetalle">
+<div class="overlay" id="ovBloqueoDetalle" style="z-index:350">
   <div class="modal modal-lg">
     <div class="modal-head">
       <div><h3>Historial de Bloqueos</h3><p id="bloqueoDetalleTitle">Todos los bloqueos registrados</p></div>
@@ -1646,7 +1680,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL PARA ENVIAR LINK DE FIRMA -->
-<div class="overlay" id="ovSignLink">
+<div class="overlay" id="ovSignLink" style="z-index:350">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Link para firma</h3><p>Envía este link al responsable para que firme</p></div>
@@ -1673,7 +1707,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL LINK DEVOLUCIÓN -->
-<div class="overlay" id="ovReturnLink">
+<div class="overlay" id="ovReturnLink" style="z-index:350">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Link para devolución</h3><p>Envía este link al responsable para confirmar la devolución</p></div>
@@ -1696,7 +1730,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- MODAL LINK DESASIGNACIÓN -->
-<div class="overlay" id="ovDesasignLink">
+<div class="overlay" id="ovDesasignLink" style="z-index:350">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Link para desasignación</h3><p>Envía este link al responsable para firmar la desasignación</p></div>
@@ -1763,7 +1797,7 @@ input[type="file"]::file-selector-button{
 
 
 <!-- HOJA DE VIDA -->
-<div class="overlay" id="ovHV">
+<div class="overlay" id="ovHV" style="z-index:250">
   <div class="modal modal-lg">
     <div class="modal-head">
       <div><h3 id="hvTitle">Hoja de vida</h3><p id="hvSub">Historial completo del equipo</p></div>
@@ -1790,7 +1824,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- ADD HV EVENT -->
-<div class="overlay" id="ovAddHV">
+<div class="overlay" id="ovAddHV" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
       <div><h3>Agregar evento</h3><p>Registro en hoja de vida</p></div>
@@ -1818,7 +1852,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- HISTORIAL DE RESPONSABLES -->
-<div class="overlay" id="ovHistorialResponsables">
+<div class="overlay" id="ovHistorialResponsables" style="z-index:250">
   <div class="modal modal-lg">
     <div class="modal-head">
       <div><h3>Historial de responsables</h3><p id="histResponsablesEquipo">Cambios de asignación del equipo</p></div>
@@ -1831,7 +1865,7 @@ input[type="file"]::file-selector-button{
 </div>
 
 <!-- BÚSQUEDA GLOBAL RESULTADOS -->
-<div class="overlay" id="ovSearchResults">
+<div class="overlay" id="ovSearchResults" style="z-index:250">
   <div class="modal modal-lg">
     <div class="modal-head">
       <div><h3>Resultados de búsqueda</h3><p id="searchQueryDisplay">Búsqueda global</p></div>
@@ -1951,7 +1985,7 @@ const AV_COLORS=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#f
 
 function bsClass(s){
   const m={bueno:'bs-bueno',regular:'bs-regular','dañado':'bs-dañado',en_reparacion:'bs-en_reparacion',
-    activo:'bs-activo',inactivo:'bs-inactivo',bloqueado:'bs-bloqueado',reserva:'bs-reserva',devuelto:'bs-devuelto',
+    activo:'bs-activo',inactivo:'bs-inactivo',bloqueado:'bs-bloqueado',reserva:'bs-reserva',desactivado:'bs-desactivado',devuelto:'bs-devuelto',
     completado:'bs-completado',en_proceso:'bs-en_proceso',pendiente:'bs-pendiente',
     preventivo:'bs-preventivo',correctivo:'bs-correctivo',
     solicitado:'bs-solicitado',firmado:'bs-firmado',vencido:'bs-vencido','por_vencer':'bs-amber'};
@@ -1959,7 +1993,7 @@ function bsClass(s){
 }
 function bsLabel(s){
   const m={bueno:'Bueno',regular:'Regular','dañado':'Dañado',en_reparacion:'En reparación',
-    activo:'Activo',inactivo:'Inactivo',bloqueado:'Bloqueado',reserva:'Reserva',devuelto:'Devuelto',
+    activo:'Activo',inactivo:'Inactivo',bloqueado:'Bloqueado',reserva:'Reserva',desactivado:'Desactivado',devuelto:'Devuelto',
     completado:'Completado',en_proceso:'En proceso',pendiente:'Pendiente',
     preventivo:'Preventivo',correctivo:'Correctivo',
     solicitado:'Solicitado',firmado:'Firmado',vencido:'Vencido','por_vencer':'Por vencer'};
@@ -4310,6 +4344,7 @@ async function openSimcardModal(sim_id=null){
     $('sOperador').value=sim.operador;
     $('sEstado').value=sim.estado;
     $('sApp').value=sim.app;
+    $('sSendflow').value=sim.sendflow||'no';
     $('sCelularId').value=sim.celular_id||'';
     
     // Cargar bloqueos
@@ -4328,6 +4363,7 @@ async function openSimcardModal(sim_id=null){
     $('sOperador').value='Movistar';
     $('sEstado').value='activo';
     $('sApp').value='whatsapp';
+    $('sSendflow').value='no';
     $('sCelularId').value='';
     currentSimcardBloqueos=[];
     renderSimcardBloqueos();
@@ -4390,6 +4426,7 @@ async function saveSimcard(){
   const operador=$('sOperador').value;
   const estado=$('sEstado').value;
   const app=$('sApp').value;
+  const sendflow=$('sSendflow').value;
   const celular_id=$('sCelularId').value||null;
   
   if(!numero||!operador){
@@ -4397,7 +4434,7 @@ async function saveSimcard(){
     return;
   }
   
-  const data={numero:numero,serial:serial,operador:operador,estado:estado,app:app,celular_id:celular_id?parseInt(celular_id):null};
+  const data={numero:numero,serial:serial,operador:operador,estado:estado,app:app,sendflow:sendflow,celular_id:celular_id?parseInt(celular_id):null};
   
   isSubmitting=true;
   const btn=$('saveSimcardBtn');
@@ -5151,10 +5188,13 @@ async function loadAsignaciones(){
 
 function renderAsignaciones(){
   const search=$('srchAsig')?.value||'';
-  const responsable=parseInt($('ftAsigResponsable')?.value)||0;
-  const equipoFil=parseInt($('ftAsigEquipo')?.value)||0;
-  const firma=$('ftAsigFirma')?.value||'';
-  const estado=$('ftAsigEst')?.value||'';
+  const variable=$('ftAsigVariable')?.value||'';
+  const responsableFilter=parseInt($('ftAsigResponsableValue')?.value)||0;
+  const equipoFilter=parseInt($('ftAsigEquipoValue')?.value)||0;
+  const firmaFilter=$('ftAsigFirmaValue')?.value||'';
+  const estadoFilter=$('ftAsigEstadoValue')?.value||'';
+  const politicaFilter=$('ftAsigPoliticaValue')?.value||'';
+  const fechaFilter=$('ftAsigFechaValue')?.value||'';
   
   let filtered=ASIGNACIONES.filter(a=>{
     const matchText=search.toLowerCase();
@@ -5162,13 +5202,34 @@ function renderAsignaciones(){
     const usrData=a.usuario||{};
     const tieneEntrada=!!a.firma_entrada_url;
     
-    const matchesSearch=!search||(eqData.nombre?.toLowerCase().includes(matchText)||eqData.serial?.toLowerCase().includes(matchText)||usrData.nombre?.toLowerCase().includes(matchText)||usrData.departamento?.toLowerCase().includes(matchText));
-    const matchesResponsable=!responsable||a.usuario_id===responsable;
-    const matchesEquipo=!equipoFil||a.equipo_id===equipoFil;
-    const matchesFirma=!firma||((firma==='pendiente'&&!tieneEntrada)||(firma==='firmado'&&tieneEntrada));
-    const matchesEstado=!estado||a.estado===estado;
+    // Búsqueda de texto en múltiples campos
+    const matchesSearch=!search||(
+      eqData.nombre?.toLowerCase().includes(matchText)||
+      eqData.serial?.toLowerCase().includes(matchText)||
+      usrData.nombre?.toLowerCase().includes(matchText)||
+      usrData.departamento?.toLowerCase().includes(matchText)
+    );
     
-    return matchesSearch&&matchesResponsable&&matchesEquipo&&matchesFirma&&matchesEstado;
+    // Filtro específico por variable seleccionada
+    let matchesSpecificFilter=true;
+    
+    if(variable==='responsable'&&responsableFilter){
+      matchesSpecificFilter=a.usuario_id===responsableFilter;
+    }else if(variable==='equipo'&&equipoFilter){
+      matchesSpecificFilter=a.equipo_id===equipoFilter;
+    }else if(variable==='firma'&&firmaFilter){
+      matchesSpecificFilter=(firmaFilter==='pendiente'&&!tieneEntrada)||(firmaFilter==='firmado'&&tieneEntrada);
+    }else if(variable==='estado'&&estadoFilter){
+      matchesSpecificFilter=a.estado===estadoFilter;
+    }else if(variable==='politica'&&politicaFilter){
+      matchesSpecificFilter=(politicaFilter==='si'&&a.politica_aceptada)||(politicaFilter==='no'&&!a.politica_aceptada);
+    }else if(variable==='fecha'&&fechaFilter){
+      // Comparar solo la fecha (sin hora)
+      const asigDate=a.fecha_asignacion?new Date(a.fecha_asignacion).toISOString().split('T')[0]:'';
+      matchesSpecificFilter=asigDate===fechaFilter;
+    }
+    
+    return matchesSearch&&matchesSpecificFilter;
   });
   
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'asignaciones');
@@ -5242,31 +5303,27 @@ function viewSignature(asigId, tipo){
 }
 
 function actualizarFiltrosAsignaciones(){
-  // Llenar filtro de responsables (solo activos)
-  const ftResp=$('ftAsigResponsable');
-  if(ftResp){
-    // Limpiar opciones excepto la primera
-    while(ftResp.options.length>1) ftResp.removeChild(ftResp.lastChild);
+  // Llenar filtro de responsables
+  const ftRespValue=$('ftAsigResponsableValue');
+  if(ftRespValue){
+    while(ftRespValue.options.length>1) ftRespValue.removeChild(ftRespValue.lastChild);
     
-    // Obtener usuarios que han tenido asignaciones
     const responsablesIds=new Set(ASIGNACIONES.map(a=>a.usuario_id).filter(Boolean));
-    const responsables=USR.filter(u=>responsablesIds.has(u.id) && u.estado==='activo').sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    const responsables=USR.filter(u=>responsablesIds.has(u.id)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
     
     responsables.forEach(u=>{
       const opt=document.createElement('option');
       opt.value=u.id;
       opt.textContent=u.nombre;
-      ftResp.appendChild(opt);
+      ftRespValue.appendChild(opt);
     });
   }
   
   // Llenar filtro de equipos
-  const ftEq=$('ftAsigEquipo');
-  if(ftEq){
-    // Limpiar opciones excepto la primera
-    while(ftEq.options.length>1) ftEq.removeChild(ftEq.lastChild);
+  const ftEqValue=$('ftAsigEquipoValue');
+  if(ftEqValue){
+    while(ftEqValue.options.length>1) ftEqValue.removeChild(ftEqValue.lastChild);
     
-    // Obtener equipos que han sido asignados
     const equiposIds=new Set(ASIGNACIONES.map(a=>a.equipo_id).filter(Boolean));
     const equipos=EQ.filter(e=>equiposIds.has(e.id)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
     
@@ -5274,9 +5331,59 @@ function actualizarFiltrosAsignaciones(){
       const opt=document.createElement('option');
       opt.value=e.id;
       opt.textContent=e.nombre+' ('+( e.serial||'—')+')';
-      ftEq.appendChild(opt);
+      ftEqValue.appendChild(opt);
     });
   }
+}
+
+function updateAsigFilterUI(){
+  const variable=$('ftAsigVariable').value;
+  const container=$('asigFilterValueContainer');
+  const btnClear=$('btClearAsigFilter');
+  
+  // Ocultar todos los inputs
+  $('ftAsigResponsableValue').style.display='none';
+  $('ftAsigEquipoValue').style.display='none';
+  $('ftAsigFirmaValue').style.display='none';
+  $('ftAsigEstadoValue').style.display='none';
+  $('ftAsigPoliticaValue').style.display='none';
+  $('ftAsigFechaValue').style.display='none';
+  
+  if(!variable){
+    container.style.display='none';
+    btnClear.style.display='none';
+  }else{
+    container.style.display='flex';
+    btnClear.style.display='block';
+    
+    // Mostrar solo el input correspondiente
+    if(variable==='responsable'){
+      $('ftAsigResponsableValue').style.display='block';
+    }else if(variable==='equipo'){
+      $('ftAsigEquipoValue').style.display='block';
+    }else if(variable==='firma'){
+      $('ftAsigFirmaValue').style.display='block';
+    }else if(variable==='estado'){
+      $('ftAsigEstadoValue').style.display='block';
+    }else if(variable==='politica'){
+      $('ftAsigPoliticaValue').style.display='block';
+    }else if(variable==='fecha'){
+      $('ftAsigFechaValue').style.display='block';
+    }
+  }
+}
+
+function clearAsigFilters(){
+  $('ftAsigVariable').value='';
+  $('ftAsigResponsableValue').value='';
+  $('ftAsigEquipoValue').value='';
+  $('ftAsigFirmaValue').value='';
+  $('ftAsigEstadoValue').value='';
+  $('ftAsigPoliticaValue').value='';
+  $('ftAsigFechaValue').value='';
+  updateAsigFilterUI();
+  currentPage['asignaciones']=1;
+  renderAsignaciones();
 }
 
 function openAsignacionModal(){

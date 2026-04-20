@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import base64
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import quote
 
 # Cargar variables de entorno
 load_dotenv()
@@ -2428,6 +2429,38 @@ def delete_celular(id):
         return jsonify({'error': str(e)}), 500
 
 # ════════════════════════════════════════════════════════════════
+# SIM CARDS - HELPER FUNCTIONS
+# ════════════════════════════════════════════════════════════════
+
+def cleanup_simcard_duplicates():
+    """Elimina SIM cards duplicadas (mantiene la más antigua)"""
+    try:
+        # Obtener duplicados
+        all_sims = supabase_request('GET', 'simcards', '')
+        if not isinstance(all_sims, list):
+            return
+        
+        # Agrupar por número
+        numero_map = {}
+        for sim in all_sims:
+            numero = sim.get('numero')
+            if numero:
+                if numero not in numero_map:
+                    numero_map[numero] = []
+                numero_map[numero].append(sim)
+        
+        # Eliminar duplicados (mantener el más antiguo)
+        for numero, sims_list in numero_map.items():
+            if len(sims_list) > 1:
+                # Ordenar por created_at para mantener el más antiguo
+                sims_list.sort(key=lambda x: x.get('created_at', ''), reverse=False)
+                # Eliminar los duplicados (todos excepto el primero)
+                for sim_to_delete in sims_list[1:]:
+                    supabase_request('DELETE', 'simcards', f'?id=eq.{sim_to_delete["id"]}')
+    except Exception as e:
+        print(f"Error limpiando duplicados: {str(e)}")
+
+# ════════════════════════════════════════════════════════════════
 # SIM CARDS
 # ════════════════════════════════════════════════════════════════
 
@@ -2489,13 +2522,20 @@ def create_simcard():
         if not d.get('numero') or not d.get('operador'):
             return jsonify({'error': 'número y operador son requeridos'}), 400
         
+        # Validar que no haya duplicados del número
+        numero_limpio = d.get('numero').strip()
+        numero_encoded = quote(numero_limpio, safe='')
+        numero_exist = supabase_request('GET', 'simcards', f'?numero=eq.{numero_encoded}')
+        if isinstance(numero_exist, list) and len(numero_exist) > 0:
+            return jsonify({'error': f'Ya existe una SIM card con el número {numero_limpio}'}), 400
+        
         # Validar operador
         OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM']
         if d.get('operador') not in OPERADORES:
             return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
         
         # Validar estado
-        ESTADOS = ['activo', 'reserva', 'bloqueado']
+        ESTADOS = ['activo', 'reserva', 'bloqueado', 'desactivado']
         if d.get('estado') and d.get('estado') not in ESTADOS:
             return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
         
@@ -2516,11 +2556,12 @@ def create_simcard():
                 return jsonify({'error': 'Este celular ya tiene 3 números. Máximo permitido es 3 por celular'}), 400
         
         result = supabase_request('POST', 'simcards', '', {
-            'numero': d['numero'].strip(),
+            'numero': numero_limpio,
             'serial': d.get('serial', '').strip(),
             'operador': d['operador'],
             'estado': d.get('estado', 'activo'),
             'app': d.get('app', 'whatsapp'),
+            'sendflow': d.get('sendflow', 'no'),
             'celular_id': d.get('celular_id', None)
         })
         
@@ -2535,8 +2576,12 @@ def create_simcard():
                     'celular_id': d['celular_id'],
                     'simcard_id': new_id
                 })
+            # Limpiar duplicados si los hay
+            cleanup_simcard_duplicates()
             return jsonify({'id': new_id, 'ok': True}), 201
         else:
+            # Limpiar duplicados si los hay
+            cleanup_simcard_duplicates()
             return jsonify({'ok': True}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -2558,6 +2603,14 @@ def update_simcard(id):
         old_celular_id = sim_exist[0].get('celular_id')
         new_celular_id = d.get('celular_id') if 'celular_id' in d else old_celular_id
         
+        # Validar que no haya duplicados del número (si fue cambiado)
+        if d.get('numero') and d.get('numero').strip() != sim_exist[0].get('numero'):
+            numero_nuevo = d.get('numero').strip()
+            numero_encoded = quote(numero_nuevo, safe='')
+            numero_exist = supabase_request('GET', 'simcards', f'?numero=eq.{numero_encoded}')
+            if isinstance(numero_exist, list) and len(numero_exist) > 0:
+                return jsonify({'error': f'Ya existe una SIM card con el número {numero_nuevo}'}), 400
+        
         # Validar operador si fue proporcionado
         if d.get('operador'):
             OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM']
@@ -2566,7 +2619,7 @@ def update_simcard(id):
         
         # Validar estado si fue proporcionado
         if d.get('estado'):
-            ESTADOS = ['activo', 'reserva', 'bloqueado']
+            ESTADOS = ['activo', 'reserva', 'bloqueado', 'desactivado']
             if d.get('estado') not in ESTADOS:
                 return jsonify({'error': f'Estado debe ser: {", ".join(ESTADOS)}'}), 400
         
@@ -2594,8 +2647,21 @@ def update_simcard(id):
             'operador': d.get('operador', sim_exist[0].get('operador')),
             'estado': d.get('estado', sim_exist[0].get('estado', 'activo')),
             'app': d.get('app', sim_exist[0].get('app', 'whatsapp')),
+            'sendflow': d.get('sendflow', sim_exist[0].get('sendflow', 'no')),
             'celular_id': new_celular_id
         }
+        
+        # Registrar cambio de estado en historial de acciones
+        old_estado = sim_exist[0].get('estado')
+        new_estado = update_data.get('estado')
+        if old_estado != new_estado:
+            supabase_request('POST', 'historial_acciones_simcard', '', {
+                'simcard_id': id,
+                'accion': f'cambio_estado',
+                'valor_anterior': old_estado,
+                'valor_nuevo': new_estado,
+                'fecha_hora': datetime.now().isoformat()
+            })
         
         # Registrar cambio de celular en historial
         if old_celular_id != new_celular_id:
@@ -2617,7 +2683,14 @@ def update_simcard(id):
         if isinstance(result, dict) and result.get('error'):
             return jsonify({'error': f"Error: {result.get('error')}"}), 500
         
-        return jsonify({'ok': True, 'id': id}), 200
+        # Verificar que la actualización fue exitosa consultando el registro
+        verify = supabase_request('GET', 'simcards', f'?id=eq.{id}')
+        if isinstance(verify, list) and len(verify) > 0:
+            # Limpiar duplicados si los hay
+            cleanup_simcard_duplicates()
+            return jsonify({'ok': True, 'id': id}), 200
+        else:
+            return jsonify({'error': 'Error al actualizar SIM card'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -2721,6 +2794,16 @@ def reasignar_simcard(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/simcards/cleanup/duplicates', methods=['POST'])
+@require_api_login
+def cleanup_duplicates_route():
+    """Limpia manualmente duplicados en SIM cards"""
+    try:
+        cleanup_simcard_duplicates()
+        return jsonify({'ok': True, 'message': 'Duplicados eliminados'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ════════════════════════════════════════════════════════════════
 # HISTORIAL DE BLOQUEOS DE SIM CARDS
 # ════════════════════════════════════════════════════════════════
@@ -2731,6 +2814,18 @@ def get_bloqueos_simcard(simcard_id):
     """Obtener historial de bloqueos de una SIM card"""
     try:
         result = supabase_request('GET', 'historial_bloqueos_sim', f'?simcard_id=eq.{simcard_id}&order=fecha_bloqueo.desc')
+        if isinstance(result, list):
+            return jsonify(result), 200
+        return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simcards/<int:simcard_id>/historial-acciones', methods=['GET'])
+@require_api_login
+def get_historial_acciones_simcard(simcard_id):
+    """Obtener historial automático de cambios en una SIM card"""
+    try:
+        result = supabase_request('GET', 'historial_acciones_simcard', f'?simcard_id=eq.{simcard_id}&order=fecha_hora.desc')
         if isinstance(result, list):
             return jsonify(result), 200
         return jsonify([]), 200
