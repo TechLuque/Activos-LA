@@ -461,8 +461,8 @@ input[type="file"]::file-selector-button{
   .tbl-toolbar input,.tbl-toolbar select{width:100%}
   .btn{padding:8px 14px;font-size:12px}
   .btn-icon{padding:6px}
-  .act-cell{flex-direction:column;gap:4px}
-  .act-cell .btn{width:100%;padding:6px 10px}
+  .act-cell{flex-wrap:wrap;gap:4px}
+  .act-cell .btn{flex:0 1 auto;padding:5px 8px;font-size:11px;white-space:nowrap}
   .pg-heading h2{font-size:20px}
   .pg-heading p{font-size:12px}
 }
@@ -2023,7 +2023,7 @@ const SEARCH_FIELDS={
 // Función para obtener valor anidado (ej: 'equipo.nombre')
 function getNestedValue(obj,path){
   if(!obj||!path)return '';
-  return path.split('.').reduce((acc,part)=>acc?.[part]||'',''+obj);
+  return path.split('.').reduce((acc,part)=>acc?.[part]||'',obj);
 }
 
 // Búsqueda multi-campo mejorada
