@@ -883,6 +883,7 @@ input[type="file"]::file-selector-button{
       <div class="tbl-toolbar">
         <div class="filter-row">
           <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="currentPage['simcard']=1;renderSimcards()">
+          <input id="srchSimcardIMEI" type="text" placeholder="Buscar IMEI del celular…" oninput="currentPage['simcard']=1;renderSimcards()">
           <select id="ftSimcardOperador" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los operadores</option>
             <option value="Movistar">Movistar</option>
@@ -2001,6 +2002,89 @@ function bsLabel(s){
 }
 
 /* ════════════════════════════════════════════════════
+   ADVANCED FILTER SYSTEM - Búsqueda Multi-campo
+════════════════════════════════════════════════════ */
+
+// Definición de campos de búsqueda por vista
+const SEARCH_FIELDS={
+  eq:['nombre','serial','marca','modelo','tipo_nombre','disponibilidad'],
+  usu:['nombre','email','departamento','telefono'],
+  mant:['equipo.nombre','equipo.serial','descripcion','tecnico'],
+  loan:['equipo.nombre','equipo.serial','usuario.nombre','usuario.departamento'],
+  license:['nombre','proveedor','tipo'],
+  aplicativo:['nombre'],
+  celular:['nombre','marca','imei','imei2'],
+  simcard:['numero','operador','celular.imei'],
+  asignaciones:['equipo.nombre','equipo.serial','usuario.nombre','usuario.departamento'],
+  tipos:['nombre','descripcion'],
+  roles:['nombre','descripcion']
+};
+
+// Función para obtener valor anidado (ej: 'equipo.nombre')
+function getNestedValue(obj,path){
+  if(!obj||!path)return '';
+  return path.split('.').reduce((acc,part)=>acc?.[part]||'',''+obj);
+}
+
+// Búsqueda multi-campo mejorada
+function searchMultiField(data,query,fieldsArray){
+  if(!query||query.length<1)return data;
+  const q=query.toLowerCase();
+  return data.filter(item=>
+    fieldsArray.some(field=>{
+      const value=getNestedValue(item,field);
+      return String(value).toLowerCase().includes(q);
+    })
+  );
+}
+
+// Sistema de filtros por vista
+const activeFilters={};
+
+function applyAdvancedFilters(viewType,data){
+  const filters=activeFilters[viewType]||[];
+  if(!filters.length)return data;
+  
+  return data.filter(item=>{
+    return filters.every(filter=>{
+      const value=getNestedValue(item,filter.field);
+      switch(filter.operator){
+        case'equals':return String(value)===String(filter.value);
+        case'contains':return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
+        case'gt':return Number(value)>Number(filter.value);
+        case'lt':return Number(value)<Number(filter.value);
+        case'gte':return Number(value)>=Number(filter.value);
+        case'lte':return Number(value)<=Number(filter.value);
+        case'in':return filter.value.includes(value);
+        case'date_after':return new Date(value)>=new Date(filter.value);
+        case'date_before':return new Date(value)<=new Date(filter.value);
+        default:return true;
+      }
+    });
+  });
+}
+
+function addFilter(viewType,field,operator,value,label=''){
+  if(!activeFilters[viewType])activeFilters[viewType]=[];
+  const filterId='f_'+Math.random().toString(36).substr(2,9);
+  activeFilters[viewType].push({id:filterId,field,operator,value,label});
+  return filterId;
+}
+
+function removeFilter(viewType,filterId){
+  if(!activeFilters[viewType])return;
+  activeFilters[viewType]=activeFilters[viewType].filter(f=>f.id!==filterId);
+}
+
+function clearAllFilters(viewType){
+  activeFilters[viewType]=[];
+}
+
+function getActiveFilters(viewType){
+  return activeFilters[viewType]||[];
+}
+
+/* ════════════════════════════════════════════════════
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
@@ -2020,7 +2104,7 @@ function nav(page){
   if(page==='aplicativos')renderAplicativos();
   if(page==='celulares')renderCelulares();
   if(page==='simcards')renderSimcards();
-  if(page==='asignaciones')renderAsignaciones();
+  if(page==='asignaciones'){actualizarFiltrosAsignaciones();renderAsignaciones();}
   if(page==='calendario')renderCal();
   if(page==='reportes')renderReportes();
   if(page==='admin-tipos')renderTipos();
@@ -2493,16 +2577,23 @@ function renderEq(){
     });
   }
   
-  const q=($('srchEq')?.value||'').toLowerCase();
+  const q=($('srchEq')?.value||'');
   const tipo=$('ftTipo')?.value||'';
   const est=$('ftEst')?.value||'';
   const ordenSerial=$('ftSerial')?.value||'';
   const dueno=$('ftDueno')?.value||'';
   
-  let rows=EQ.filter(e=>
-    (!q||e.nombre.toLowerCase().includes(q)||(e.serial||'').toLowerCase().includes(q)||(e.marca||'').toLowerCase().includes(q))&&
-    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&(!est||e.estado===est)&&
+  // Búsqueda multi-campo en: nombre, serial, marca, modelo
+  let rows=searchMultiField(EQ,q,SEARCH_FIELDS.eq);
+  
+  // Aplicar filtros específicos
+  rows=rows.filter(e=>
+    (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&
+    (!est||e.estado===est)&&
     (!dueno||e.usuario_id==dueno));
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('eq',rows);
   
   // Ordenar por serial si se seleccionó
   if(ordenSerial==='asc'){
@@ -2908,8 +2999,9 @@ function paginateArray(arr,entityType){
 let editTipoId=null;
 
 function renderTipos(){
-  const srch=$('srchTipo').value.toLowerCase();
-  const filtered=TIPOS.filter(t=>t.nombre.toLowerCase().includes(srch)||t.descripcion?.toLowerCase().includes(srch));
+  const srch=$('srchTipo').value||'';
+  let filtered=searchMultiField(TIPOS,srch,SEARCH_FIELDS.tipos);
+  filtered=applyAdvancedFilters('tipos',filtered);
   
   $('tiposCount').textContent=`${filtered.length} tipo${filtered.length!==1?'s':''}`;
   
@@ -3028,8 +3120,9 @@ async function deleteTipo(id,nombre){
 let editRolId=null;
 
 function renderRoles(){
-  const srch=$('srchRol').value.toLowerCase();
-  const filtered=ROLES.filter(r=>r.nombre.toLowerCase().includes(srch)||r.descripcion?.toLowerCase().includes(srch));
+  const srch=$('srchRol').value||'';
+  let filtered=searchMultiField(ROLES,srch,SEARCH_FIELDS.roles);
+  filtered=applyAdvancedFilters('roles',filtered);
   
   $('rolesCount').textContent=`${filtered.length} rol${filtered.length!==1?'es':''}`;
   
@@ -3169,13 +3262,18 @@ async function deleteRol(id,nombre){
    MANTENIMIENTOS
 ════════════════════════════════════════════════════ */
 function renderMant(){
-  const q=($('srchMant')?.value||'').toLowerCase();
+  const q=($('srchMant')?.value||'');
   const tipo=$('ftMantTipo')?.value||'';
   const est=$('ftMantEst')?.value||'';
   
-  let rows=MANTS.filter(m=>
-    (!q||(m.equipo_nombre||'').toLowerCase().includes(q)||(m.tecnico||'').toLowerCase().includes(q)||(m.descripcion||'').toLowerCase().includes(q))&&
-    (!tipo||m.tipo===tipo)&&(!est||m.estado===est));
+  // Búsqueda multi-campo en: equipo.nombre, equipo.serial, descripcion, tecnico
+  let rows=searchMultiField(MANTS,q,SEARCH_FIELDS.mant);
+  
+  // Aplicar filtros específicos
+  rows=rows.filter(m=>(!tipo||m.tipo===tipo)&&(!est||m.estado===est));
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('mant',rows);
   
   $('mantCount').textContent=`${rows.length} registro(s)`;
   
@@ -3393,11 +3491,18 @@ function updateDptosSelect(){
   sel.value=current;
 }
 function renderUsr(){
-  const q=($('srchUsr')?.value||'').toLowerCase();
+  const q=($('srchUsr')?.value||'');
   const dpto=$('ftUsrDpto')?.value||'';
   const est=$('ftUsrEst')?.value||'';
   
-  let rows=USR.filter(u=>(!q||u.nombre.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!dpto||u.departamento===dpto)&&(!est||u.estado===est));
+  // Búsqueda multi-campo en: nombre, email, departamento, telefono
+  let rows=searchMultiField(USR,q,SEARCH_FIELDS.usu);
+  
+  // Aplicar filtros específicos
+  rows=rows.filter(u=>(!dpto||u.departamento===dpto)&&(!est||u.estado===est));
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('usu',rows);
   
   $('usrCount').textContent=`${rows.length} usuario(s)`;
   
@@ -3585,13 +3690,18 @@ async function delUsr(id){
    LICENCIAS
 ════════════════════════════════════════════════════ */
 function renderLicenses(){
-  const q=($('srchLicense')?.value||'').toLowerCase();
+  const q=($('srchLicense')?.value||'');
   const tipo=$('ftLicenseTipo')?.value||'';
   const est=$('ftLicenseEst')?.value||'';
   
-  let rows=LICENCIAS.filter(l=>
-    (!q||(l.nombre||'').toLowerCase().includes(q)||(l.proveedor||'').toLowerCase().includes(q))&&
-    (!tipo||l.tipo===tipo)&&(!est||l.estado===est));
+  // Búsqueda multi-campo en: nombre, proveedor, tipo
+  let rows=searchMultiField(LICENCIAS,q,SEARCH_FIELDS.license);
+  
+  // Aplicar filtros específicos
+  rows=rows.filter(l=>(!tipo||l.tipo===tipo)&&(!est||l.estado===est));
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('license',rows);
   
   $('licenseCount').textContent=`${rows.length} licencia(s)`;
   
@@ -3741,12 +3851,13 @@ let currentAppPagos=[];
 let editAplicativoId=null;
 
 function renderAplicativos(){
-  const q=($('srchAplicativo')?.value||'').toLowerCase();
+  const q=($('srchAplicativo')?.value||'');
   const periodicidad=$('ftAplicativoPeriodicidad')?.value||'';
   const est=$('ftAplicativoEst')?.value||'';
   
-  let rows=APLICATIVOS.filter(a=>{
-    if(q&&!(a.nombre||'').toLowerCase().includes(q))return false;
+  let rows=searchMultiField(APLICATIVOS,q,SEARCH_FIELDS.aplicativo);
+  
+  rows=rows.filter(a=>{
     if(periodicidad&&a.periodicidad!==periodicidad)return false;
     if(est){
       const hoy=TODAY;
@@ -3758,6 +3869,9 @@ function renderAplicativos(){
     }
     return true;
   });
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('aplicativo',rows);
   
   $('aplicativoCount').textContent=`${rows.length} aplicativo(s)`;
   
@@ -4018,10 +4132,13 @@ async function delPago(pago_id){
 let editCelularId=null;
 
 function renderCelulares(){
-  const q=($('srchCelular')?.value||'').toLowerCase();
+  const q=($('srchCelular')?.value||'');
   
-  let rows=CELULARES.filter(c=>
-    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.marca||'').toLowerCase().includes(q)||(c.imei||'').toLowerCase().includes(q)||(c.imei2||'').toLowerCase().includes(q)));
+  // Búsqueda multi-campo en: nombre, marca, imei, imei2
+  let rows=searchMultiField(CELULARES,q,SEARCH_FIELDS.celular);
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('celular',rows);
   
   $('celularCount').textContent=`${rows.length} celular(es)`;
   
@@ -4268,14 +4385,27 @@ let currentSimcardBloqueos=[];
 let editSimcardId=null;
 
 function renderSimcards(){
-  const q=($('srchSimcard')?.value||'').toLowerCase();
+  const q=($('srchSimcard')?.value||'');
+  const qIMEI=($('srchSimcardIMEI')?.value||'');
   const operador=$('ftSimcardOperador')?.value||'';
   const estado=$('ftSimcardEst')?.value||'';
   
-  let rows=SIMCARDS.filter(s=>
-    (!q||(s.numero||'').toLowerCase().includes(q)||(s.operador||'').toLowerCase().includes(q))&&
-    (!operador||s.operador===operador)&&
-    (!estado||s.estado===estado));
+  // Búsqueda multi-campo en: numero, operador, celular.imei
+  let rows=searchMultiField(SIMCARDS,q,['numero','operador']);
+  
+  // Si hay búsqueda de IMEI, filtrar también por eso
+  if(qIMEI){
+    rows=rows.filter(s=>{
+      const celularIMEI=(s.celular?.imei||'').toLowerCase();
+      return celularIMEI.includes(qIMEI.toLowerCase());
+    });
+  }
+  
+  // Aplicar filtros específicos
+  rows=rows.filter(s=>(!operador||s.operador===operador)&&(!estado||s.estado===estado));
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('simcard',rows);
   
   $('simcardCount').textContent=`${rows.length} SIM(s)`;
   
@@ -4526,10 +4656,17 @@ async function delBloqueo(bloqueo_id){
    PRÉSTAMOS
 ════════════════════════════════════════════════════ */
 function renderLoan(){
-  const q=($('srchLoan')?.value||'').toLowerCase();
+  const q=($('srchLoan')?.value||'');
   const est=$('ftLoanEst')?.value||'';
   
-  let rows=LOANS.filter(p=>(!q||(p.equipo_nombre||'').toLowerCase().includes(q)||(p.usuario_nombre||'').toLowerCase().includes(q))&&(!est||p.estado===est));
+  // Búsqueda multi-campo en: equipo.nombre, equipo.serial, usuario.nombre, usuario.departamento
+  let rows=searchMultiField(LOANS,q,SEARCH_FIELDS.loan);
+  
+  // Aplicar filtros específicos
+  rows=rows.filter(p=>(!est||p.estado===est));
+  
+  // Aplicar filtros avanzados anidables
+  rows=applyAdvancedFilters('loan',rows);
   
   $('loanCount').textContent=`${rows.length} préstamo(s)`;
   
@@ -5196,21 +5333,12 @@ function renderAsignaciones(){
   const politicaFilter=$('ftAsigPoliticaValue')?.value||'';
   const fechaFilter=$('ftAsigFechaValue')?.value||'';
   
-  let filtered=ASIGNACIONES.filter(a=>{
-    const matchText=search.toLowerCase();
-    const eqData=a.equipo||{};
-    const usrData=a.usuario||{};
-    const tieneEntrada=!!a.firma_entrada_url;
-    
-    // Búsqueda de texto en múltiples campos
-    const matchesSearch=!search||(
-      eqData.nombre?.toLowerCase().includes(matchText)||
-      eqData.serial?.toLowerCase().includes(matchText)||
-      usrData.nombre?.toLowerCase().includes(matchText)||
-      usrData.departamento?.toLowerCase().includes(matchText)
-    );
-    
-    // Filtro específico por variable seleccionada
+  // Búsqueda multi-campo en: equipo.nombre, equipo.serial, usuario.nombre, usuario.departamento
+  let filtered=searchMultiField(ASIGNACIONES,search,SEARCH_FIELDS.asignaciones);
+  
+  // Filtros específicos
+  const tieneEntrada=!!a=>a.firma_entrada_url;
+  filtered=filtered.filter(a=>{
     let matchesSpecificFilter=true;
     
     if(variable==='responsable'&&responsableFilter){
@@ -5218,19 +5346,22 @@ function renderAsignaciones(){
     }else if(variable==='equipo'&&equipoFilter){
       matchesSpecificFilter=a.equipo_id===equipoFilter;
     }else if(variable==='firma'&&firmaFilter){
-      matchesSpecificFilter=(firmaFilter==='pendiente'&&!tieneEntrada)||(firmaFilter==='firmado'&&tieneEntrada);
+      const tieneEnt=!!a.firma_entrada_url;
+      matchesSpecificFilter=(firmaFilter==='pendiente'&&!tieneEnt)||(firmaFilter==='firmado'&&tieneEnt);
     }else if(variable==='estado'&&estadoFilter){
       matchesSpecificFilter=a.estado===estadoFilter;
     }else if(variable==='politica'&&politicaFilter){
       matchesSpecificFilter=(politicaFilter==='si'&&a.politica_aceptada)||(politicaFilter==='no'&&!a.politica_aceptada);
     }else if(variable==='fecha'&&fechaFilter){
-      // Comparar solo la fecha (sin hora)
       const asigDate=a.fecha_asignacion?new Date(a.fecha_asignacion).toISOString().split('T')[0]:'';
       matchesSpecificFilter=asigDate===fechaFilter;
     }
     
-    return matchesSearch&&matchesSpecificFilter;
+    return matchesSpecificFilter;
   });
+  
+  // Aplicar filtros avanzados anidables
+  filtered=applyAdvancedFilters('asignaciones',filtered);
   
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'asignaciones');
   
