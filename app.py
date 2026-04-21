@@ -3264,15 +3264,9 @@ def save_firma_salida(id):
             return jsonify({'error': str(result.get('error'))}), 500
         
         # Limpiar usuario_id del equipo cuando se devuelve (marca como libre)
-        equipoId = asig[0].get('equipo_id')
-        if equipoId:
-            supabase_request('PATCH', 'equipos', f'?id=eq.{equipoId}', {'usuario_id': None})
-        
-        # Limpiar usuario_id del equipo (ya no está en posesión de nadie)
         equipo_id = asig[0].get('equipo_id')
-        supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
-            'usuario_id': None
-        })
+        if equipo_id:
+            supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'usuario_id': None})
         
         # Crear entrada en hoja_vida
         usuario = supabase_request('GET', 'usuarios', f'?id=eq.{asig[0].get("usuario_id")}')
