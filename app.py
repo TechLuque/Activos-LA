@@ -2530,7 +2530,7 @@ def create_simcard():
             return jsonify({'error': f'Ya existe una SIM card con el número {numero_limpio}'}), 400
         
         # Validar operador
-        OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM']
+        OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM', 'Exito']
         if d.get('operador') not in OPERADORES:
             return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
         
@@ -2613,7 +2613,7 @@ def update_simcard(id):
         
         # Validar operador si fue proporcionado
         if d.get('operador'):
-            OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM']
+            OPERADORES = ['Movistar', 'Claro', 'Tigo', 'WOM', 'Exito']
             if d.get('operador') not in OPERADORES:
                 return jsonify({'error': f'Operador debe ser: {", ".join(OPERADORES)}'}), 400
         

@@ -890,6 +890,7 @@ input[type="file"]::file-selector-button{
             <option value="Claro">Claro</option>
             <option value="Tigo">Tigo</option>
             <option value="WOM">WOM</option>
+            <option value="Exito">Exito</option>
           </select>
           <select id="ftSimcardEst" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los estados</option>
@@ -1555,6 +1556,7 @@ input[type="file"]::file-selector-button{
             <option value="Claro">Claro</option>
             <option value="Tigo">Tigo</option>
             <option value="WOM">WOM</option>
+            <option value="Exito">Exito</option>
           </select>
         </div>
         <div class="fg"><label>Estado *</label>
@@ -4386,18 +4388,22 @@ let editSimcardId=null;
 
 function renderSimcards(){
   const q=($('srchSimcard')?.value||'');
-  const qIMEI=($('srchSimcardIMEI')?.value||'');
+  const qIMEI=($('srchSimcardIMEI')?.value||'').toLowerCase();
   const operador=$('ftSimcardOperador')?.value||'';
   const estado=$('ftSimcardEst')?.value||'';
   
-  // Búsqueda multi-campo en: numero, operador, celular.imei
+  // Búsqueda multi-campo en: numero, operador
   let rows=searchMultiField(SIMCARDS,q,['numero','operador']);
   
-  // Si hay búsqueda de IMEI, filtrar también por eso
+  // Si hay búsqueda de IMEI, filtrar por IMEI o IMEI2 del celular asociado
   if(qIMEI){
     rows=rows.filter(s=>{
-      const celularIMEI=(s.celular?.imei||'').toLowerCase();
-      return celularIMEI.includes(qIMEI.toLowerCase());
+      if(!s.celular_id) return false; // Excluir SIM sin celular
+      const cel=CELULARES.find(c=>c.id===s.celular_id);
+      if(!cel) return false;
+      const imei1=(cel.imei||'').toLowerCase();
+      const imei2=(cel.imei2||'').toLowerCase();
+      return imei1.includes(qIMEI) || imei2.includes(qIMEI);
     });
   }
   
