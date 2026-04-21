@@ -5337,7 +5337,6 @@ function renderAsignaciones(){
   let filtered=searchMultiField(ASIGNACIONES,search,SEARCH_FIELDS.asignaciones);
   
   // Filtros específicos
-  const tieneEntrada=!!a=>a.firma_entrada_url;
   filtered=filtered.filter(a=>{
     let matchesSpecificFilter=true;
     
