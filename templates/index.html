@@ -348,6 +348,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 
 /* ═══════════════ CALENDAR ═════════════ */
 .cal-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:600px){.cal-grid{grid-template-columns:1fr}}
 .cal-event{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all .18s}
 .cal-event:hover{border-color:var(--border2);background:var(--surface3)}
 .cal-event-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -398,6 +399,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .section-sep{margin:18px 0;border:none;border-top:1px solid var(--border)}
 .row-flex{display:flex;align-items:center;gap:10px}
 
+/* ═══════════════ RESPONSIVE GRIDS ════════ */
+.img-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.img-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;font-size:12px}
+.rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:600px){
+  .img-grid,.img-grid-3,.rep-grid{grid-template-columns:1fr}
+}
+
 /* ═══════════════ FIRMA DIGITAL ════════ */
 .signature-container{
   border:2px dashed var(--border);border-radius:var(--radius-sm);
@@ -426,6 +435,19 @@ input[type="file"]::file-selector-button{
   cursor:pointer;font-weight:600;margin-right:10px;font-size:12px
 }
 
+/* ═══════════════ HAMBURGER MENU ════════ */
+.hamburger{
+  display:none;flex-direction:column;justify-content:center;gap:5px;
+  width:38px;height:38px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface2);cursor:pointer;padding:8px;flex-shrink:0;
+}
+.hamburger span{display:block;height:2px;background:var(--text2);border-radius:2px;transition:all .2s}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:99;backdrop-filter:blur(4px);
+}
+.sidebar-overlay.open{display:block}
+
 /* ═══════════════ RESPONSIVE FIRMA ════════ */
 @media (max-width:1024px){
   .stats-row{grid-template-columns:repeat(2,1fr)}
@@ -436,7 +458,12 @@ input[type="file"]::file-selector-button{
 
 @media (max-width:768px){
   :root{--sidebar-w:0px}
-  .sidebar{display:none}
+  .sidebar{
+    display:flex;transform:translateX(-100%);transition:transform .25s ease;
+    position:fixed;z-index:100;width:260px;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex}
   .main{margin-left:0}
   .page-content{padding:16px;flex:1;overflow-y:auto}
   .stats-row{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
@@ -469,7 +496,11 @@ input[type="file"]::file-selector-button{
 
 @media (max-width:480px){
   :root{--sidebar-w:0px}
-  .sidebar{display:none}
+  .sidebar{
+    display:flex;transform:translateX(-100%);transition:transform .25s ease;
+    position:fixed;z-index:100;width:260px;
+  }
+  .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
   .page-content{padding:12px;}
   .topbar{padding:10px 12px;flex-direction:column;gap:8px}
@@ -594,9 +625,15 @@ input[type="file"]::file-selector-button{
   </nav>
 </aside>
 
+<!-- ═══════════════════ SIDEBAR OVERLAY ═══════════════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- ═══════════════════ MAIN ═══════════════════ -->
 <main class="main">
   <header class="topbar">
+    <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
     <div class="topbar-left">
       <h1 id="pgTitle">Panel de control</h1>
       <p id="pgDate"></p>
@@ -1962,8 +1999,8 @@ function toast(msg,type='info'){
   const t=document.createElement('div');
   t.className=`toast ${type}`;
   t.textContent=`${icons[type]||'ℹ️'} ${msg}`;
-  t.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;';
-  document.body.appendChild(t);
+  const wrap=document.getElementById('toastWrap')||document.body;
+  wrap.appendChild(t);
   setTimeout(()=>t.remove(),3500);
 }
 
@@ -2011,8 +2048,8 @@ function bsLabel(s){
 const SEARCH_FIELDS={
   eq:['nombre','serial','marca','modelo','tipo_nombre','disponibilidad'],
   usu:['nombre','email','departamento','telefono'],
-  mant:['equipo.nombre','equipo.serial','descripcion','tecnico'],
-  loan:['equipo.nombre','equipo.serial','usuario.nombre','usuario.departamento'],
+  mant:['equipo_nombre','descripcion','tecnico'],
+  loan:['equipo_nombre','usuario_nombre','departamento'],
   license:['nombre','proveedor','tipo'],
   aplicativo:['nombre'],
   celular:['nombre','marca','imei','imei2'],
@@ -2092,12 +2129,24 @@ function getActiveFilters(viewType){
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
   usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
 
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const ov=$('sidebarOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
+}
+function closeSidebar(){
+  document.querySelector('.sidebar')?.classList.remove('open');
+  $('sidebarOverlay')?.classList.remove('open');
+}
+
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   $('page-'+page).classList.add('active');
   $('pgTitle').textContent=PAGE_TITLES[page]||page;
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${page}'`))b.classList.add('active')});
+  closeSidebar();
   if(page==='equipos')renderEq();
   if(page==='mantenimientos')renderMant();
   if(page==='usuarios')renderUsr();
@@ -3145,11 +3194,11 @@ function renderRoles(){
     const deptColor=deptColors[r.departamento]||'#6b7280';
     return `
       <tr>
-        <td><strong>${r.nombre}</strong></td>
-        <td>${r.descripcion||'-'}</td>
-        <td><span style="font-size:11px;background:${deptColor}20;color:${deptColor};padding:4px 10px;border-radius:6px;display:inline-block;font-weight:600">${r.departamento||'Sin asignar'}</span></td>
-        <td>${new Date(r.created_at).toLocaleDateString('es-CO')}</td>
-        <td style="text-align:center">
+        <td data-label="Nombre"><strong>${r.nombre}</strong></td>
+        <td data-label="Descripción">${r.descripcion||'-'}</td>
+        <td data-label="Departamento"><span style="font-size:11px;background:${deptColor}20;color:${deptColor};padding:4px 10px;border-radius:6px;display:inline-block;font-weight:600">${r.departamento||'Sin asignar'}</span></td>
+        <td data-label="Creado">${new Date(r.created_at).toLocaleDateString('es-CO')}</td>
+        <td data-label="Acciones" style="text-align:center">
           <button class="btn btn-sm btn-ghost" onclick="openEditarRol(${r.id},'${r.nombre.replace(/'/g,"\\'")}')" title="Editar">✏️</button>
           <button class="btn btn-sm btn-ghost" onclick="deleteRol(${r.id},'${r.nombre.replace(/'/g,"\\'")}')" title="Eliminar" ${['Administrador','Usuario'].includes(r.nombre)?'disabled title="No puedes eliminar roles del sistema"':''}>🗑️</button>
         </td>
@@ -4919,7 +4968,7 @@ function viewLoanDocuments(id){
   
   // Mostrar imágenes iniciales
   if(loan.imagen1_url||loan.imagen2_url){
-    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos (Recepción del Equipo)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">`;
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos (Recepción del Equipo)</div><div class="img-grid">`;
     
     if(loan.imagen1_url){
       html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
@@ -4954,7 +5003,7 @@ function viewLoanDocuments(id){
   
   // Mostrar imágenes de devolución
   if(loan.imagen1_devolucion_url||loan.imagen2_devolucion_url){
-    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos (Devolución del Equipo)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">`;
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos (Devolución del Equipo)</div><div class="img-grid">`;
     
     if(loan.imagen1_devolucion_url){
       html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
@@ -5020,7 +5069,7 @@ async function viewLoanDetails(id){
     if(loan.firma_url || loan.imagen1_url || loan.imagen2_url){
       html+=`<div class="card" style="margin-bottom:16px">
         <div class="card-title">📄 Firma Inicial + Fotos</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;font-size:12px">`;
+        <div class="img-grid-3">`;
       
       if(loan.firma_url){
         html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
@@ -5050,7 +5099,7 @@ async function viewLoanDetails(id){
     if(loan.firma_devolucion_url || loan.imagen1_devolucion_url || loan.imagen2_devolucion_url){
       html+=`<div class="card">
         <div class="card-title">📄 Firma Devolución + Fotos</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;font-size:12px">`;
+        <div class="img-grid-3">`;
       
       if(loan.firma_devolucion_url){
         html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
@@ -5166,7 +5215,7 @@ function renderReportes(){
         <div class="stat-sub">Categorías diferentes</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div class="rep-grid">
       <div class="card">
         <div class="card-header"><div class="card-title">Distribución por tipo</div></div>
         <div class="card-body card-body-scrollable">${sorted.map(([t,c])=>`
