@@ -1059,7 +1059,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Equipo</th><th>Responsable</th><th>Fecha Asignación</th><th>Estado Entrada</th><th>Firma Entrada</th><th>Estado</th><th>Acciones</th>
+          <th>Equipo</th><th>Responsable</th><th>Fecha Asignación</th><th>Estado Entrada</th><th>Firma Entrada</th><th>Política</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="asigTbody"></tbody></table>
       </div>
       <div id="asigPaginationContainer"></div>
@@ -1073,7 +1073,7 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable…" oninput="currentPage['loan']=1;renderLoan()">
+          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable, departamento…" oninput="currentPage['loan']=1;renderLoan()">
           <select id="ftLoanEst" onchange="currentPage['loan']=1;renderLoan()">
             <option value="">Todos los estados</option>
             <option value="solicitado">Solicitado</option>
@@ -1081,6 +1081,15 @@ input[type="file"]::file-selector-button{
             <option value="activo">Activo</option>
             <option value="devuelto">Devuelto</option>
           </select>
+          <select id="ftLoanDpto" onchange="currentPage['loan']=1;renderLoan()">
+            <option value="">Todos los departamentos</option>
+          </select>
+          <select id="ftLoanVencido" onchange="currentPage['loan']=1;renderLoan()">
+            <option value="">Sin filtro de vencimiento</option>
+            <option value="vencido">Vencidos</option>
+            <option value="proximo">Por vencer (7 días)</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="btClearLoanFilter" onclick="clearLoanFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -1097,9 +1106,10 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Equipo</th><th>Responsable</th><th>Fecha préstamo</th><th>Devolución esperada</th><th>Devolución real</th><th>Estado</th><th>Notas</th><th>Acciones</th>
+          <th>Equipo</th><th>Responsable</th><th>Fecha préstamo</th><th>Devolución esperada</th><th>Devolución real</th><th>Estado</th><th>Términos</th><th>Notas</th><th>Acciones</th>
         </tr></thead><tbody id="loanTbody"></tbody></table>
       </div>
+      <div id="loanPaginationContainer"></div>
     </section>
 
     <!-- ════ CALENDARIO ════ -->
@@ -2150,7 +2160,7 @@ function nav(page){
   if(page==='equipos')renderEq();
   if(page==='mantenimientos')renderMant();
   if(page==='usuarios')renderUsr();
-  if(page==='prestamos')renderLoan();
+  if(page==='prestamos'){updateLoanDptosSelect();renderLoan();}
   if(page==='licencias')renderLicenses();
   if(page==='aplicativos')renderAplicativos();
   if(page==='celulares')renderCelulares();
@@ -2653,7 +2663,7 @@ function renderEq(){
     rows.sort((a,b)=>(b.serial||'').localeCompare(a.serial||''));
   }
   
-  $('eqCount').textContent=`${rows.length} equipo(s)`;
+  $('eqCount').textContent=`${rows.length} de ${EQ.length} equipo(s)`;
   
   // Paginación
   const {data:pageData,totalPages,currentPage}=paginateArray(rows,'eq');
@@ -3326,7 +3336,7 @@ function renderMant(){
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('mant',rows);
   
-  $('mantCount').textContent=`${rows.length} registro(s)`;
+  $('mantCount').textContent=`${rows.length} de ${MANTS.length} registro(s)`;
   
   // Paginación
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'mant');
@@ -3555,7 +3565,7 @@ function renderUsr(){
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('usu',rows);
   
-  $('usrCount').textContent=`${rows.length} usuario(s)`;
+  $('usrCount').textContent=`${rows.length} de ${USR.length} usuario(s)`;
   
   // Paginación
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'usu');
@@ -3754,7 +3764,7 @@ function renderLicenses(){
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('license',rows);
   
-  $('licenseCount').textContent=`${rows.length} licencia(s)`;
+  $('licenseCount').textContent=`${rows.length} de ${LICENCIAS.length} licencia(s)`;
   
   // Paginación
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'license');
@@ -3924,7 +3934,7 @@ function renderAplicativos(){
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('aplicativo',rows);
   
-  $('aplicativoCount').textContent=`${rows.length} aplicativo(s)`;
+  $('aplicativoCount').textContent=`${rows.length} de ${APLICATIVOS.length} aplicativo(s)`;
   
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'aplicativo');
   
@@ -4191,7 +4201,7 @@ function renderCelulares(){
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('celular',rows);
   
-  $('celularCount').textContent=`${rows.length} celular(es)`;
+  $('celularCount').textContent=`${rows.length} de ${CELULARES.length} celular(es)`;
   
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'celular');
   
@@ -4462,7 +4472,7 @@ function renderSimcards(){
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('simcard',rows);
   
-  $('simcardCount').textContent=`${rows.length} SIM(s)`;
+  $('simcardCount').textContent=`${rows.length} de ${SIMCARDS.length} SIM(s)`;
   
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'simcard');
   
@@ -4713,27 +4723,34 @@ async function delBloqueo(bloqueo_id){
 function renderLoan(){
   const q=($('srchLoan')?.value||'');
   const est=$('ftLoanEst')?.value||'';
-  
-  // Búsqueda multi-campo en: equipo.nombre, equipo.serial, usuario.nombre, usuario.departamento
+  const dpto=$('ftLoanDpto')?.value||'';
+  const vencido=$('ftLoanVencido')?.value||'';
+
   let rows=searchMultiField(LOANS,q,SEARCH_FIELDS.loan);
-  
-  // Aplicar filtros específicos
-  rows=rows.filter(p=>(!est||p.estado===est));
-  
-  // Aplicar filtros avanzados anidables
+
+  rows=rows.filter(p=>{
+    if(est&&p.estado!==est) return false;
+    if(dpto&&p.departamento!==dpto) return false;
+    if(vencido){
+      const dl=daysLeft(p.fecha_devolucion_esperada);
+      const isOverdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+      const isNear=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
+      if(vencido==='vencido'&&!isOverdue) return false;
+      if(vencido==='proximo'&&!isNear) return false;
+    }
+    return true;
+  });
+
   rows=applyAdvancedFilters('loan',rows);
-  
-  $('loanCount').textContent=`${rows.length} préstamo(s)`;
-  
-  // Paginación
+
+  $('loanCount').textContent=`${rows.length} de ${LOANS.length} préstamo(s)`;
+
   const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'loan');
-  
+
   const tb=$('loanTbody');
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;
-    const wrapper=tb.parentElement.parentElement;
-    const oldPagination=wrapper.querySelector('[data-pagination="loan"]');
-    if(oldPagination) oldPagination.remove();
+    tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;
+    $('loanPaginationContainer').innerHTML='';
     return;
   }
   tb.innerHTML=pageData.map(p=>{
@@ -4754,7 +4771,7 @@ function renderLoan(){
       </td>
       <td data-label="Devuelto" class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
       <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
-      <td data-label="T&C"><span style="font-weight:600;color:${p.terminos_aceptados?'var(--green)':'var(--text3)'}">${p.terminos_aceptados?'✅ Aceptó':'⏳ Pendiente'}</span></td>
+      <td data-label="Términos"><span style="font-weight:600;color:${p.terminos_aceptados?'var(--green)':'var(--text3)'}">${p.terminos_aceptados?'✅ Aceptó':'⏳ Pendiente'}</span></td>
       <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
       <td data-label="Acciones"><div class="act-cell">
         ${p.estado==='solicitado'?`<button class="btn btn-warning btn-sm" onclick="openLoanModal(${p.id})">✏️ Editar</button>`:``}
@@ -4763,27 +4780,36 @@ function renderLoan(){
         <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️ Eliminar</button>
       </div></td>
     </tr>`;}).join('');
-  
-  // Agregar/actualizar controles de paginación si hay múltiples páginas
-  if(totalPages>1){
-    const wrapper=tb.parentElement.parentElement;
-    let paginationContainer=wrapper.querySelector('[data-pagination="loan"]');
-    if(!paginationContainer){
-      paginationContainer=document.createElement('div');
-      paginationContainer.setAttribute('data-pagination','loan');
-      paginationContainer.style.padding='0 20px 20px 20px';
-      wrapper.appendChild(paginationContainer);
-    }
-    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'loan');
-  }else{
-    const wrapper=tb.parentElement.parentElement;
-    const paginationContainer=wrapper.querySelector('[data-pagination="loan"]');
-    if(paginationContainer) paginationContainer.remove();
-  }
+
+  $('loanPaginationContainer').innerHTML=createPaginationControls(cp,totalPages,'loan');
 }
+function updateLoanDptosSelect(){
+  const dptos=[...new Set(LOANS.map(p=>p.departamento).filter(d=>d))].sort();
+  const sel=$('ftLoanDpto');
+  if(!sel) return;
+  const current=sel.value;
+  sel.innerHTML='<option value="">Todos los departamentos</option>';
+  dptos.forEach(d=>{
+    const opt=document.createElement('option');
+    opt.value=d;
+    opt.textContent=d;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+}
+
+function clearLoanFilters(){
+  $('srchLoan').value='';
+  $('ftLoanEst').value='';
+  $('ftLoanDpto').value='';
+  $('ftLoanVencido').value='';
+  currentPage['loan']=1;
+  renderLoan();
+}
+
 function openLoanModal(loan_id=null){
   editLoanId=null;
-  
+
   // Excluir equipos que YA tienen préstamos NO devueltos (no solo 'activo')
   // Pero si estamos editando, excluir solo los demás préstamos activos
   const excludeLoanId=loan_id||null;
@@ -5452,7 +5478,7 @@ function renderAsignaciones(){
   $('asigPaginationContainer').innerHTML=createPaginationControls(cp,totalPages,'asignaciones');
   
   // Actualizar contador
-  $('asigCount').textContent=`${filtered.length} de ${ASIGNACIONES.length}`;
+  $('asigCount').textContent=`${filtered.length} de ${ASIGNACIONES.length} asignación(es)`;
 }
 
 function viewSignature(asigId, tipo){
