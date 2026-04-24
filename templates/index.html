@@ -174,11 +174,43 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .stat-value{font-family:var(--font-d);font-size:24px;font-weight:800;letter-spacing:-1px;line-height:1}
 .stat-sub{font-size:10px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:3px}
 .stat-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.stat-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;margin-bottom:10px}
+.stat-card-row{display:flex;justify-content:space-between;align-items:flex-start}
+.stat-trend{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.stat-trend-up{background:var(--green-soft);color:var(--green)}
+.stat-trend-warn{background:var(--amber-soft);color:var(--amber)}
+.stat-trend-err{background:var(--red-soft);color:var(--red)}
+.stat-trend-neu{background:var(--surface2);color:var(--text3)}
 
 /* ═══════════════ DASHBOARD GRID ════════ */
 .dash-grid{display:grid;grid-template-columns:1fr 360px;gap:14px}
 .dash-left{display:flex;flex-direction:column;gap:12px}
 .dash-right{display:flex;flex-direction:column;gap:10px}
+
+/* ═══════════════ DASH KPI ROW ══════════ */
+.dash-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.kpi-mini{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:transform .2s,border-color .2s}
+.kpi-mini:hover{transform:translateY(-2px);border-color:var(--blue)}
+.kpi-mini-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.kpi-mini-val{font-family:var(--font-d);font-size:22px;font-weight:800;line-height:1}
+.kpi-mini-lbl{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ═══════════════ ALERT CARD ═════════════ */
+.alert-card-scroll{max-height:190px;overflow-y:auto;padding:0 16px 12px}
+.alert-card-scroll::-webkit-scrollbar{width:4px}
+.alert-card-scroll::-webkit-scrollbar-track{background:transparent}
+.alert-card-scroll::-webkit-scrollbar-thumb{background:var(--text3);border-radius:2px}
+.alert-card-scroll .alert-item{border-radius:var(--radius-sm);margin-bottom:6px;padding:9px 12px}
+.alert-card-scroll .alert-item:last-child{margin-bottom:0}
+
+@media(max-width:860px){
+  .dash-kpi-row{grid-template-columns:1fr 1fr}
+  .dash-grid{grid-template-columns:1fr}
+  .dash-right{order:-1}
+}
+@media(max-width:540px){
+  .dash-kpi-row{grid-template-columns:1fr}
+}
 
 /* ═══════════════ ALERTS STRIP ══════════ */
 .alert-strip{background:linear-gradient(135deg,rgba(248,113,113,.08),rgba(251,146,60,.08));border:1px solid rgba(248,113,113,.2);border-radius:var(--radius);padding:12px 16px;display:flex;flex-direction:column;gap:6px}
@@ -451,6 +483,7 @@ input[type="file"]::file-selector-button{
 /* ═══════════════ RESPONSIVE FIRMA ════════ */
 @media (max-width:1024px){
   .stats-row{grid-template-columns:repeat(2,1fr)}
+  .dash-kpi-row{grid-template-columns:repeat(3,1fr)}
   .page-content{padding:20px}
   .topbar{padding:12px 18px;gap:10px}
   .search-wrap{max-width:200px}
@@ -466,8 +499,10 @@ input[type="file"]::file-selector-button{
   .hamburger{display:flex}
   .main{margin-left:0}
   .page-content{padding:16px;flex:1;overflow-y:auto}
-  .stats-row{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+  .dash-kpi-row{grid-template-columns:1fr}
   .dash-grid{grid-template-columns:1fr;gap:12px}
+  .dash-right{order:-1}
   .topbar{padding:12px 14px;flex-wrap:wrap}
   .topbar-left h1{font-size:16px}
   .search-wrap{flex:1;min-width:120px;max-width:none;margin-left:0;margin-top:8px}
@@ -661,48 +696,62 @@ input[type="file"]::file-selector-button{
 
     <!-- ════ DASHBOARD ════ -->
     <section class="page active" id="page-dashboard">
+      <!-- KPI principal: 4 tarjetas grandes -->
       <div class="stats-row" id="statsRow"></div>
-      <!-- Alerts strip: loans expiring -->
-      <div id="alertsStrip"></div>
-      <div class="dash-grid" style="margin-top:10px">
+      <!-- KPI secundario: 3 categorías adicionales -->
+      <div class="dash-kpi-row" id="dashKpiRow"></div>
+      <!-- Grid principal -->
+      <div class="dash-grid">
         <div class="dash-left">
           <div class="card">
             <div class="card-header">
-              <div><div class="card-title">Equipos por tipo</div><div class="card-sub">Distribución top 7</div></div>
-              <span class="chip chip-blue">Resumen</span>
+              <div><div class="card-title">Equipos por tipo</div><div class="card-sub">Distribución del inventario</div></div>
+              <button class="chip chip-blue" onclick="nav('equipos')">Ver equipos</button>
             </div>
             <div class="card-body"><div class="bar-wrap" id="barChart"></div></div>
           </div>
           <div class="card">
             <div class="card-header">
               <div><div class="card-title">Actividad reciente</div><div class="card-sub">Últimos eventos del sistema</div></div>
-              <button class="chip chip-teal" onclick="nav('mantenimientos')">Ver mantenimientos</button>
+              <button class="chip chip-teal" onclick="nav('mantenimientos')">Ver todos</button>
             </div>
             <div class="card-body" id="recentActivity"></div>
           </div>
         </div>
         <div class="dash-right">
+          <!-- Alertas dentro del grid — no empuja el contenido -->
+          <div class="card" id="alertsCard" style="display:none">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="color:var(--red)">Alertas de préstamos</div>
+                <div class="card-sub" id="alertsCardSub"></div>
+              </div>
+              <button class="chip" style="background:var(--red-soft);color:var(--red)" onclick="nav('prestamos')">Ver préstamos</button>
+            </div>
+            <div class="alert-card-scroll" id="alertsStrip"></div>
+          </div>
+          <!-- Donut estado equipos -->
           <div class="card">
             <div class="card-header">
               <div><div class="card-title">Estado de equipos</div><div class="card-sub">Distribución general</div></div>
-              <span class="chip chip-blue">Hoy</span>
+              <button class="chip chip-blue" onclick="nav('equipos')">Ver todos</button>
             </div>
             <div class="card-body">
               <div class="donut-row">
                 <svg width="90" height="90" viewBox="0 0 110 110" id="donutSvg" style="flex-shrink:0"></svg>
                 <div class="legend" id="donutLegend"></div>
               </div>
-              <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="nav('equipos')">Ver todos los equipos →</button>
             </div>
           </div>
+          <!-- Indicadores operativos -->
           <div class="card">
             <div class="card-header">
-              <div><div class="card-title">Indicadores clave</div><div class="card-sub">Estado operativo</div></div>
+              <div><div class="card-title">Indicadores operativos</div><div class="card-sub">Estado en tiempo real</div></div>
             </div>
             <div class="card-body" id="kpiList"></div>
-            <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px">
-              <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="nav('prestamos')">Gestionar préstamos →</button>
-              <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="nav('mantenimientos')">Gestionar mantenimientos →</button>
+            <div style="padding:0 16px 16px;display:flex;gap:8px">
+              <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12px" onclick="nav('prestamos')">Préstamos →</button>
+              <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12px" onclick="nav('mantenimientos')">Mantenimientos →</button>
             </div>
           </div>
         </div>
@@ -2336,51 +2385,100 @@ function updateNavBadges(){
 ════════════════════════════════════════════════════ */
 function renderDashboard(){
   const d=DASH;
-  
-  // Stats
-  const valorM=d.valor_total?(d.valor_total/1000000).toFixed(1):'0';
+  const venc=d.prestamos_vencidos||[];
+  const prox=d.proximos_vencer||[];
+
+  // ── Stat cards principales ──────────────────────────────────────────
+  const valorM=d.valor_total?(d.valor_total>=1000000?(d.valor_total/1000000).toFixed(1)+'M':(d.valor_total/1000).toFixed(0)+'K'):'0';
+  const dispCount=(d.estados||{})['Disponible']||(EQ.filter(e=>e.disponibilidad==='Disponible').length)||0;
+  const prestVenc=venc.length;
+
   $('statsRow').innerHTML=`
-    <div class="stat-card" style="--accent-color:var(--blue)"><div class="glow-dot"></div>
-      <div class="stat-label">Total equipos</div>
+    <div class="stat-card" style="--accent-color:var(--blue);cursor:pointer" onclick="nav('equipos')">
+      <div class="stat-card-row">
+        <div class="stat-card-icon" style="background:var(--blue-soft)">💻</div>
+        <span class="stat-trend stat-trend-neu">${dispCount} disp.</span>
+      </div>
       <div class="stat-value" style="color:var(--blue)">${d.total_equipos||0}</div>
-      <div class="stat-sub">Valor inventario: <strong style="color:var(--text)">$${valorM}M</strong></div>
+      <div class="stat-label" style="margin-top:4px">Total equipos</div>
+      <div class="stat-sub">Valor: <strong style="color:var(--text)">$${valorM}</strong></div>
     </div>
-    <div class="stat-card" style="--accent-color:var(--teal)"><div class="glow-dot" style="background:var(--teal)"></div>
-      <div class="stat-label">Responsables activos</div>
+    <div class="stat-card" style="--accent-color:var(--teal);cursor:pointer" onclick="nav('usuarios')">
+      <div class="stat-card-row">
+        <div class="stat-card-icon" style="background:var(--teal-soft)">👥</div>
+        <span class="stat-trend stat-trend-up">Activos</span>
+      </div>
       <div class="stat-value" style="color:var(--teal)">${d.total_usuarios||0}</div>
+      <div class="stat-label" style="margin-top:4px">Responsables</div>
       <div class="stat-sub">Usuarios en el sistema</div>
     </div>
-    <div class="stat-card" style="--accent-color:var(--amber)"><div class="glow-dot" style="background:var(--amber)"></div>
-      <div class="stat-label">Préstamos activos</div>
+    <div class="stat-card" style="--accent-color:var(--amber);cursor:pointer" onclick="nav('prestamos')">
+      <div class="stat-card-row">
+        <div class="stat-card-icon" style="background:var(--amber-soft)">🔁</div>
+        <span class="stat-trend ${prestVenc>0?'stat-trend-err':'stat-trend-up'}">${prestVenc>0?prestVenc+' venc.':'Al día'}</span>
+      </div>
       <div class="stat-value" style="color:var(--amber)">${d.prestamos_activos||0}</div>
-      <div class="stat-sub">${(d.prestamos_vencidos||[]).length} vencido(s) sin devolver</div>
+      <div class="stat-label" style="margin-top:4px">Préstamos activos</div>
+      <div class="stat-sub">${prox.length} por vencer pronto</div>
     </div>
-    <div class="stat-card" style="--accent-color:var(--${d.mant_en_proceso>0?'red':'green'})">
-      <div class="glow-dot" style="background:var(--${d.mant_en_proceso>0?'red':'green'})"></div>
-      <div class="stat-label">Mantenimientos</div>
+    <div class="stat-card" style="--accent-color:var(--${d.mant_en_proceso>0?'red':'green'});cursor:pointer" onclick="nav('mantenimientos')">
+      <div class="stat-card-row">
+        <div class="stat-card-icon" style="background:var(--${d.mant_en_proceso>0?'red-soft':'green-soft'})">🔧</div>
+        <span class="stat-trend ${d.mant_en_proceso>0?'stat-trend-err':'stat-trend-up'}">${d.mant_en_proceso>0?'Activos':'OK'}</span>
+      </div>
       <div class="stat-value" style="color:var(--${d.mant_en_proceso>0?'red':'green'})">${d.mant_en_proceso||0}</div>
-      <div class="stat-sub">En proceso · ${d.preventivos_vencidos||0} revisión(es) vencida(s)</div>
+      <div class="stat-label" style="margin-top:4px">Mantenimientos</div>
+      <div class="stat-sub">${d.preventivos_vencidos||0} revisión(es) vencida(s)</div>
     </div>
   `;
 
-  // Alerts
-  const venc=d.prestamos_vencidos||[], prox=d.proximos_vencer||[];
-  let alertHTML='';
+  // ── KPI secundario: categorías adicionales ──────────────────────────
+  const asigAbiertas=ASIGNACIONES.filter(a=>a.estado==='abierta').length;
+  const licsActivas=LICENCIAS.filter(l=>l.estado==='activa').length;
+  const licsVencen=LICENCIAS.filter(l=>{
+    if(!l.fecha_caducidad||l.estado==='inactiva') return false;
+    return l.fecha_caducidad>=TODAY&&l.fecha_caducidad<=new Date(Date.now()+30*864e5).toISOString().split('T')[0];
+  }).length;
+
+  $('dashKpiRow').innerHTML=`
+    <div class="kpi-mini" onclick="nav('asignaciones')">
+      <div class="kpi-mini-icon" style="background:var(--violet-soft)">📋</div>
+      <div>
+        <div class="kpi-mini-val" style="color:var(--violet)">${asigAbiertas}</div>
+        <div class="kpi-mini-lbl">Asignaciones abiertas</div>
+      </div>
+    </div>
+    <div class="kpi-mini" onclick="nav('licencias')">
+      <div class="kpi-mini-icon" style="background:var(--blue-soft)">📜</div>
+      <div>
+        <div class="kpi-mini-val" style="color:var(--blue)">${licsActivas}</div>
+        <div class="kpi-mini-lbl">Licencias activas${licsVencen>0?` <span style="color:var(--amber);font-size:10px">(${licsVencen} por vencer)</span>`:''}</div>
+      </div>
+    </div>
+    <div class="kpi-mini" onclick="nav('celulares')">
+      <div class="kpi-mini-icon" style="background:var(--green-soft)">📱</div>
+      <div>
+        <div class="kpi-mini-val" style="color:var(--green)">${CELULARES.length}</div>
+        <div class="kpi-mini-lbl">Celulares registrados <span style="color:var(--text3);font-size:10px">(${SIMCARDS.length} SIM)</span></div>
+      </div>
+    </div>
+  `;
+
+  // ── Alertas de préstamos (dentro del grid) ─────────────────────────
+  const alertCard=$('alertsCard');
   if(venc.length||prox.length){
-    alertHTML=`<div class="alert-strip">
-      <div class="alert-strip-header">
-        <span style="font-size:18px">🚨</span>
-        <h3>Alertas de préstamos — ${venc.length} vencido(s), ${prox.length} por vencer</h3>
-      </div>`;
+    alertCard.style.display='';
+    $('alertsCardSub').textContent=`${venc.length} vencido(s) · ${prox.length} por vencer`;
+    let alertHTML='';
     venc.forEach(p=>{
       const dl=daysLeft(p.fecha_devolucion_esperada);
       alertHTML+=`<div class="alert-item alert-vencido" onclick="nav('prestamos')">
         <div class="alert-dot"></div>
         <div class="alert-item-info">
           <div class="alert-item-title">🔴 ${p.equipo_nombre||'Equipo desconocido'}</div>
-          <div class="alert-item-sub">Responsable: ${p.usuario_nombre||'—'} · Notas: ${p.notas||'—'}</div>
+          <div class="alert-item-sub">${p.usuario_nombre||'—'} · Venció hace ${Math.abs(dl)} día(s)</div>
         </div>
-        <div class="alert-item-date">Venció ${Math.abs(dl)} día(s)</div>
+        <div class="alert-item-date">−${Math.abs(dl)}d</div>
       </div>`;
     });
     prox.forEach(p=>{
@@ -2389,16 +2487,17 @@ function renderDashboard(){
         <div class="alert-dot"></div>
         <div class="alert-item-info">
           <div class="alert-item-title">🟡 ${p.equipo_nombre||'Equipo desconocido'}</div>
-          <div class="alert-item-sub">Responsable: ${p.usuario_nombre||'—'} · Devolver: ${fmtDate(p.fecha_devolucion_esperada)}</div>
+          <div class="alert-item-sub">${p.usuario_nombre||'—'} · ${fmtDate(p.fecha_devolucion_esperada)}</div>
         </div>
-        <div class="alert-item-date">En ${dl} día(s)</div>
+        <div class="alert-item-date">+${dl}d</div>
       </div>`;
     });
-    alertHTML+='</div>';
+    $('alertsStrip').innerHTML=alertHTML;
+  }else{
+    alertCard.style.display='none';
   }
-  $('alertsStrip').innerHTML=alertHTML;
 
-  // Bar chart
+  // ── Gráfico de barras (equipos por tipo) ───────────────────────────
   const tipos=d.tipos_equipos||[];
   const maxC=Math.max(...tipos.map(t=>t.count||0),1);
   const barColors=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#fb923c'];
@@ -2408,17 +2507,17 @@ function renderDashboard(){
       <div class="bar-lbl">${t.tipo_nombre}</div>
     </div>`).join(''):'<div style="text-align:center;color:var(--text3);padding:20px">Sin datos</div>';
 
-  // Donut
-  const estados=[
+  // ── Donut estado de equipos ────────────────────────────────────────
+  const estadosDef=[
     {k:'bueno',label:'Bueno',c:'#34d399'},{k:'regular',label:'Regular',c:'#2dd4bf'},
     {k:'dañado',label:'Dañado',c:'#f87171'},{k:'en_reparacion',label:'En reparación',c:'#fbbf24'}
   ];
-  const total=d.total_equipos||1, ests=d.estados||{};
+  const totalEq=d.total_equipos||1, ests=d.estados||{};
   const cx=55,cy=55,r=38,stroke=14,circ=2*Math.PI*r;
-  let offset=0, circles='';
-  estados.forEach(e=>{
+  let offset=0,circles='';
+  estadosDef.forEach(e=>{
     const val=ests[e.k]||0;
-    const len=(val/total)*circ;
+    const len=(val/totalEq)*circ;
     if(len>0){
       circles+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${e.c}" stroke-width="${stroke}" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>`;
       offset+=len;
@@ -2427,14 +2526,14 @@ function renderDashboard(){
   $('donutSvg').innerHTML=circles+`
     <text x="${cx}" y="${cy-4}" text-anchor="middle" dominant-baseline="middle" style="font-family:var(--font-d);font-size:18px;font-weight:800;fill:var(--text)">${d.total_equipos||0}</text>
     <text x="${cx}" y="${cy+12}" text-anchor="middle" dominant-baseline="middle" style="font-size:8px;fill:var(--text3)">equipos</text>`;
-  $('donutLegend').innerHTML=estados.map(e=>{
+  $('donutLegend').innerHTML=estadosDef.map(e=>{
     const val=ests[e.k]||0;
     return`<div class="legend-item">
       <div class="legend-left"><span class="ldot" style="background:${e.c}"></span>${e.label}</div>
-      <div class="legend-right">${val}<span class="legend-pct">(${total?Math.round(val/total*100):0}%)</span></div>
+      <div class="legend-right">${val}<span class="legend-pct">(${totalEq?Math.round(val/totalEq*100):0}%)</span></div>
     </div>`;}).join('');
 
-  // KPIs
+  // ── Indicadores operativos ─────────────────────────────────────────
   $('kpiList').innerHTML=`
     <div class="mini-list-item">
       <div class="mli-icon" style="background:var(--red-soft)">⚠️</div>
@@ -2457,50 +2556,26 @@ function renderDashboard(){
       <div class="mli-right" style="color:var(--blue)">${d.prestamos_activos||0}</div>
     </div>`;
 
-  // Recent activity (combined mantenimientos + prestamos, last 5)
-  const allEvents = [
-    ...MANTS.map(m => ({
-      date: m.fecha || '2000-01-01',
-      type: 'mant',
-      title: m.equipo_nombre,
-      sub: m.descripcion.slice(0,55) + (m.descripcion.length>55?'…':''),
-      estado: m.estado,
-      tipoMant: m.tipo
-    })),
-    ...LOANS.map(p => ({
-      date: p.fecha_prestamo || '2000-01-01',
-      type: 'loan',
-      title: p.equipo_nombre,
-      sub: `${p.usuario_nombre} — ${p.departamento||''}`,
-      estado: p.estado,
-      notas: p.notas
-    }))
+  // ── Actividad reciente ─────────────────────────────────────────────
+  const allEvents=[
+    ...MANTS.map(m=>({date:m.fecha||'2000-01-01',type:'mant',title:m.equipo_nombre,sub:m.descripcion.slice(0,55)+(m.descripcion.length>55?'…':''),estado:m.estado,tipoMant:m.tipo})),
+    ...LOANS.map(p=>({date:p.fecha_prestamo||'2000-01-01',type:'loan',title:p.equipo_nombre,sub:`${p.usuario_nombre} — ${p.departamento||''}`,estado:p.estado}))
   ];
-  // Sort by date descending (most recent first)
-  allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
-  const recent = allEvents.slice(0, 5);
-  
-  $('recentActivity').innerHTML=recent.length?recent.map(ev=>{
-    if(ev.type === 'mant') {
-      return `<div class="mini-list-item">
+  allEvents.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  $('recentActivity').innerHTML=allEvents.slice(0,6).map(ev=>{
+    if(ev.type==='mant'){
+      return`<div class="mini-list-item">
         <div class="mli-icon" style="background:${ev.tipoMant==='preventivo'?'var(--blue-soft)':'var(--orange-soft)'}">${ev.tipoMant==='preventivo'?'🛡️':'🔧'}</div>
-        <div class="mli-body">
-          <div class="mli-title">${ev.title}</div>
-          <div class="mli-sub">${ev.sub}</div>
-        </div>
-        <span class="bs ${bsClass(ev.estado)}">${bsLabel(ev.estado)}</span>
-      </div>`;
-    } else {
-      return `<div class="mini-list-item">
-        <div class="mli-icon" style="background:var(--teal-soft)">🔁</div>
-        <div class="mli-body">
-          <div class="mli-title">${ev.title}</div>
-          <div class="mli-sub">${ev.sub}</div>
-        </div>
+        <div class="mli-body"><div class="mli-title">${ev.title}</div><div class="mli-sub">${ev.sub}</div></div>
         <span class="bs ${bsClass(ev.estado)}">${bsLabel(ev.estado)}</span>
       </div>`;
     }
-  }).join(''):'<div class="empty"><div class="empty-icon">📋</div><h3>Sin actividad reciente</h3></div>';
+    return`<div class="mini-list-item">
+      <div class="mli-icon" style="background:var(--teal-soft)">🔁</div>
+      <div class="mli-body"><div class="mli-title">${ev.title}</div><div class="mli-sub">${ev.sub}</div></div>
+      <span class="bs ${bsClass(ev.estado)}">${bsLabel(ev.estado)}</span>
+    </div>`;
+  }).join('')||'<div class="empty"><div class="empty-icon">📋</div><h3>Sin actividad reciente</h3></div>';
 }
 
 /* ════════════════════════════════════════════════════
