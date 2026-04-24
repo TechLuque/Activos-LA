@@ -717,12 +717,19 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchEq" type="text" placeholder="Buscar nombre, serial…" oninput="currentPage['eq']=1;renderEq()">
+          <input id="srchEq" type="text" placeholder="Buscar nombre, serial, marca…" oninput="currentPage['eq']=1;renderEq()">
           <select id="ftTipo" onchange="currentPage['eq']=1;renderEq()"><option value="">Todos los tipos</option></select>
           <select id="ftEst" onchange="currentPage['eq']=1;renderEq()">
             <option value="">Todos los estados</option>
             <option value="bueno">Bueno</option><option value="regular">Regular</option>
             <option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option>
+          </select>
+          <select id="ftEqDisp" onchange="currentPage['eq']=1;renderEq()">
+            <option value="">Todas las disponibilidades</option>
+            <option value="Disponible">Disponible</option>
+            <option value="Asignado">Asignado</option>
+            <option value="En mantenimiento">En mantenimiento</option>
+            <option value="Retirado">Retirado</option>
           </select>
           <select id="ftSerial" onchange="currentPage['eq']=1;renderEq()">
             <option value="">Ordenar por serial</option>
@@ -730,8 +737,9 @@ input[type="file"]::file-selector-button{
             <option value="desc">Serial Z-A</option>
           </select>
           <select id="ftDueno" onchange="currentPage['eq']=1;renderEq()">
-            <option value="">Todos los dueños</option>
+            <option value="">Todos los responsables</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearEqFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -761,7 +769,10 @@ input[type="file"]::file-selector-button{
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico…" oninput="currentPage['mant']=1;renderMant()">
+          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico, descripción…" oninput="currentPage['mant']=1;renderMant()">
+          <select id="ftMantEquipo" onchange="currentPage['mant']=1;renderMant()">
+            <option value="">Todos los equipos</option>
+          </select>
           <select id="ftMantTipo" onchange="currentPage['mant']=1;renderMant()">
             <option value="">Todos los tipos</option>
             <option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option>
@@ -772,6 +783,7 @@ input[type="file"]::file-selector-button{
             <option value="en_proceso">En proceso</option>
             <option value="pendiente">Pendiente</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearMantFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -809,6 +821,9 @@ input[type="file"]::file-selector-button{
             <option value="Comercial">Comercial</option>
             <option value="Otro">Otro</option>
           </select>
+          <select id="ftLicenseProveedor" onchange="currentPage['license']=1;renderLicenses()">
+            <option value="">Todos los proveedores</option>
+          </select>
           <select id="ftLicenseEst" onchange="currentPage['license']=1;renderLicenses()">
             <option value="">Todos los estados</option>
             <option value="activa">Activa</option>
@@ -816,6 +831,7 @@ input[type="file"]::file-selector-button{
             <option value="vencida">Vencida</option>
             <option value="inactiva">Inactiva</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearLicenseFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -860,6 +876,7 @@ input[type="file"]::file-selector-button{
             <option value="vencido">Vencido</option>
             <option value="inactivo">Inactivo</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearAplicativoFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -890,6 +907,17 @@ input[type="file"]::file-selector-button{
       <div class="tbl-toolbar">
         <div class="filter-row">
           <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="currentPage['celular']=1;renderCelulares()">
+          <select id="ftCelularMarca" onchange="currentPage['celular']=1;renderCelulares()">
+            <option value="">Todas las marcas</option>
+          </select>
+          <select id="ftCelularEst" onchange="currentPage['celular']=1;renderCelulares()">
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="en_reparacion">En reparación</option>
+            <option value="inactivo">Inactivo</option>
+            <option value="retirado">Retirado</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearCelularFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -936,6 +964,7 @@ input[type="file"]::file-selector-button{
             <option value="bloqueado">Bloqueado</option>
             <option value="desactivado">Desactivado</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearSimcardFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -972,6 +1001,7 @@ input[type="file"]::file-selector-button{
           <select id="ftUsrEst" onchange="currentPage['usu']=1;renderUsr()">
             <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearUsrFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -2158,12 +2188,12 @@ function nav(page){
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${page}'`))b.classList.add('active')});
   closeSidebar();
   if(page==='equipos')renderEq();
-  if(page==='mantenimientos')renderMant();
-  if(page==='usuarios')renderUsr();
+  if(page==='mantenimientos'){updateMantEquiposSelect();renderMant();}
+  if(page==='usuarios'){updateDptosSelect();renderUsr();}
   if(page==='prestamos'){updateLoanDptosSelect();renderLoan();}
-  if(page==='licencias')renderLicenses();
+  if(page==='licencias'){updateLicenseProveedoresSelect();renderLicenses();}
   if(page==='aplicativos')renderAplicativos();
-  if(page==='celulares')renderCelulares();
+  if(page==='celulares'){updateCelularMarcasSelect();renderCelulares();}
   if(page==='simcards')renderSimcards();
   if(page==='asignaciones'){actualizarFiltrosAsignaciones();renderAsignaciones();}
   if(page==='calendario')renderCal();
@@ -2641,16 +2671,16 @@ function renderEq(){
   const q=($('srchEq')?.value||'');
   const tipo=$('ftTipo')?.value||'';
   const est=$('ftEst')?.value||'';
+  const disp=$('ftEqDisp')?.value||'';
   const ordenSerial=$('ftSerial')?.value||'';
   const dueno=$('ftDueno')?.value||'';
-  
-  // Búsqueda multi-campo en: nombre, serial, marca, modelo
+
   let rows=searchMultiField(EQ,q,SEARCH_FIELDS.eq);
-  
-  // Aplicar filtros específicos
+
   rows=rows.filter(e=>
     (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&
     (!est||e.estado===est)&&
+    (!disp||e.disponibilidad===disp)&&
     (!dueno||e.usuario_id==dueno));
   
   // Aplicar filtros avanzados anidables
@@ -3322,16 +3352,54 @@ async function deleteRol(id,nombre){
 /* ════════════════════════════════════════════════════
    MANTENIMIENTOS
 ════════════════════════════════════════════════════ */
+function clearEqFilters(){
+  $('srchEq').value='';
+  $('ftTipo').value='';
+  $('ftEst').value='';
+  $('ftEqDisp').value='';
+  $('ftSerial').value='';
+  $('ftDueno').value='';
+  currentPage['eq']=1;
+  renderEq();
+}
+
+function updateMantEquiposSelect(){
+  const sel=$('ftMantEquipo');
+  if(!sel) return;
+  const current=sel.value;
+  const equipos=[...new Map(MANTS.filter(m=>m.equipo_id).map(m=>[m.equipo_id,{id:m.equipo_id,nombre:m.equipo_nombre}])).values()]
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  sel.innerHTML='<option value="">Todos los equipos</option>';
+  equipos.forEach(e=>{
+    const opt=document.createElement('option');
+    opt.value=e.id;
+    opt.textContent=e.nombre;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+}
+
+function clearMantFilters(){
+  $('srchMant').value='';
+  $('ftMantEquipo').value='';
+  $('ftMantTipo').value='';
+  $('ftMantEst').value='';
+  currentPage['mant']=1;
+  renderMant();
+}
+
 function renderMant(){
   const q=($('srchMant')?.value||'');
+  const equipo=$('ftMantEquipo')?.value||'';
   const tipo=$('ftMantTipo')?.value||'';
   const est=$('ftMantEst')?.value||'';
-  
-  // Búsqueda multi-campo en: equipo.nombre, equipo.serial, descripcion, tecnico
+
   let rows=searchMultiField(MANTS,q,SEARCH_FIELDS.mant);
-  
-  // Aplicar filtros específicos
-  rows=rows.filter(m=>(!tipo||m.tipo===tipo)&&(!est||m.estado===est));
+
+  rows=rows.filter(m=>
+    (!equipo||String(m.equipo_id)===equipo)&&
+    (!tipo||m.tipo===tipo)&&
+    (!est||m.estado===est));
   
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('mant',rows);
@@ -3551,6 +3619,13 @@ function updateDptosSelect(){
   });
   sel.value=current;
 }
+function clearUsrFilters(){
+  $('srchUsr').value='';
+  $('ftUsrDpto').value='';
+  $('ftUsrEst').value='';
+  currentPage['usu']=1;
+  renderUsr();
+}
 function renderUsr(){
   const q=($('srchUsr')?.value||'');
   const dpto=$('ftUsrDpto')?.value||'';
@@ -3750,16 +3825,39 @@ async function delUsr(id){
 /* ════════════════════════════════════════════════════
    LICENCIAS
 ════════════════════════════════════════════════════ */
+function updateLicenseProveedoresSelect(){
+  const sel=$('ftLicenseProveedor');
+  if(!sel) return;
+  const current=sel.value;
+  const proveedores=[...new Set(LICENCIAS.map(l=>l.proveedor).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todos los proveedores</option>';
+  proveedores.forEach(p=>{
+    const opt=document.createElement('option');
+    opt.value=p;
+    opt.textContent=p;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+}
+
+function clearLicenseFilters(){
+  $('srchLicense').value='';
+  $('ftLicenseTipo').value='';
+  $('ftLicenseProveedor').value='';
+  $('ftLicenseEst').value='';
+  currentPage['license']=1;
+  renderLicenses();
+}
+
 function renderLicenses(){
   const q=($('srchLicense')?.value||'');
   const tipo=$('ftLicenseTipo')?.value||'';
+  const proveedor=$('ftLicenseProveedor')?.value||'';
   const est=$('ftLicenseEst')?.value||'';
-  
-  // Búsqueda multi-campo en: nombre, proveedor, tipo
+
   let rows=searchMultiField(LICENCIAS,q,SEARCH_FIELDS.license);
-  
-  // Aplicar filtros específicos
-  rows=rows.filter(l=>(!tipo||l.tipo===tipo)&&(!est||l.estado===est));
+
+  rows=rows.filter(l=>(!tipo||l.tipo===tipo)&&(!proveedor||l.proveedor===proveedor)&&(!est||l.estado===est));
   
   // Aplicar filtros avanzados anidables
   rows=applyAdvancedFilters('license',rows);
@@ -3910,6 +4008,14 @@ async function delLicense(id){
 let currentAppId=null;
 let currentAppPagos=[];
 let editAplicativoId=null;
+
+function clearAplicativoFilters(){
+  $('srchAplicativo').value='';
+  $('ftAplicativoPeriodicidad').value='';
+  $('ftAplicativoEst').value='';
+  currentPage['aplicativo']=1;
+  renderAplicativos();
+}
 
 function renderAplicativos(){
   const q=($('srchAplicativo')?.value||'');
@@ -4192,13 +4298,38 @@ async function delPago(pago_id){
 ════════════════════════════════════════════════════ */
 let editCelularId=null;
 
+function updateCelularMarcasSelect(){
+  const sel=$('ftCelularMarca');
+  if(!sel) return;
+  const current=sel.value;
+  const marcas=[...new Set(CELULARES.map(c=>c.marca).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todas las marcas</option>';
+  marcas.forEach(m=>{
+    const opt=document.createElement('option');
+    opt.value=m;
+    opt.textContent=m;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+}
+
+function clearCelularFilters(){
+  $('srchCelular').value='';
+  $('ftCelularMarca').value='';
+  $('ftCelularEst').value='';
+  currentPage['celular']=1;
+  renderCelulares();
+}
+
 function renderCelulares(){
   const q=($('srchCelular')?.value||'');
-  
-  // Búsqueda multi-campo en: nombre, marca, imei, imei2
+  const marca=$('ftCelularMarca')?.value||'';
+  const est=$('ftCelularEst')?.value||'';
+
   let rows=searchMultiField(CELULARES,q,SEARCH_FIELDS.celular);
-  
-  // Aplicar filtros avanzados anidables
+
+  rows=rows.filter(c=>(!marca||c.marca===marca)&&(!est||c.estado===est));
+
   rows=applyAdvancedFilters('celular',rows);
   
   $('celularCount').textContent=`${rows.length} de ${CELULARES.length} celular(es)`;
@@ -4444,6 +4575,15 @@ function switchSimTab(tab){
 let currentSimcardId=null;
 let currentSimcardBloqueos=[];
 let editSimcardId=null;
+
+function clearSimcardFilters(){
+  $('srchSimcard').value='';
+  $('srchSimcardIMEI').value='';
+  $('ftSimcardOperador').value='';
+  $('ftSimcardEst').value='';
+  currentPage['simcard']=1;
+  renderSimcards();
+}
 
 function renderSimcards(){
   const q=($('srchSimcard')?.value||'');
