@@ -3040,11 +3040,24 @@ def create_asignacion_equipo():
         if 'retirado' in disponibilidad.lower() or 'baja' in disponibilidad.lower():
             return jsonify({'error': f'No se puede asignar equipo con estado: {disponibilidad}'}), 400
         
-        # Verificar que no hay asignación abierta anterior
+        # Verificar que no hay asignación abierta anterior para ESTE equipo
         existing = supabase_request('GET', 'asignaciones_equipos', 
             f'?equipo_id=eq.{equipo_id}&estado=eq.abierta')
         if isinstance(existing, list) and len(existing) > 0:
             return jsonify({'error': 'Este equipo ya tiene una asignación abierta'}), 400
+        
+        # Verificar que no hay asignación duplicada reciente (mismo equipo + usuario + creado en últimos 5 segundos)
+        # Esto previene clicks duplicados del usuario
+        cinco_segundos_atras = (datetime.now() - timedelta(seconds=5)).isoformat()
+        duplicado_check = supabase_request('GET', 'asignaciones_equipos', 
+            f'?equipo_id=eq.{equipo_id}&usuario_id=eq.{usuario_id}&estado=eq.abierta&fecha_asignacion=gt.{cinco_segundos_atras}')
+        if isinstance(duplicado_check, list) and len(duplicado_check) > 0:
+            # Retornar el ID existente (es probablemente un click duplicado)
+            return jsonify({
+                'id': duplicado_check[0].get('id'),
+                'ok': True,
+                'message': 'Asignación ya existe (posible click duplicado)'
+            }), 201
         
         # Crear la asignación
         estado_equipo = d.get('estado_equipo', 'bueno')
@@ -3076,23 +3089,17 @@ def create_asignacion_equipo():
         elif isinstance(result, dict) and 'id' in result:
             asignacion_id = result.get('id')
         
-        # Intento 3: Si es lista vacía, intentar GET
+        # Intento 3: Si es lista vacía, intentar GET (esto NO debería pasar con prefer=return=representation)
         elif isinstance(result, list) and len(result) == 0:
-            # Buscar la asignación más reciente
-            recent = supabase_request('GET', 'asignaciones_equipos', 
-                f'?equipo_id=eq.{equipo_id}&estado=eq.abierta&order=id.desc&limit=1')
+            # Buscar SOLO la asignación más reciente para ESTE equipo + usuario
+            search_query = f'?equipo_id=eq.{equipo_id}&usuario_id=eq.{usuario_id}&estado=eq.abierta&order=id.desc&limit=1'
+            recent = supabase_request('GET', 'asignaciones_equipos', search_query)
             if isinstance(recent, list) and len(recent) > 0:
                 asignacion_id = recent[0].get('id')
         
         # Si aún no tenemos ID, retornar error
         if not asignacion_id:
-            # Intentar uno más: buscar por equipo_id y usuario_id combinación
-            search_query = f'?equipo_id=eq.{equipo_id}&usuario_id=eq.{usuario_id}&estado=eq.abierta&limit=1'
-            recent = supabase_request('GET', 'asignaciones_equipos', search_query)
-            if isinstance(recent, list) and len(recent) > 0:
-                asignacion_id = recent[0].get('id')
-            else:
-                return jsonify({'error': 'Failed to create assignment: ID not found after creation', 'debug': str(result)}), 500
+            return jsonify({'error': 'Failed to create assignment: ID not found after creation', 'debug': str(result)}), 500
         
         # Actualizar equipos.usuario_id para marcar actual responsable
         supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
