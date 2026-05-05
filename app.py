@@ -3322,6 +3322,83 @@ def delete_asignacion(id):
     except Exception as e:
         return jsonify({'error': f'Error: {str(e)}'}), 500
 
+@app.route('/api/asignaciones-equipos/<int:id>/reasignar', methods=['PATCH'])
+@require_api_login
+def reassign_asignacion(id):
+    """Reasignar equipo de un usuario a otro (requiere desasignación previa o equipo sin responsable)"""
+    try:
+        # Obtener ID del nuevo usuario
+        data = request.json or {}
+        nuevo_usuario_id = data.get('nuevo_usuario_id')
+        
+        if not nuevo_usuario_id:
+            return jsonify({'error': 'nuevo_usuario_id es requerido'}), 400
+        
+        # Convertir a int
+        try:
+            nuevo_usuario_id = int(nuevo_usuario_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'nuevo_usuario_id debe ser un número'}), 400
+        
+        # Verificar que asignacion existe
+        asig = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{id}')
+        if not isinstance(asig, list) or len(asig) == 0:
+            return jsonify({'error': 'Asignacion no encontrada'}), 404
+        
+        asig = asig[0]
+        
+        # Solo permitir reasignación de asignaciones desasignadas
+        if asig.get('estado') != 'desasignada':
+            return jsonify({'error': 'Solo se pueden reasignar asignaciones que han sido desasignadas. Estado actual: ' + asig.get('estado', 'desconocido')}), 400
+        
+        # Verificar que nuevo usuario existe y está activo
+        nuevo_usuario = supabase_request('GET', 'usuarios', f'?id=eq.{nuevo_usuario_id}')
+        if not isinstance(nuevo_usuario, list) or len(nuevo_usuario) == 0:
+            return jsonify({'error': f'Usuario con ID {nuevo_usuario_id} no encontrado'}), 404
+        
+        nuevo_usuario = nuevo_usuario[0]
+        
+        if nuevo_usuario.get('estado') != 'activo':
+            return jsonify({'error': 'El nuevo usuario debe estar activo'}), 400
+        
+        # Update asignación con nuevo usuario
+        update_result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', {
+            'usuario_id': nuevo_usuario_id,
+            'estado': 'abierta',
+            'fecha_asignacion': datetime.now().isoformat()
+        })
+        
+        if isinstance(update_result, dict) and update_result.get('error'):
+            return jsonify({'error': f'Error al actualizar asignación: {update_result.get("error")}'}), 500
+        
+        # Update equipo con nuevo responsable
+        equipo_id = asig.get('equipo_id')
+        if equipo_id:
+            equipo_update = supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                'usuario_id': nuevo_usuario_id
+            })
+            
+            if isinstance(equipo_update, dict) and equipo_update.get('error'):
+                return jsonify({'error': f'Error al actualizar responsable del equipo: {equipo_update.get("error")}'}), 500
+            
+            # Create history entry
+            nuevo_usuario_nombre = nuevo_usuario.get('nombre', 'Desconocido')
+            supabase_request('POST', 'hoja_vida', '', {
+                'equipo_id': equipo_id,
+                'tipo': 'reasignacion',
+                'titulo': f'Reasignado a {nuevo_usuario_nombre}',
+                'descripcion': f'Equipo reasignado a {nuevo_usuario_nombre}.',
+                'fecha': date.today().isoformat(),
+                'responsable': session.get('username', 'Sistema')
+            })
+        
+        return jsonify({
+            'ok': True,
+            'message': f'Equipo reasignado a {nuevo_usuario.get("nombre")} exitosamente'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Error: {str(e)}'}), 500
+
 @app.route('/api/asignaciones-equipos/<int:id>/desasignar', methods=['PATCH'])
 @require_api_login
 def unassign_asignacion(id):
@@ -3344,23 +3421,30 @@ def unassign_asignacion(id):
         usuario = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
         usuario_nombre = usuario[0].get('nombre') if isinstance(usuario, list) and len(usuario) > 0 else 'Desconocido'
         
-        # Limpiar usuario_id del equipo
+        # Limpiar usuario_id del equipo - CRITICAL UPDATE
         if equipo_id:
-            supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+            equipo_update = supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
                 'usuario_id': None
             })
+            
+            # Verify the update worked
+            if isinstance(equipo_update, dict) and equipo_update.get('error'):
+                return jsonify({'error': f'Error al limpiar responsable del equipo: {equipo_update.get("error")}'}), 500
         
         # Cambiar estado a desasignada
         result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', {
             'estado': 'desasignada'
         })
         
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f'Error al actualizar estado: {result.get("error")}'}), 500
+        
         # Guardar en hoja_vida el evento de desasignación
         supabase_request('POST', 'hoja_vida', '', {
             'equipo_id': equipo_id,
             'tipo': 'desasignacion',
             'titulo': f'Desasignado de {usuario_nombre}',
-            'descripcion': f'Equipo desasignado del responsable {usuario_nombre} después de ser devuelto.',
+            'descripcion': f'Equipo desasignado del responsable {usuario_nombre}.',
             'fecha': date.today().isoformat(),
             'responsable': session.get('username', 'Sistema')
         })
@@ -3495,27 +3579,49 @@ def save_asignacion_signature_public(id):
             update_data['fecha_firma_desasignacion'] = datetime.now().isoformat()
             update_data['estado'] = 'desasignada'  # ✅ Cambiar estado
             
-            # Limpiar usuario_id del equipo (dejar sin dueño)
+            # Limpiar usuario_id del equipo (dejar sin dueño) - CRITICAL
             equipo_id = asig.get('equipo_id')
+            usuario_id = asig.get('usuario_id')
             if equipo_id:
-                supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
+                # Update equipment to remove current owner
+                equipo_update_result = supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {
                     'usuario_id': None
+                })
+                
+                # Verify the update succeeded
+                if isinstance(equipo_update_result, dict) and equipo_update_result.get('error'):
+                    # Log but continue - firmware needs to be saved regardless
+                    pass
+                
+                # Get usuario info for history logging
+                usuario_nombre = 'Desconocido'
+                if usuario_id:
+                    usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
+                    if isinstance(usuarios, list) and len(usuarios) > 0:
+                        usuario_nombre = usuarios[0].get('nombre', 'Desconocido')
+                
+                # Create history entry
+                supabase_request('POST', 'hoja_vida', '', {
+                    'equipo_id': equipo_id,
+                    'tipo': 'desasignacion',
+                    'titulo': f'Desasignado de {usuario_nombre}',
+                    'descripcion': f'Equipo desasignado del responsable {usuario_nombre} mediante firma de desasignación.',
+                    'fecha': date.today().isoformat(),
+                    'responsable': 'Sistema (Firma Pública)'
                 })
         else:  # 'salida'
             update_data['firma_salida_url'] = firma_url
             update_data['fecha_firma_salida'] = datetime.now().isoformat()
         
-        # Intenta actualizar. Si falla, aún así retorna éxito (firma se guardó en storage)
+        # Intenta actualizar. Si falla, retorna error para que se reintente
         try:
             result = supabase_request('PATCH', 'asignaciones_equipos', f'?id=eq.{id}', update_data)
             
             if isinstance(result, dict) and result.get('error'):
-                # No retornar error si es solo actualización de tabla fallida
-                # La firma ya está guardada en storage
-                pass
+                # Retornar error si la actualización de tabla falló
+                return jsonify({'error': f'Error al actualizar asignación: {result.get("error")}'}), 500
         except Exception as e:
-            # No fallar, la firma ya se guardó en storage
-            pass
+            return jsonify({'error': f'Error al procesar firma: {str(e)}'}), 500
         
         return jsonify({'ok': True, 'message': f'Firma de {tipo_firma} guardada exitosamente'}), 201
     except Exception as e:
