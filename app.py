@@ -617,7 +617,11 @@ def create_equipo():
             'usuario_id': d.get('usuario_id', None),
             'fecha_adquisicion': d.get('fecha_adquisicion', ''),
             'valor': d.get('valor', 0),
-            'descripcion': d.get('descripcion', '')
+            'descripcion': d.get('descripcion', ''),
+            'num_factura': d.get('num_factura', ''),
+            'nombre_proveedor': d.get('nombre_proveedor', ''),
+            'nombre_empresa': d.get('nombre_empresa', ''),
+            'fecha_ingreso': d.get('fecha_ingreso', '')
         }
         
         equipo_result = supabase_request('POST', 'equipos', '', equipo_data)
@@ -678,7 +682,11 @@ def update_equipo(id):
             'usuario_id': d.get('usuario_id', None),
             'fecha_adquisicion': d.get('fecha_adquisicion', ''),
             'valor': d.get('valor', 0),
-            'descripcion': d.get('descripcion', '')
+            'descripcion': d.get('descripcion', ''),
+            'num_factura': d.get('num_factura', ''),
+            'nombre_proveedor': d.get('nombre_proveedor', ''),
+            'nombre_empresa': d.get('nombre_empresa', ''),
+            'fecha_ingreso': d.get('fecha_ingreso', '')
         }
         
         result = supabase_request('PATCH', 'equipos', f'?id=eq.{id}', update_data)
