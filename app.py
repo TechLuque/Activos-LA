@@ -606,6 +606,10 @@ def create_equipo():
             tipo_id = tipos_result[0]['id']
         
         # Escribir solo tipo_id (la columna tipo no existe)
+        # Convertir cadenas vacías a None para campos de fecha
+        fecha_adquisicion = d.get('fecha_adquisicion', '')
+        fecha_ingreso = d.get('fecha_ingreso', '')
+        
         equipo_data = {
             'nombre': d['nombre'],
             'tipo_id': tipo_id,
@@ -615,13 +619,13 @@ def create_equipo():
             'estado': d.get('estado', 'bueno'),
             'disponibilidad': d.get('disponibilidad', 'Disponible'),
             'usuario_id': d.get('usuario_id', None),
-            'fecha_adquisicion': d.get('fecha_adquisicion', ''),
+            'fecha_adquisicion': fecha_adquisicion if fecha_adquisicion else None,
             'valor': d.get('valor', 0),
             'descripcion': d.get('descripcion', ''),
             'num_factura': d.get('num_factura', ''),
             'nombre_proveedor': d.get('nombre_proveedor', ''),
             'nombre_empresa': d.get('nombre_empresa', ''),
-            'fecha_ingreso': d.get('fecha_ingreso', '')
+            'fecha_ingreso': fecha_ingreso if fecha_ingreso else None
         }
         
         equipo_result = supabase_request('POST', 'equipos', '', equipo_data)
@@ -671,6 +675,10 @@ def update_equipo(id):
                 return jsonify({'error': f'Tipo de equipo "{tipo_nombre}" no existe'}), 400
         
         # Actualizar solo tipo_id (la columna tipo no existe)
+        # Convertir cadenas vacías a None para campos de fecha
+        fecha_adquisicion = d.get('fecha_adquisicion', '')
+        fecha_ingreso = d.get('fecha_ingreso', '')
+        
         update_data = {
             'nombre': d.get('nombre', ''),
             'tipo_id': tipo_id,
@@ -680,13 +688,13 @@ def update_equipo(id):
             'estado': d.get('estado', 'bueno'),
             'disponibilidad': d.get('disponibilidad', 'Disponible'),
             'usuario_id': d.get('usuario_id', None),
-            'fecha_adquisicion': d.get('fecha_adquisicion', ''),
+            'fecha_adquisicion': fecha_adquisicion if fecha_adquisicion else None,
             'valor': d.get('valor', 0),
             'descripcion': d.get('descripcion', ''),
             'num_factura': d.get('num_factura', ''),
             'nombre_proveedor': d.get('nombre_proveedor', ''),
             'nombre_empresa': d.get('nombre_empresa', ''),
-            'fecha_ingreso': d.get('fecha_ingreso', '')
+            'fecha_ingreso': fecha_ingreso if fecha_ingreso else None
         }
         
         result = supabase_request('PATCH', 'equipos', f'?id=eq.{id}', update_data)
