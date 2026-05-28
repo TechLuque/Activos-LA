@@ -38,7 +38,13 @@ def get_tipo_equipo(tipo_id: int) -> dict | None:
 # ── Equipos ───────────────────────────────────────────────────────────────────
 
 def get_all_equipos() -> list:
-    """Lista completa de equipos con tipo_nombre resuelto."""
+    result = supabase_request('GET', 'equipos', '?select=*,tipos_equipos!tipo_id(nombre)&order=nombre.asc')
+    if isinstance(result, list):
+        for eq in result:
+            t = eq.pop('tipos_equipos', None) or {}
+            eq['tipo_nombre'] = t.get('nombre') or eq.get('tipo', 'Sin tipo')
+        return result
+    # Fallback si la FK no está definida en Supabase
     result = supabase_request('GET', 'equipos', '?order=nombre.asc')
     if not isinstance(result, list):
         return []
