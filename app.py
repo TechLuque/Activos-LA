@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 from flask_compress import Compress
 import os
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
 import base64
@@ -20,10 +21,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Flask app
-app = Flask(__name__, static_folder=None, template_folder='templates')
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-marzo-2026')
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 Compress(app)
+
+def _file_hash(path: str) -> str:
+    try:
+        with open(path, 'rb') as f:
+            return hashlib.md5(f.read()).hexdigest()[:8]
+    except Exception:
+        return '0'
+
+_CSS_V = _file_hash(os.path.join(os.path.dirname(__file__), 'static', 'css', 'app.css'))
+_JS_V  = _file_hash(os.path.join(os.path.dirname(__file__), 'static', 'js', 'app.js'))
 
 @app.after_request
 def set_response_headers(response):
@@ -150,7 +161,7 @@ def firma_page(id):
 @require_login
 def index():
     """Página principal - requiere login"""
-    return render_template('index.html')
+    return render_template('index.html', css_v=_CSS_V, js_v=_JS_V)
 
 @app.route('/api/dashboard')
 @require_api_login
