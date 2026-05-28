@@ -2292,13 +2292,6 @@ async function init(){
   }catch(e){
   }
   
-  // Check backend health
-  const health=await api('/api/health');
-  if(health.error){
-    toast('No se puede conectar al servidor','err');
-  }else{
-  }
-  
   await loadAll();
   renderDashboard();
 }
