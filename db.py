@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+from requests.adapters import HTTPAdapter
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,6 +17,11 @@ HEADERS = {
     'Authorization': f'Bearer {SUPABASE_KEY}',
     'Content-Type': 'application/json'
 }
+
+# Persistent session — reutiliza conexiones TCP/TLS entre requests
+_session = requests.Session()
+_session.headers.update(HEADERS)
+_session.mount('https://', HTTPAdapter(pool_connections=5, pool_maxsize=20))
 
 # ── Caché en memoria ──────────────────────────────────────────────────────────
 
@@ -54,23 +60,15 @@ def get_tipos_map() -> dict:
 # ── Cliente Supabase ──────────────────────────────────────────────────────────
 
 def supabase_request(method: str, table: str, query: str = '', data=None):
-    """Ejecuta una request a la Supabase REST API."""
+    """Ejecuta una request a la Supabase REST API usando session persistente."""
     url = f"{SUPABASE_API_URL}/{table}{query}"
-    headers = HEADERS.copy()
+    kwargs: dict = {}
     if method == 'POST':
-        headers['Prefer'] = 'return=representation'
+        kwargs['headers'] = {'Prefer': 'return=representation'}
+    if data is not None:
+        kwargs['json'] = data
     try:
-        if method == 'GET':
-            resp = requests.get(url, headers=headers)
-        elif method == 'POST':
-            resp = requests.post(url, headers=headers, json=data)
-        elif method == 'PATCH':
-            resp = requests.patch(url, headers=headers, json=data)
-        elif method == 'DELETE':
-            resp = requests.delete(url, headers=headers)
-        else:
-            return None
-
+        resp = _session.request(method, url, **kwargs)
         if resp.status_code in [200, 201]:
             try:
                 return resp.json()

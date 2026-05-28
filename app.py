@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for
+from flask_compress import Compress
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
 import base64
 from functools import wraps
@@ -21,6 +23,7 @@ load_dotenv()
 app = Flask(__name__, static_folder=None, template_folder='templates')
 app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-marzo-2026')
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
+Compress(app)
 
 @app.after_request
 def set_response_headers(response):
@@ -228,6 +231,32 @@ def dashboard():
         })
     except Exception as e:
         return _server_error(e)
+
+
+@app.route('/api/init', methods=['GET'])
+@require_api_login
+def get_init_data():
+    """Carga inicial en una sola request: paraleliza 11 queries a Supabase con ThreadPoolExecutor."""
+    try:
+        tasks = {
+            'equipos': repo.get_all_equipos,
+            'usuarios': repo.get_all_usuarios,
+            'prestamos': repo.get_all_prestamos,
+            'mantenimientos': repo.get_all_mantenimientos,
+            'licencias': repo.get_all_licencias,
+            'aplicativos': repo.get_all_aplicativos,
+            'celulares': repo.get_all_celulares,
+            'simcards': repo.get_all_simcards,
+            'asignaciones': repo.get_all_asignaciones,
+            'tipos': repo.get_all_tipos_equipos,
+            'roles': repo.get_all_roles,
+        }
+        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+            futures = {k: executor.submit(fn) for k, fn in tasks.items()}
+            return jsonify({k: f.result() for k, f in futures.items()})
+    except Exception as e:
+        return _server_error(e)
+
 
 # ========== USUARIOS ==========
 @app.route('/api/usuarios', methods=['GET'])

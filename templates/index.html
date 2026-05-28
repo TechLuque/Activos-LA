@@ -2299,36 +2299,67 @@ async function init(){
   }else{
   }
   
-  // Cargar tipos PRIMERO para que estén disponibles cuando se carguen otros datos
-  await loadTiposEquipos();
-  await loadRoles();
   await loadAll();
   renderDashboard();
 }
 
+function _enrich(){
+  const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
+  const um=Object.fromEntries(USR.map(u=>[u.id,u]));
+  LOANS=LOANS.map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
+  MANTS=MANTS.map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
+  ASIGNACIONES=ASIGNACIONES.map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
+}
+
+function computeDash(){
+  const today=new Date().toISOString().split('T')[0];
+  const in7=new Date(Date.now()+7*864e5).toISOString().split('T')[0];
+  const estados={},tipos_count={};let valor_total=0;
+  for(const eq of EQ){
+    const est=eq.estado||'desconocido';estados[est]=(estados[est]||0)+1;
+    const t=eq.tipo_nombre||eq.tipo||'Sin tipo';tipos_count[t]=(tipos_count[t]||0)+1;
+    valor_total+=parseInt(eq.valor||0)||0;
+  }
+  const tipos_equipos=Object.entries(tipos_count).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k,v])=>({tipo_nombre:k,tipo:k,count:v}));
+  let prestamos_activos=0,mant_en_proceso=0,preventivos_vencidos=0;
+  const prestamos_vencidos=[],proximos_vencer=[];
+  for(const l of LOANS){
+    if(l.estado!=='devuelto'){
+      prestamos_activos++;
+      const fd=l.fecha_devolucion_esperada;
+      if(fd){if(fd<today)prestamos_vencidos.push(l);else if(fd<=in7)proximos_vencer.push(l);}
+    }
+  }
+  for(const m of MANTS){
+    if(m.estado!=='completado')mant_en_proceso++;
+    if(m.tipo==='preventivo'&&m.proxima_revision&&m.proxima_revision<today)preventivos_vencidos++;
+  }
+  return{total_equipos:EQ.length,total_usuarios:USR.filter(u=>u.estado==='activo').length,prestamos_activos,mant_en_proceso,estados,tipos_equipos,preventivos_vencidos,valor_total,proximos_vencer,prestamos_vencidos};
+}
+
+async function _refreshEq(){const r=await api('/api/equipos');if(!r.error&&Array.isArray(r)){EQ=r;_enrich();}}
+async function _refreshUsr(){const r=await api('/api/usuarios');if(!r.error&&Array.isArray(r)){USR=r;_enrich();}}
+async function _refreshLoans(){const r=await api('/api/prestamos');if(!r.error&&Array.isArray(r)){const em=Object.fromEntries(EQ.map(e=>[e.id,e])),um=Object.fromEntries(USR.map(u=>[u.id,u]));LOANS=r.map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});}}
+async function _refreshMants(){const r=await api('/api/mantenimientos');if(!r.error&&Array.isArray(r)){const em=Object.fromEntries(EQ.map(e=>[e.id,e]));MANTS=r.map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});}}
+async function _refreshLics(){const r=await api('/api/licencias');if(!r.error&&Array.isArray(r))LICENCIAS=r;}
+async function _refreshApps(){const r=await api('/api/aplicativos');if(!r.error&&Array.isArray(r))APLICATIVOS=r;}
+async function _refreshCels(){const r=await api('/api/celulares');if(!r.error&&Array.isArray(r))CELULARES=r;}
+async function _refreshSims(){const r=await api('/api/simcards');if(!r.error&&Array.isArray(r))SIMCARDS=r;}
+async function _refreshAsigs(){const r=await api('/api/asignaciones-equipos');if(!r.error&&Array.isArray(r)){const em=Object.fromEntries(EQ.map(e=>[e.id,e])),um=Object.fromEntries(USR.map(u=>[u.id,u]));ASIGNACIONES=r.map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));}}
+
 async function loadAll(){
   try{
-    const [eq,usr,loans,mants,lics,apps,cels,sims,asigs]=await Promise.all([
-      api('/api/equipos'),
-      api('/api/usuarios'),
-      api('/api/prestamos'),
-      api('/api/mantenimientos'),
-      api('/api/licencias'),
-      api('/api/aplicativos'),
-      api('/api/celulares'),
-      api('/api/simcards'),
-      api('/api/asignaciones-equipos')
-    ]);
-    
-    // Check for errors in any response
-    if(eq.error||usr.error||loans.error||mants.error||lics.error||apps.error||cels.error||sims.error||asigs.error){
-      toast('Error loading data from server','err');
-      return;
-    }
-    
-    EQ=eq; USR=usr; LOANS=loans; MANTS=mants; LICENCIAS=lics||[]; APLICATIVOS=apps||[]; CELULARES=cels||[]; SIMCARDS=sims||[]; ASIGNACIONES=asigs||[];
-    
-    DASH=await api('/api/dashboard');
+    const d=await api('/api/init');
+    if(d.error){toast('Error loading data from server','err');return;}
+    EQ=d.equipos||[]; USR=d.usuarios||[]; LICENCIAS=d.licencias||[]; APLICATIVOS=d.aplicativos||[];
+    CELULARES=d.celulares||[]; SIMCARDS=d.simcards||[]; TIPOS=d.tipos||[]; ROLES=d.roles||[];
+    const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
+    const um=Object.fromEntries(USR.map(u=>[u.id,u]));
+    LOANS=(d.prestamos||[]).map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
+    MANTS=(d.mantenimientos||[]).map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
+    ASIGNACIONES=(d.asignaciones||[]).map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
+    DASH=computeDash();
+    updateTiposFilter();
     updateNavBadges();
   }catch(e){
     toast('Error fatal al cargar datos','err');
@@ -2747,8 +2778,8 @@ async function cambiarResponsable(eqId){
     toast('Error: '+res.error,'err');
   }else{
     toast(res.mensaje,'ok');
-    await loadAll();
-    renderEq();
+    await _refreshEq();DASH=computeDash();
+    renderEq();renderDashboard();
   }
 }
 
@@ -3077,7 +3108,7 @@ async function saveNewTipo(){
       TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
       toast(`Tipo "${nombre}" agregado correctamente`,'ok');
       close('ovAgregarTipo');
-      await loadAll();
+      await _refreshEq();DASH=computeDash();
       renderTipos();
       updateTiposInModal();
       setTimeout(()=>{$('eTipo').value=nombre;},100);
@@ -3115,7 +3146,7 @@ async function saveEq(){
   try{
     const res=editEqId?await api('/api/equipos/'+editEqId,'PUT',data):await api('/api/equipos','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovEq');await loadAll();renderEq();renderDashboard();
+    close('ovEq');await _refreshEq();DASH=computeDash();renderEq();renderDashboard();
     toast(editEqId?'Equipo actualizado':'Equipo registrado correctamente','ok');editEqId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -3128,7 +3159,7 @@ async function saveEq(){
 }
 async function delEq(id){
   if(!confirm('¿Eliminar este equipo? Esta acción no se puede deshacer.'))return;
-  await api('/api/equipos/'+id,'DELETE');await loadAll();renderEq();renderDashboard();toast('Equipo eliminado','info');
+  await api('/api/equipos/'+id,'DELETE');await _refreshEq();DASH=computeDash();renderEq();renderDashboard();toast('Equipo eliminado','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -3311,7 +3342,7 @@ async function saveEditarTipo(){
     }
     
     TIPOS.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-    await loadAll();
+    await _refreshEq();DASH=computeDash();
     renderTipos();
     updateTiposInModal();
     close('ovEditarTipo');
@@ -3329,7 +3360,7 @@ async function deleteTipo(id,nombre){
   
   if(res.ok){
     TIPOS=TIPOS.filter(t=>t.id!==id);
-    await loadAll();
+    await _refreshEq();DASH=computeDash();
     renderTipos();
     updateTiposInModal();
     toast(`Tipo "${nombre}" eliminado`,'info');
@@ -3457,7 +3488,6 @@ async function saveRol(){
     }
     
     ROLES.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-    await loadAll();
     renderRoles();
     close('ovTipoRol');
     toast(editRolId?'Rol actualizado correctamente ✅':'Rol creado correctamente ✅','ok');
@@ -3474,7 +3504,6 @@ async function deleteRol(id,nombre){
   
   if(res.ok){
     ROLES=ROLES.filter(r=>r.id!==id);
-    await loadAll();
     renderRoles();
     toast(`Rol "${nombre}" eliminado`,'info');
   }else{
@@ -3632,7 +3661,7 @@ async function saveMant(){
   try{
     const res=editMantId?await api('/api/mantenimientos/'+editMantId,'PUT',data):await api('/api/mantenimientos','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovMant');await loadAll();renderMant();renderDashboard();
+    close('ovMant');await _refreshMants();DASH=computeDash();renderMant();renderDashboard();
     toast(editMantId?'Mantenimiento actualizado':'Mantenimiento registrado','ok');editMantId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -3645,7 +3674,7 @@ async function saveMant(){
 }
 async function delMant(id){
   if(!confirm('¿Eliminar este mantenimiento?'))return;
-  await api('/api/mantenimientos/'+id,'DELETE');await loadAll();renderMant();renderDashboard();toast('Mantenimiento eliminado','info');
+  await api('/api/mantenimientos/'+id,'DELETE');await _refreshMants();DASH=computeDash();renderMant();renderDashboard();toast('Mantenimiento eliminado','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -3721,7 +3750,7 @@ function openMantFromHV(){
 }
 async function delMantFromHV(id){
   if(!confirm('¿Eliminar este mantenimiento?'))return;
-  await api('/api/mantenimientos/'+id,'DELETE');await loadAll();await refreshHV();renderDashboard();toast('Mantenimiento eliminado','info');
+  await api('/api/mantenimientos/'+id,'DELETE');await _refreshMants();DASH=computeDash();await refreshHV();renderDashboard();toast('Mantenimiento eliminado','info');
 }
 async function delHV(id){
   if(!confirm('¿Eliminar este evento?'))return;
@@ -3935,7 +3964,7 @@ async function saveUsr(){
       toast('❌ ' + res.error, 'err');
     } else {
       close('ovUsr');
-      await loadAll();
+      await _refreshUsr();DASH=computeDash();
       renderUsr();
       renderDashboard();
       toast(editUsrId ? '✅ Usuario actualizado' : '✅ Usuario creado', 'ok');
@@ -3952,7 +3981,7 @@ async function saveUsr(){
 
 async function delUsr(id){
   if(!confirm('¿Eliminar este responsable?'))return;
-  await api('/api/usuarios/'+id,'DELETE');await loadAll();renderUsr();renderDashboard();toast('Usuario eliminado','info');
+  await api('/api/usuarios/'+id,'DELETE');await _refreshUsr();DASH=computeDash();renderUsr();renderDashboard();toast('Usuario eliminado','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -4118,7 +4147,7 @@ async function saveLicense(){
   try{
     const res=editLicenseId?await api('/api/licencias/'+editLicenseId,'PUT',data):await api('/api/licencias','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovLicense');await loadAll();renderLicenses();renderDashboard();
+    close('ovLicense');await _refreshLics();renderLicenses();renderDashboard();
     toast(editLicenseId?'Licencia actualizada':'Licencia registrada','ok');editLicenseId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -4132,7 +4161,7 @@ async function saveLicense(){
 
 async function delLicense(id){
   if(!confirm('¿Eliminar esta licencia?'))return;
-  await api('/api/licencias/'+id,'DELETE');await loadAll();renderLicenses();renderDashboard();toast('Licencia eliminada','info');
+  await api('/api/licencias/'+id,'DELETE');await _refreshLics();renderLicenses();renderDashboard();toast('Licencia eliminada','info');
 }
 
 /* ════════════════════════════════════════════════════
@@ -4345,7 +4374,7 @@ async function saveAplicativo(){
   try{
     const res=editAplicativoId?await api('/api/aplicativos/'+editAplicativoId,'PUT',data):await api('/api/aplicativos','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovAplicativo');await loadAll();renderAplicativos();renderDashboard();
+    close('ovAplicativo');await _refreshApps();renderAplicativos();renderDashboard();
     toast(editAplicativoId?'Aplicativo actualizado':'Aplicativo registrado','ok');editAplicativoId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -4359,7 +4388,7 @@ async function saveAplicativo(){
 
 async function delAplicativo(id){
   if(!confirm('¿Eliminar este aplicativo?'))return;
-  await api('/api/aplicativos/'+id,'DELETE');await loadAll();renderAplicativos();renderDashboard();toast('Aplicativo eliminado','info');
+  await api('/api/aplicativos/'+id,'DELETE');await _refreshApps();renderAplicativos();renderDashboard();toast('Aplicativo eliminado','info');
 }
 
 function addPagoModal(){
@@ -4575,7 +4604,7 @@ async function saveCelular(){
   try{
     const res=editCelularId?await api('/api/celulares/'+editCelularId,'PUT',data):await api('/api/celulares','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovCelular');await loadAll();renderCelulares();renderDashboard();
+    close('ovCelular');await _refreshCels();renderCelulares();renderDashboard();
     toast(editCelularId?'Celular actualizado':'Celular registrado','ok');editCelularId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -4589,7 +4618,7 @@ async function saveCelular(){
 
 async function delCelular(id){
   if(!confirm('¿Eliminar este celular?'))return;
-  await api('/api/celulares/'+id,'DELETE');await loadAll();renderCelulares();renderDashboard();toast('Celular eliminado','info');
+  await api('/api/celulares/'+id,'DELETE');await _refreshCels();renderCelulares();renderDashboard();toast('Celular eliminado','info');
 }
 
 async function showSimsDelCelular(celular_id){
@@ -4913,7 +4942,7 @@ async function saveSimcard(){
   try{
     const res=editSimcardId?await api('/api/simcards/'+editSimcardId,'PUT',data):await api('/api/simcards','POST',data);
     if(res.error){toast(res.error,'err');throw new Error(res.error)}
-    close('ovSimcard');await loadAll();renderSimcards();renderDashboard();
+    close('ovSimcard');await Promise.all([_refreshSims(),_refreshCels()]);renderSimcards();renderDashboard();
     toast(editSimcardId?'SIM Card actualizada':'SIM Card registrada','ok');editSimcardId=null;
     isSubmitting=false;
     btn.disabled=false;
@@ -4927,7 +4956,7 @@ async function saveSimcard(){
 
 async function delSimcard(id){
   if(!confirm('¿Eliminar esta SIM Card?'))return;
-  await api('/api/simcards/'+id,'DELETE');await loadAll();renderSimcards();renderDashboard();toast('SIM Card eliminada','info');
+  await api('/api/simcards/'+id,'DELETE');await Promise.all([_refreshSims(),_refreshCels()]);renderSimcards();renderDashboard();toast('SIM Card eliminada','info');
 }
 
 function addBloqueoModal(){
@@ -5221,7 +5250,7 @@ async function saveLoan(){
     }
     
     close('ovLoan');
-    await loadAll();
+    await _refreshLoans();DASH=computeDash();
     renderLoan();
     renderDashboard();
     toast(editLoanId?'Préstamo actualizado ✅':'Préstamo registrado ✅','ok');
@@ -5437,14 +5466,34 @@ async function returnLoan(id){
 }
 async function delLoan(id){
   if(!confirm('¿Eliminar este préstamo?'))return;
-  await api('/api/prestamos/'+id,'DELETE');await loadAll();renderLoan();renderDashboard();toast('Préstamo eliminado','info');
+  await api('/api/prestamos/'+id,'DELETE');await _refreshLoans();DASH=computeDash();renderLoan();renderDashboard();toast('Préstamo eliminado','info');
 }
 
 /* ════════════════════════════════════════════════════
    CALENDARIO
 ════════════════════════════════════════════════════ */
-async function renderCal(){
-  const events=await api('/api/calendario');
+function _computeCalEvents(){
+  const events=[];
+  for(const m of MANTS){
+    if(!m.proxima_revision)continue;
+    const tipo=m.tipo||'';
+    events.push({date:m.proxima_revision,type:'mantenimiento',title:m.equipo_nombre||'Equipo desconocido',sub:`${tipo.charAt(0).toUpperCase()+tipo.slice(1)} · ${m.equipo_tipo||''}`,id:m.id,estado:m.estado,descripcion:m.descripcion||''});
+  }
+  for(const p of LOANS){
+    let lbl='Para devolver';
+    if(p.estado==='devuelto')lbl='Devuelto';
+    else if(p.estado==='firmado')lbl='Pendiente firma';
+    if(p.fecha_devolucion_esperada){
+      events.push({date:p.fecha_devolucion_esperada,type:'prestamo',title:p.equipo_nombre||'Equipo desconocido',sub:`${lbl} · ${p.equipo_tipo||''}`,detail:`Responsable: ${p.usuario_nombre||'—'}`,id:p.id,estado:p.estado,notas:p.notas||''});
+    }else if(p.fecha_prestamo){
+      events.push({date:p.fecha_prestamo,type:'prestamo',title:p.equipo_nombre||'Equipo desconocido',sub:`Préstamo iniciado · ${p.equipo_tipo||''}`,detail:`Responsable: ${p.usuario_nombre||'—'}`,id:p.id,estado:p.estado,notas:p.notas||''});
+    }
+  }
+  return events;
+}
+
+function renderCal(){
+  const events=_computeCalEvents();
   const today=TODAY;
   const upcoming=events.filter(e=>e.date>=today);
   const overdue=events.filter(e=>e.date<today);
@@ -6012,7 +6061,7 @@ async function saveAsignacion(){
     if(successCount>0){
       close('ovAsignacion');
       toast(`✅ ${successCount} asignación(nes) creada(s) exitosamente${errorCount>0?' - '+errorCount+' errores':''} - Próximo paso: firmar entrada ✍️`,'ok');
-      await loadAll();
+      await Promise.all([_refreshAsigs(),_refreshEq()]);DASH=computeDash();
       renderAsignaciones();
       renderDashboard();
     }else{
@@ -6114,7 +6163,7 @@ async function deleteAsignacion(asigId){
     
     if(res.ok){
       toast('✅ Asignación eliminada permanentemente del sistema','ok');
-      await loadAll();
+      await Promise.all([_refreshAsigs(),_refreshEq()]);DASH=computeDash();
       renderEq();
       renderAsignaciones();
     }else{
@@ -6186,9 +6235,7 @@ async function completeDesasignAndAssign(){
   // Mostrar feedback mientras se refrescan datos
   try {
     toast('🔄 Refrescando datos...', 'info');
-    
-    // Refrescar datos desde servidor (para que ASIGNACIONES se actualice)
-    await loadAll();
+    await Promise.all([_refreshAsigs(),_refreshEq()]);DASH=computeDash();
     
     // Abrir modal de nueva asignación
     openAsignacionModal();

@@ -68,7 +68,7 @@ def delete_equipo(equipo_id: int):
 # ── Usuarios ──────────────────────────────────────────────────────────────────
 
 def get_all_usuarios() -> list:
-    result = supabase_request('GET', 'usuarios', '?order=nombre.asc')
+    result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,departamento,telefono,estado,rol_id&order=nombre.asc')
     return result if isinstance(result, list) else []
 
 
@@ -97,28 +97,8 @@ def delete_usuario(usuario_id: int):
 # ── Préstamos ─────────────────────────────────────────────────────────────────
 
 def get_all_prestamos() -> list:
-    """Lista de préstamos con equipo_nombre, equipo_tipo, usuario_nombre resueltos."""
-    prestamos = supabase_request('GET', 'prestamos', '?order=creado_en.desc')
-    if not isinstance(prestamos, list):
-        return []
-
-    tipos_map = get_tipos_map()
-    equipos_data = supabase_request('GET', 'equipos')
-    usuarios_data = supabase_request('GET', 'usuarios')
-
-    equipos_map = {eq['id']: eq for eq in equipos_data} if isinstance(equipos_data, list) else {}
-    usuarios_map = {u['id']: u for u in usuarios_data} if isinstance(usuarios_data, list) else {}
-
-    for loan in prestamos:
-        eq = equipos_map.get(loan.get('equipo_id'), {})
-        loan['equipo_nombre'] = eq.get('nombre', 'Equipo desconocido')
-        loan['equipo_tipo'] = tipos_map.get(eq.get('tipo_id'), 'Desconocido')
-
-        usr = usuarios_map.get(loan.get('usuario_id'), {})
-        loan['usuario_nombre'] = usr.get('nombre', 'Usuario desconocido')
-        loan['departamento'] = usr.get('departamento', '')
-
-    return prestamos
+    result = supabase_request('GET', 'prestamos', '?select=id,equipo_id,usuario_id,estado,fecha_prestamo,fecha_devolucion_esperada,notas,creado_en&order=creado_en.desc')
+    return result if isinstance(result, list) else []
 
 
 def get_prestamo(prestamo_id: int) -> dict | None:
@@ -186,26 +166,8 @@ def delete_prestamo(prestamo_id: int):
 # ── Mantenimientos ────────────────────────────────────────────────────────────
 
 def get_all_mantenimientos() -> list:
-    """Lista de mantenimientos con equipo_nombre y equipo_tipo resueltos."""
-    mants = supabase_request('GET', 'mantenimientos', '?order=fecha.desc')
-    if not isinstance(mants, list):
-        return []
-
-    equipos = supabase_request('GET', 'equipos')
-    tipos_map = get_tipos_map()
-
-    eq_map = {}
-    if isinstance(equipos, list):
-        for eq in equipos:
-            eq_map[eq['id']] = {'nombre': eq.get('nombre'), 'tipo_id': eq.get('tipo_id')}
-
-    for m in mants:
-        eq_id = m.get('equipo_id')
-        eq_data = eq_map.get(eq_id, {})
-        m['equipo_nombre'] = eq_data.get('nombre', 'Equipo desconocido')
-        m['equipo_tipo'] = tipos_map.get(eq_data.get('tipo_id'), 'Desconocido')
-
-    return mants
+    result = supabase_request('GET', 'mantenimientos', '?order=fecha.desc')
+    return result if isinstance(result, list) else []
 
 
 def get_mantenimientos_by_equipo(equipo_id: int) -> list:
@@ -263,22 +225,8 @@ def get_rol(rol_id: int) -> dict | None:
 # ── Asignaciones de equipos ───────────────────────────────────────────────────
 
 def get_all_asignaciones() -> list:
-    """Lista de asignaciones con datos de equipo y usuario embebidos."""
     result = supabase_request('GET', 'asignaciones_equipos', '?order=fecha_asignacion.desc')
-    if not isinstance(result, list):
-        return []
-
-    equipos_data = supabase_request('GET', 'equipos')
-    usuarios_data = supabase_request('GET', 'usuarios')
-
-    eq_map = {e['id']: e for e in equipos_data} if isinstance(equipos_data, list) else {}
-    usr_map = {u['id']: u for u in usuarios_data} if isinstance(usuarios_data, list) else {}
-
-    for asig in result:
-        asig['equipo'] = eq_map.get(asig.get('equipo_id'), {})
-        asig['usuario'] = usr_map.get(asig.get('usuario_id'), {})
-
-    return result
+    return result if isinstance(result, list) else []
 
 
 def get_asignacion(asig_id: int) -> dict | None:
@@ -349,8 +297,7 @@ def delete_hoja_vida(hv_id: int):
 # ── Préstamos (extras) ────────────────────────────────────────────────────────
 
 def get_prestamos_raw() -> list:
-    """Préstamos sin enriquecer — útil para dashboard y calendario."""
-    result = supabase_request('GET', 'prestamos')
+    result = supabase_request('GET', 'prestamos', '?select=id,equipo_id,usuario_id,estado,fecha_prestamo,fecha_devolucion_esperada')
     return result if isinstance(result, list) else []
 
 
@@ -365,8 +312,7 @@ def get_prestamos_activos_by_equipo(equipo_id: int, exclude_id: int = None) -> l
 # ── Mantenimientos (extras) ───────────────────────────────────────────────────
 
 def get_mantenimientos_raw() -> list:
-    """Mantenimientos sin enriquecer — útil para dashboard y calendario."""
-    result = supabase_request('GET', 'mantenimientos')
+    result = supabase_request('GET', 'mantenimientos', '?select=id,equipo_id,tipo,estado,proxima_revision')
     return result if isinstance(result, list) else []
 
 
@@ -404,12 +350,18 @@ def delete_licencia(licencia_id: int):
 def get_licencias_by_equipo(equipo_id: int) -> list:
     """Licencias asignadas a un equipo con datos completos de la licencia."""
     items = supabase_request('GET', 'equipos_licencias', f'?equipo_id=eq.{equipo_id}&order=fecha_asignacion.desc')
-    if not isinstance(items, list):
+    if not isinstance(items, list) or not items:
         return []
+    ids = ','.join(str(i['licencia_id']) for i in items if i.get('licencia_id'))
+    if not ids:
+        return []
+    lics_raw = supabase_request('GET', 'licencias', f'?id=in.({ids})')
+    lics_map = {l['id']: l for l in lics_raw} if isinstance(lics_raw, list) else {}
     result = []
     for item in items:
-        lic = get_licencia(item.get('licencia_id'))
+        lic = lics_map.get(item.get('licencia_id'))
         if lic:
+            lic = dict(lic)
             lic['asignacion_id'] = item['id']
             lic['fecha_asignacion'] = item.get('fecha_asignacion')
             lic['notas_asignacion'] = item.get('notas', '')
