@@ -72,7 +72,7 @@ def require_login(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect(url_for('login_page'))
+            return redirect(url_for('login_page') + '?next=' + request.path)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -161,6 +161,12 @@ def firma_page(id):
 @require_login
 def index():
     """Página principal - requiere login"""
+    return render_template('index.html', css_v=_CSS_V, js_v=_JS_V)
+
+@app.route('/equipo/<int:id>')
+@require_login
+def equipo_page(id):
+    """Deep-link a un equipo específico — JS navega automáticamente al cargarse."""
     return render_template('index.html', css_v=_CSS_V, js_v=_JS_V)
 
 @app.route('/api/dashboard')

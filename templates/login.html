@@ -295,7 +295,8 @@
                 showAlert('✅ Autenticación exitosa, redirigiendo...', 'success');
                 
                 setTimeout(() => {
-                    window.location.href = '/';
+                    const nextUrl = new URLSearchParams(window.location.search).get('next') || '/';
+                    window.location.href = nextUrl;
                 }, 1500);
                 
             } catch (err) {

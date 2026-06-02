@@ -159,7 +159,7 @@ function getActiveFilters(viewType){
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
-  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles'};
+  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles',etiquetas:'Etiquetas de Activos'};
 
 function toggleSidebar(){
   const sb=document.querySelector('.sidebar');
@@ -193,6 +193,7 @@ function nav(page){
   if(page==='reportes')_safe(renderReportes,'reportes');
   if(page==='admin-tipos')_safe(renderTipos,'tipos');
   if(page==='admin-roles'){_safe(loadRoles,'loadRoles');_safe(renderRoles,'roles');}
+  if(page==='etiquetas')_safe(renderEtiquetas,'etiquetas');
 }
 
 /* ════════════════════════════════════════════════════
@@ -215,6 +216,15 @@ async function init(){
   // Re-render the active page so data shows even if the user navigated before loadAll finished
   const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
   if(activePage&&activePage!=='dashboard') nav(activePage);
+  // Deep-link: /equipo/<id> navega directamente al equipo
+  const eqMatch=window.location.pathname.match(/\/equipo\/(\d+)/);
+  if(eqMatch){
+    const targetId=parseInt(eqMatch[1]);
+    nav('equipos');
+    const eq=EQ.find(e=>e.id===targetId);
+    if(eq){toast(`Equipo: ${eq.nombre}`,'ok');editEq(targetId);}
+    else toast('Equipo no encontrado en inventario','err');
+  }
 }
 
 function _enrich(){
@@ -4438,6 +4448,88 @@ async function completeDesasignAndAssign(){
   } catch(err) {
     toast('❌ Error al refrescar datos: ' + err.message, 'err');
   }
+}
+
+/* ════════════════════════════════════════════════════
+   SCANNER QR / BARCODE
+════════════════════════════════════════════════════ */
+let _html5Scanner=null;
+
+function openScanner(){
+  open('ovScanner');
+  $('scanStatus').textContent='';
+  if(typeof Html5QrcodeScanner==='undefined'){
+    $('scanStatus').textContent='Librería de scanner no disponible';
+    return;
+  }
+  _html5Scanner=new Html5QrcodeScanner('scannerRegion',{fps:10,qrbox:{width:240,height:240},rememberLastUsedCamera:true,aspectRatio:1},{});
+  _html5Scanner.render(_onScanSuccess,()=>{});
+}
+
+function closeScanner(){
+  if(_html5Scanner){
+    _html5Scanner.clear().catch(()=>{});
+    _html5Scanner=null;
+  }
+  const region=$('scannerRegion');
+  if(region)region.innerHTML='';
+  close('ovScanner');
+}
+
+function _onScanSuccess(text){
+  closeScanner();
+  try{
+    let targetId=null;
+    // Intentar parsear como URL con patrón /equipo/<id>
+    try{
+      const url=new URL(text);
+      const m=url.pathname.match(/\/equipo\/(\d+)/);
+      if(m)targetId=parseInt(m[1]);
+    }catch{
+      // No es URL, intentar número directo
+      if(/^\d+$/.test(text.trim()))targetId=parseInt(text.trim());
+    }
+    if(!targetId){toast('Código no reconocido como equipo','err');return;}
+    nav('equipos');
+    const eq=EQ.find(e=>e.id===targetId);
+    if(eq){toast(`Equipo encontrado: ${eq.nombre}`,'ok');editEq(targetId);}
+    else toast('Equipo no encontrado en inventario','err');
+  }catch(e){
+    toast('Error al procesar el código','err');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   ETIQUETAS
+════════════════════════════════════════════════════ */
+function renderEtiquetas(){
+  const container=$('etiquetasGrid');
+  if(!container)return;
+  if(!EQ.length){
+    container.innerHTML='<p style="color:var(--text3);text-align:center;padding:40px 0">No hay equipos cargados.</p>';
+    return;
+  }
+  container.innerHTML=EQ.map(eq=>`
+    <div class="label-card">
+      <div class="label-qr" id="lqr-${eq.id}"></div>
+      <div class="label-info">
+        <div class="label-name">${eq.nombre||'—'}</div>
+        <div class="label-tipo">${eq.tipo_nombre||eq.tipo||''}</div>
+        <div class="label-serial">${eq.serial||eq.serialno||'—'}</div>
+      </div>
+    </div>`).join('');
+  if(typeof QRCode==='undefined')return;
+  EQ.forEach(eq=>{
+    const el=$(`lqr-${eq.id}`);
+    if(!el)return;
+    const url=`${window.location.origin}/equipo/${eq.id}`;
+    new QRCode(el,{text:url,width:72,height:72,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  });
+}
+
+function printEtiquetas(){
+  renderEtiquetas();
+  setTimeout(()=>window.print(),400);
 }
 
 /* ════════════════════════════════════════════════════
