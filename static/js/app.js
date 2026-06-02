@@ -4455,24 +4455,41 @@ async function completeDesasignAndAssign(){
 ════════════════════════════════════════════════════ */
 let _html5Scanner=null;
 
-function openScanner(){
+async function openScanner(){
   open('ovScanner');
-  $('scanStatus').textContent='';
-  if(typeof Html5QrcodeScanner==='undefined'){
-    $('scanStatus').textContent='Librería de scanner no disponible';
+  $('scanStatus').textContent='Iniciando cámara…';
+  if(typeof Html5Qrcode==='undefined'){
+    $('scanStatus').textContent='Librería de escáner no disponible';
     return;
   }
-  _html5Scanner=new Html5QrcodeScanner('scannerRegion',{fps:10,qrbox:{width:240,height:240},rememberLastUsedCamera:true,aspectRatio:1},{});
-  _html5Scanner.render(_onScanSuccess,()=>{});
+  // Esperar a que el modal sea visible antes de iniciar la cámara
+  await new Promise(r=>setTimeout(r,200));
+  _html5Scanner=new Html5Qrcode('scannerRegion');
+  try{
+    await _html5Scanner.start(
+      {facingMode:'environment'},
+      {fps:15,qrbox:{width:220,height:220}},
+      (text)=>_onScanSuccess(text),
+      ()=>{}
+    );
+    $('scanStatus').textContent='Apunta al código QR del equipo';
+  }catch(err){
+    $('scanStatus').textContent='Sin acceso a cámara: '+(err.message||err);
+    _html5Scanner=null;
+  }
 }
 
-function closeScanner(){
+async function closeScanner(){
   if(_html5Scanner){
-    _html5Scanner.clear().catch(()=>{});
+    try{
+      if(_html5Scanner.isScanning)await _html5Scanner.stop();
+      _html5Scanner.clear();
+    }catch{}
     _html5Scanner=null;
   }
   const region=$('scannerRegion');
   if(region)region.innerHTML='';
+  $('scanStatus').textContent='';
   close('ovScanner');
 }
 
@@ -4480,13 +4497,11 @@ function _onScanSuccess(text){
   closeScanner();
   try{
     let targetId=null;
-    // Intentar parsear como URL con patrón /equipo/<id>
     try{
       const url=new URL(text);
       const m=url.pathname.match(/\/equipo\/(\d+)/);
       if(m)targetId=parseInt(m[1]);
     }catch{
-      // No es URL, intentar número directo
       if(/^\d+$/.test(text.trim()))targetId=parseInt(text.trim());
     }
     if(!targetId){toast('Código no reconocido como equipo','err');return;}
@@ -4494,7 +4509,7 @@ function _onScanSuccess(text){
     const eq=EQ.find(e=>e.id===targetId);
     if(eq){toast(`Equipo encontrado: ${eq.nombre}`,'ok');editEq(targetId);}
     else toast('Equipo no encontrado en inventario','err');
-  }catch(e){
+  }catch{
     toast('Error al procesar el código','err');
   }
 }
@@ -4502,14 +4517,26 @@ function _onScanSuccess(text){
 /* ════════════════════════════════════════════════════
    ETIQUETAS
 ════════════════════════════════════════════════════ */
+const LABELS_PER_PAGE=16;
+let _labelsPage=0;
+
 function renderEtiquetas(){
-  const container=$('etiquetasGrid');
-  if(!container)return;
+  const grid=$('etiquetasGrid');
+  const pag=$('etiquetasPagination');
+  if(!grid)return;
   if(!EQ.length){
-    container.innerHTML='<p style="color:var(--text3);text-align:center;padding:40px 0">No hay equipos cargados.</p>';
+    grid.innerHTML='<p style="color:var(--text3);text-align:center;padding:40px 0;grid-column:1/-1">No hay equipos cargados.</p>';
+    if(pag)pag.innerHTML='';
     return;
   }
-  container.innerHTML=EQ.map(eq=>`
+  const total=EQ.length;
+  const totalPages=Math.ceil(total/LABELS_PER_PAGE);
+  if(_labelsPage>=totalPages)_labelsPage=totalPages-1;
+  if(_labelsPage<0)_labelsPage=0;
+  const start=_labelsPage*LABELS_PER_PAGE;
+  const pageEqs=EQ.slice(start,start+LABELS_PER_PAGE);
+
+  grid.innerHTML=pageEqs.map(eq=>`
     <div class="label-card">
       <div class="label-qr" id="lqr-${eq.id}"></div>
       <div class="label-info">
@@ -4518,18 +4545,88 @@ function renderEtiquetas(){
         <div class="label-serial">${eq.serial||eq.serialno||'—'}</div>
       </div>
     </div>`).join('');
+
+  if(pag){
+    pag.innerHTML=`
+      <button class="btn btn-ghost btn-sm" onclick="_labelsNav(-1)" ${_labelsPage===0?'disabled':''}>← Anterior</button>
+      <span style="font-size:13px;color:var(--text3)">Página ${_labelsPage+1} de ${totalPages} &nbsp;·&nbsp; ${start+1}–${Math.min(start+LABELS_PER_PAGE,total)} de ${total}</span>
+      <button class="btn btn-ghost btn-sm" onclick="_labelsNav(1)" ${_labelsPage>=totalPages-1?'disabled':''}>Siguiente →</button>`;
+  }
+
   if(typeof QRCode==='undefined')return;
-  EQ.forEach(eq=>{
+  pageEqs.forEach(eq=>{
     const el=$(`lqr-${eq.id}`);
     if(!el)return;
-    const url=`${window.location.origin}/equipo/${eq.id}`;
-    new QRCode(el,{text:url,width:72,height:72,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(el,{text:`${window.location.origin}/equipo/${eq.id}`,width:72,height:72,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
   });
 }
 
-function printEtiquetas(){
+function _labelsNav(dir){
+  _labelsPage+=dir;
   renderEtiquetas();
-  setTimeout(()=>window.print(),400);
+  window.scrollTo(0,0);
+}
+
+function printEtiquetas(){
+  // Imprime la página actual (16 etiquetas)
+  window.print();
+}
+
+function printAllEtiquetas(){
+  // Abre ventana nueva con todas las etiquetas en hojas carta separadas
+  if(typeof QRCode==='undefined'){toast('Librería QR no disponible','err');return;}
+  const PER=18; // 3 cols × 6 filas por hoja carta
+  const pages=Math.ceil(EQ.length/PER);
+
+  // Pre-generar QR como data URLs usando elemento temporal
+  const getQR=(url)=>new Promise(res=>{
+    const div=document.createElement('div');
+    div.style.cssText='position:absolute;left:-9999px;top:-9999px';
+    document.body.appendChild(div);
+    new QRCode(div,{text:url,width:72,height:72,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    // qrcodejs genera canvas o img — esperar tick
+    setTimeout(()=>{
+      const img=div.querySelector('img');
+      const cv=div.querySelector('canvas');
+      const src=img?img.src:(cv?cv.toDataURL():'');
+      document.body.removeChild(div);
+      res(src);
+    },30);
+  });
+
+  toast('Generando etiquetas…','info');
+  Promise.all(EQ.map(eq=>getQR(`${window.location.origin}/equipo/${eq.id}`))).then(qrSrcs=>{
+    const labelHTML=(eq,i)=>`
+      <div class="lc">
+        <img src="${qrSrcs[i]}" width="68" height="68">
+        <div class="li">
+          <div class="ln">${eq.nombre||'—'}</div>
+          <div class="lt">${eq.tipo_nombre||eq.tipo||''}</div>
+          <div class="ls">${eq.serial||eq.serialno||'—'}</div>
+        </div>
+      </div>`;
+    const pagesHTML=Array.from({length:pages},(_,pi)=>{
+      const slice=EQ.slice(pi*PER,(pi+1)*PER);
+      return`<div class="pg">${slice.map((eq,i)=>labelHTML(eq,pi*PER+i)).join('')}</div>`;
+    }).join('');
+
+    const win=window.open('','_blank');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Etiquetas ActivosLA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#fff}
+.pg{width:216mm;min-height:279mm;padding:8mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;align-content:start;page-break-after:always}
+.pg:last-child{page-break-after:avoid}
+.lc{border:1px solid #ccc;border-radius:4px;padding:3mm;display:flex;align-items:center;gap:5px;height:36mm;overflow:hidden}
+.li{flex:1;min-width:0}
+.ln{font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt{font-size:9px;color:#555;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ls{font-size:9px;font-family:monospace;margin-top:3px;background:#f5f5f5;padding:1px 4px;border-radius:2px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@page{size:letter;margin:0}
+</style></head><body>${pagesHTML}<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
+    win.document.close();
+  });
 }
 
 /* ════════════════════════════════════════════════════
