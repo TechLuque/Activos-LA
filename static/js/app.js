@@ -1,7 +1,7 @@
 ﻿/* ════════════════════════════════════════════════════
    STATE & HELPERS
 ════════════════════════════════════════════════════ */
-let EQ=[],USR=[],LOANS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
+let EQ=[],USR=[],LOANS=[],LOANS_MASIVOS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -179,19 +179,20 @@ function nav(page){
   $('pgTitle').textContent=PAGE_TITLES[page]||page;
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${page}'`))b.classList.add('active')});
   closeSidebar();
-  if(page==='equipos')renderEq();
-  if(page==='mantenimientos'){updateMantEquiposSelect();renderMant();}
-  if(page==='usuarios'){updateDptosSelect();renderUsr();}
-  if(page==='prestamos'){updateLoanDptosSelect();renderLoan();}
-  if(page==='licencias'){updateLicenseProveedoresSelect();renderLicenses();}
-  if(page==='aplicativos')renderAplicativos();
-  if(page==='celulares'){updateCelularMarcasSelect();renderCelulares();}
-  if(page==='simcards')renderSimcards();
-  if(page==='asignaciones'){actualizarFiltrosAsignaciones();renderAsignaciones();}
-  if(page==='calendario')renderCal();
-  if(page==='reportes')renderReportes();
-  if(page==='admin-tipos')renderTipos();
-  if(page==='admin-roles'){loadRoles();renderRoles();}
+  const _safe=(fn,name)=>{try{fn();}catch(e){console.error('[nav:'+name+']',e);}};
+  if(page==='equipos')_safe(renderEq,'equipos');
+  if(page==='mantenimientos'){_safe(updateMantEquiposSelect,'updateMantSel');_safe(renderMant,'mant');}
+  if(page==='usuarios'){_safe(updateDptosSelect,'updateDptos');_safe(renderUsr,'usr');}
+  if(page==='prestamos'){_safe(updateLoanDptosSelect,'updateLoanDptos');_safe(renderLoan,'loan');}
+  if(page==='licencias'){_safe(updateLicenseProveedoresSelect,'updateLicProv');_safe(renderLicenses,'licencias');}
+  if(page==='aplicativos')_safe(renderAplicativos,'aplicativos');
+  if(page==='celulares'){_safe(updateCelularMarcasSelect,'updateCelMarcas');_safe(renderCelulares,'celulares');}
+  if(page==='simcards')_safe(renderSimcards,'simcards');
+  if(page==='asignaciones'){_safe(actualizarFiltrosAsignaciones,'filtrosAsig');_safe(renderAsignaciones,'asignaciones');}
+  if(page==='calendario')_safe(renderCal,'calendario');
+  if(page==='reportes')_safe(renderReportes,'reportes');
+  if(page==='admin-tipos')_safe(renderTipos,'tipos');
+  if(page==='admin-roles'){_safe(loadRoles,'loadRoles');_safe(renderRoles,'roles');}
 }
 
 /* ════════════════════════════════════════════════════
@@ -211,6 +212,9 @@ async function init(){
   
   await loadAll();
   renderDashboard();
+  // Re-render the active page so data shows even if the user navigated before loadAll finished
+  const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
+  if(activePage&&activePage!=='dashboard') nav(activePage);
 }
 
 function _enrich(){
@@ -240,6 +244,13 @@ function computeDash(){
       if(fd){if(fd<today)prestamos_vencidos.push(l);else if(fd<=in7)proximos_vencer.push(l);}
     }
   }
+  for(const l of (LOANS_MASIVOS||[])){
+    if(l.estado!=='devuelto'){
+      prestamos_activos++;
+      const fd=l.fecha_devolucion_esperada;
+      if(fd){if(fd<today)prestamos_vencidos.push(l);else if(fd<=in7)proximos_vencer.push(l);}
+    }
+  }
   for(const m of MANTS){
     if(m.estado!=='completado')mant_en_proceso++;
     if(m.tipo==='preventivo'&&m.proxima_revision&&m.proxima_revision<today)preventivos_vencidos++;
@@ -250,6 +261,7 @@ function computeDash(){
 async function _refreshEq(){const r=await api('/api/equipos');if(!r.error&&Array.isArray(r)){EQ=r;_enrich();}}
 async function _refreshUsr(){const r=await api('/api/usuarios');if(!r.error&&Array.isArray(r)){USR=r;_enrich();}}
 async function _refreshLoans(){const r=await api('/api/prestamos');if(!r.error&&Array.isArray(r)){const em=Object.fromEntries(EQ.map(e=>[e.id,e])),um=Object.fromEntries(USR.map(u=>[u.id,u]));LOANS=r.map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});}}
+async function _refreshLoansMasivos(){const r=await api('/api/prestamos/masivos');if(!r.error&&Array.isArray(r)){const um=Object.fromEntries(USR.map(u=>[u.id,u]));LOANS_MASIVOS=r.map(l=>{const u=um[l.usuario_id]||{};return{...l,_tipo:'masivo',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});}}
 async function _refreshMants(){const r=await api('/api/mantenimientos');if(!r.error&&Array.isArray(r)){const em=Object.fromEntries(EQ.map(e=>[e.id,e]));MANTS=r.map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});}}
 async function _refreshLics(){const r=await api('/api/licencias');if(!r.error&&Array.isArray(r))LICENCIAS=r;}
 async function _refreshApps(){const r=await api('/api/aplicativos');if(!r.error&&Array.isArray(r))APLICATIVOS=r;}
@@ -260,7 +272,7 @@ async function _refreshAsigs(){const r=await api('/api/asignaciones-equipos');if
 async function loadAll(){
   try{
     const d=await api('/api/init');
-    if(d.error){toast('Error loading data from server','err');return;}
+    if(d.error){toast('Error loading data: '+d.error,'err');return;}
     EQ=d.equipos||[]; USR=d.usuarios||[]; LICENCIAS=d.licencias||[]; APLICATIVOS=d.aplicativos||[];
     CELULARES=d.celulares||[]; SIMCARDS=d.simcards||[]; TIPOS=d.tipos||[]; ROLES=d.roles||[];
     const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
@@ -271,7 +283,10 @@ async function loadAll(){
     DASH=computeDash();
     updateTiposFilter();
     updateNavBadges();
+    // Masivos se cargan en background para no aumentar la carga paralela en init
+    _refreshLoansMasivos().then(()=>{DASH=computeDash();});
   }catch(e){
+    console.error('[loadAll] excepción:',e);
     toast('Error fatal al cargar datos','err');
   }
 }
@@ -351,6 +366,9 @@ function updateNavBadges(){
    DASHBOARD
 ════════════════════════════════════════════════════ */
 function renderDashboard(){
+  try{_renderDashboard();}catch(e){console.error('[renderDashboard] error:',e);}
+}
+function _renderDashboard(){
   const d=DASH;
   const venc=d.prestamos_vencidos||[];
   const prox=d.proximos_vencer||[];
@@ -525,7 +543,7 @@ function renderDashboard(){
 
   // ── Actividad reciente ─────────────────────────────────────────────
   const allEvents=[
-    ...MANTS.map(m=>({date:m.fecha||'2000-01-01',type:'mant',title:m.equipo_nombre,sub:m.descripcion.slice(0,55)+(m.descripcion.length>55?'…':''),estado:m.estado,tipoMant:m.tipo})),
+    ...MANTS.map(m=>{const desc=m.descripcion||'';return{date:m.fecha||'2000-01-01',type:'mant',title:m.equipo_nombre,sub:desc.slice(0,55)+(desc.length>55?'…':''),estado:m.estado,tipoMant:m.tipo};}),
     ...LOANS.map(p=>({date:p.fecha_prestamo||'2000-01-01',type:'loan',title:p.equipo_nombre,sub:`${p.usuario_nombre} — ${p.departamento||''}`,estado:p.estado}))
   ];
   allEvents.sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -754,6 +772,8 @@ function renderEq(){
     const responsable=e.usuario_id?USR.find(u=>u.id===e.usuario_id):null;
     const tipoNombre = e.tipo_nombre || e.tipo || 'Sin tipo';
     const isRetirado = e.disponibilidad === 'Retirado';
+    const dispLabel = e.disponibilidad || 'Disponible';
+    const dispClass = {Disponible:'bs-activo',Asignado:'bs-solicitado','En mantenimiento':'bs-en_proceso',Retirado:'bs-inactivo'}[dispLabel]||'bs-activo';
     return `
     <tr ${isRetirado ? 'style="opacity:0.55;background:rgba(0,0,0,0.3)"' : ''}>
       <td data-label="Equipo"><div class="av-cell">
@@ -768,7 +788,7 @@ function renderEq(){
       <td data-label="Fecha Ingreso"><span style="font-size:12px">${e.fecha_ingreso||'—'}</span></td>
       <td data-label="Responsable"><span style="font-size:13px;color:var(--text)">${responsable?responsable.nombre:'—'}</span></td>
       <td data-label="Estado"><span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span></td>
-      <td data-label="Disponibilidad"><span class="bs ${(!e.disponibilidad||e.disponibilidad==='Disponible')?'bs-activo':'bs-inactivo'}" style="font-size:11px;padding:4px 8px">${(!e.disponibilidad||e.disponibilidad==='Disponible')?'Disponible':'Retirado'}</span></td>
+      <td data-label="Disponibilidad"><span class="bs ${dispClass}" style="font-size:11px;padding:4px 8px">${dispLabel}</span></td>
       <td data-label="Valor"><span class="mono" style="color:var(--text)">${fmt(e.valor)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-ghost btn-icon btn-sm" title="Hoja de vida" onclick="openHV(${e.id})">📋</button>
@@ -1497,7 +1517,7 @@ function renderMant(){
         <div class="name">${m.equipo_nombre}</div>
       </div></td>
       <td data-label="Tipo"><span class="bs ${bsClass(m.tipo)}">${bsLabel(m.tipo)}</span></td>
-      <td data-label="Descripción" style="max-width:180px;font-size:12px;color:var(--text2)">${m.descripcion.slice(0,70)}${m.descripcion.length>70?'…':''}</td>
+      <td data-label="Descripción" style="max-width:180px;font-size:12px;color:var(--text2)">${(m.descripcion||'').slice(0,70)}${(m.descripcion||'').length>70?'…':''}</td>
       <td data-label="Fecha" class="mono">${fmtDate(m.fecha)}</td>
       <td data-label="Técnico" style="color:var(--text3)">${m.tecnico||'—'}</td>
       <td data-label="Costo" class="mono">${m.costo?fmt(m.costo):'—'}</td>
@@ -1729,7 +1749,7 @@ function renderUsr(){
     const rol=ROLES.find(r=>r.id===u.rol_id);
     return `<tr>
       <td data-label="Nombre"><div class="av-cell">
-        <div class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${u.nombre.charAt(0)}</div>
+        <div class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${(u.nombre||'?').charAt(0)}</div>
         <div class="name">${u.nombre}</div>
       </div></td>
       <td data-label="Email" style="color:var(--text3)">${u.email}</td>
@@ -2138,7 +2158,7 @@ function renderAplicativos(){
         ${porvencer?'<div style="font-size:10px;color:var(--amber);font-weight:700">Por vencer</div>':''}
       </td>
       <td data-label="Periodicidad"><span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:4px 8px;border-radius:4px;display:inline-block">${a.periodicidad}</span></td>
-      <td data-label="Tarjeta"><span style="font-size:12px;background:var(--violet-soft);color:var(--violet);padding:4px 8px;border-radius:4px;display:inline-block;font-family:var(--mono)">***${a.tarjeta.slice(-4)}</span></td>
+      <td data-label="Tarjeta"><span style="font-size:12px;background:var(--violet-soft);color:var(--violet);padding:4px 8px;border-radius:4px;display:inline-block;font-family:var(--mono)">${a.tarjeta?'***'+(a.tarjeta+'').slice(-4):'—'}</span></td>
       <td data-label="Estado"><span class="bs ${bsClass(a.estado)}">${bsLabel(a.estado)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-secondary btn-sm" onclick="showPagosDetalle(${a.id})">📋 Pagos</button>
@@ -2938,9 +2958,29 @@ function renderLoan(){
   const dpto=$('ftLoanDpto')?.value||'';
   const vencido=$('ftLoanVencido')?.value||'';
 
-  let rows=searchMultiField(LOANS,q,SEARCH_FIELDS.loan);
+  // ── Individuales: lógica original intacta ──────────────────────
+  let individualRows=searchMultiField(LOANS,q,SEARCH_FIELDS.loan);
+  individualRows=individualRows.filter(p=>{
+    if(est&&p.estado!==est) return false;
+    if(dpto&&p.departamento!==dpto) return false;
+    if(vencido){
+      const dl=daysLeft(p.fecha_devolucion_esperada);
+      const isOverdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+      const isNear=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
+      if(vencido==='vencido'&&!isOverdue) return false;
+      if(vencido==='proximo'&&!isNear) return false;
+    }
+    return true;
+  });
+  individualRows=applyAdvancedFilters('loan',individualRows);
 
-  rows=rows.filter(p=>{
+  // ── Masivos: filtros equivalentes ──────────────────────────────
+  const masivosArr=Array.isArray(LOANS_MASIVOS)?LOANS_MASIVOS:[];
+  let masivoRows=masivosArr.filter(p=>{
+    if(q){
+      const hay=(p.usuario_nombre+' '+(p.departamento||'')+' masivo').toLowerCase();
+      if(!hay.includes(q.toLowerCase())) return false;
+    }
     if(est&&p.estado!==est) return false;
     if(dpto&&p.departamento!==dpto) return false;
     if(vencido){
@@ -2953,23 +2993,60 @@ function renderLoan(){
     return true;
   });
 
-  rows=applyAdvancedFilters('loan',rows);
+  // ── Combinar y ordenar por fecha de creación ───────────────────
+  const allRows=[
+    ...individualRows.map(r=>({...r,_tipo:'individual'})),
+    ...masivoRows.map(r=>({...r,_tipo:'masivo'}))
+  ].sort((a,b)=>(b.creado_en||'').localeCompare(a.creado_en||''));
 
-  $('loanCount').textContent=`${rows.length} de ${LOANS.length} préstamo(s)`;
+  const total=LOANS.length+masivosArr.length;
+  $('loanCount').textContent=`${allRows.length} de ${total} préstamo(s)`;
 
-  const {data:pageData,totalPages,currentPage:cp}=paginateArray(rows,'loan');
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(allRows,'loan');
 
   const tb=$('loanTbody');
-  if(!rows.length){
+  if(!allRows.length){
     tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔁</div><h3>Sin préstamos</h3></div></td></tr>`;
     $('loanPaginationContainer').innerHTML='';
     return;
   }
+
   tb.innerHTML=pageData.map(p=>{
     const overdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
     const dl=daysLeft(p.fecha_devolucion_esperada);
     const near=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
-    return`<tr style="${overdue?'background:rgba(248,113,113,.04)':near?'background:rgba(251,191,36,.04)':''}">
+    const rowBg=overdue?'background:rgba(248,113,113,.04)':near?'background:rgba(251,191,36,.04)':'';
+
+    if(p._tipo==='masivo'){
+      return`<tr style="${rowBg}">
+        <td data-label="Equipo"><div class="av-cell">
+          <div class="tipo-av">📦</div>
+          <div>
+            <div class="name" style="font-weight:600">${p.num_equipos||0} equipo(s)</div>
+            <span style="font-size:10px;font-weight:700;color:var(--blue);background:rgba(99,179,237,.15);padding:2px 6px;border-radius:4px">MASIVO</span>
+          </div>
+        </div></td>
+        <td data-label="Responsable">${p.usuario_nombre}<div style="font-size:11px;color:var(--text3)">${p.departamento||''}</div></td>
+        <td data-label="Fecha Préstamo" class="mono">${fmtDate(p.fecha_prestamo)}</td>
+        <td data-label="Devolver Antes" class="mono" style="color:${overdue?'var(--red)':near?'var(--amber)':'var(--text3)'}">
+          ${fmtDate(p.fecha_devolucion_esperada)}
+          ${overdue?`<div style="font-size:10px;color:var(--red);font-weight:700">Venció hace ${Math.abs(dl)} día(s)</div>`:''}
+          ${near&&!overdue?`<div style="font-size:10px;color:var(--amber);font-weight:700">En ${dl} día(s)</div>`:''}
+        </td>
+        <td data-label="Devuelto" class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
+        <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
+        <td data-label="Términos"><span style="color:var(--text3);font-size:12px">—</span></td>
+        <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
+        <td data-label="Acciones"><div class="act-cell">
+          <button class="btn btn-primary btn-sm" onclick="viewLoanMasivoItems(${p.id})">👁 Ver equipos</button>
+          ${p.estado!=='devuelto'?`<button class="btn btn-success btn-sm" onclick="sendMasivoFirmaLink(${p.id})">🔗 Enlace Firma</button>`:''}
+          ${p.estado!=='devuelto'?`<button class="btn btn-teal btn-sm" onclick="returnLoanMasivo(${p.id})">📤 Devolver</button>`:''}
+          <button class="btn btn-danger btn-icon btn-sm" onclick="delLoanMasivo(${p.id})">🗑️ Eliminar</button>
+        </div></td>
+      </tr>`;
+    }
+
+    return`<tr style="${rowBg}">
       <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[p.equipo_tipo]||'📦'}</div>
         <div class="name">${p.equipo_nombre}</div>
@@ -2991,12 +3068,13 @@ function renderLoan(){
         ${p.estado==='firmado'?`<button class="btn btn-teal btn-sm" onclick="returnLoan(${p.id})">📤 Devolver</button>`:''}
         <button class="btn btn-danger btn-icon btn-sm" onclick="delLoan(${p.id})">🗑️ Eliminar</button>
       </div></td>
-    </tr>`;}).join('');
+    </tr>`;
+  }).join('');
 
   $('loanPaginationContainer').innerHTML=createPaginationControls(cp,totalPages,'loan');
 }
 function updateLoanDptosSelect(){
-  const dptos=[...new Set(LOANS.map(p=>p.departamento).filter(d=>d))].sort();
+  const dptos=[...new Set([...LOANS,...LOANS_MASIVOS].map(p=>p.departamento).filter(d=>d))].sort();
   const sel=$('ftLoanDpto');
   if(!sel) return;
   const current=sel.value;
@@ -3019,14 +3097,202 @@ function clearLoanFilters(){
   renderLoan();
 }
 
+/* ── PRÉSTAMOS MASIVOS ────────────────────────────────────────── */
+let _lmSelectedIds=[];
+
+function openLoanMasivoModal(){
+  _lmSelectedIds=[];
+  const conPrestamo=new Set(
+    LOANS.filter(l=>l.estado==='firmado'||l.estado==='activo').map(l=>l.equipo_id)
+  );
+  const enMasivo=new Set(
+    (LOANS_MASIVOS||[]).filter(m=>m.estado!=='devuelto').flatMap(m=>m.equipo_ids||[])
+  );
+  window.equiposMasivoDisponibles=EQ.filter(e=>
+    !conPrestamo.has(e.id)&&!enMasivo.has(e.id)&&e.disponibilidad!=='Retirado'
+  );
+  _lmRenderChips();
+  $('lmEqSearch').value='';
+  $('lmEqList').style.display='none';
+  $('lmFecha').value=TODAY;
+  $('lmDevol').value='';
+  $('lmNotas').value='';
+  $('lmUsr').innerHTML='<option value="">Seleccionar responsable…</option>'+
+    USR.filter(u=>u.estado==='activo').map(u=>`<option value="${u.id}">${u.nombre} — ${u.departamento||''}</option>`).join('');
+  open('ovLoanMasivo');
+}
+
+function _lmRenderChips(){
+  const container=$('lmChips');
+  container.innerHTML=_lmSelectedIds.map(id=>{
+    const eq=EQ.find(e=>e.id===id)||{};
+    return`<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:12px">
+      ${eq.nombre||'Equipo '+id}
+      <button onclick="_lmRemoveEquipo(${id})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:0 2px">&times;</button>
+    </span>`;
+  }).join('');
+  $('lmEqCount').textContent=`${_lmSelectedIds.length} equipo(s) seleccionado(s)`;
+}
+
+function _lmRemoveEquipo(id){
+  _lmSelectedIds=_lmSelectedIds.filter(x=>x!==id);
+  _lmRenderChips();
+  filterEquiposMasivo();
+}
+
+function filterEquiposMasivo(){
+  const q=$('lmEqSearch').value.toLowerCase();
+  const list=$('lmEqList');
+  // Usar la lista pre-calculada al abrir el modal, excluyendo los ya seleccionados
+  const base=(window.equiposMasivoDisponibles||[]).filter(e=>!_lmSelectedIds.includes(e.id));
+  const filtered=q?base.filter(e=>
+    (e.nombre||'').toLowerCase().includes(q)||
+    (e.serial||'').toLowerCase().includes(q)||
+    (e.marca||'').toLowerCase().includes(q)||
+    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(q)
+  ):base;
+
+  if(!q){list.style.display='none';return;}
+  list.style.display='block';
+  if(!filtered.length){
+    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
+    return;
+  }
+  list.innerHTML=filtered.slice(0,30).map(e=>`
+    <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s"
+         onmouseover="this.style.background='var(--surface3)'"
+         onmouseout="this.style.background='transparent'"
+         onclick="_lmAddEquipo(${e.id})">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
+      <div style="font-size:11px;color:var(--text3)">${e.tipo_nombre||e.tipo||''} ${e.serial?'· Serial: '+e.serial:''}</div>
+    </div>
+  `).join('');
+}
+
+function _lmAddEquipo(id){
+  if(!_lmSelectedIds.includes(id)) _lmSelectedIds.push(id);
+  $('lmEqSearch').value='';
+  $('lmEqList').style.display='none';
+  _lmRenderChips();
+}
+
+document.addEventListener('click',function(e){
+  if(e.target.id!=='lmEqSearch'&&!e.target.closest('#lmEqList')){
+    const l=$('lmEqList');
+    if(l) l.style.display='none';
+  }
+});
+
+async function saveLoanMasivo(){
+  if(!_lmSelectedIds.length){toast('Selecciona al menos 1 equipo','err');return;}
+  const usuario_id=parseInt($('lmUsr').value);
+  const fecha_prestamo=$('lmFecha').value;
+  if(!usuario_id||!fecha_prestamo){toast('Responsable y fecha son requeridos','err');return;}
+
+  const btn=$('saveLoanMasivoBtn');
+  btn.disabled=true;btn.textContent='Registrando…';
+
+  try{
+    const res=await api('/api/prestamos/masivos','POST',{
+      equipo_ids:_lmSelectedIds,
+      usuario_id,
+      fecha_prestamo,
+      fecha_devolucion_esperada:$('lmDevol').value||null,
+      notas:$('lmNotas').value
+    });
+    if(res.error){toast(res.error,'err');return;}
+    close('ovLoanMasivo');
+    await Promise.all([_refreshLoans(),_refreshLoansMasivos()]);
+    DASH=computeDash();renderLoan();renderDashboard();
+    toast(`Préstamo masivo registrado con ${_lmSelectedIds.length} equipo(s) ✅`,'ok');
+  }catch(e){
+    toast('Error al registrar: '+e.message,'err');
+  }finally{
+    btn.disabled=false;btn.textContent='Registrar préstamo masivo';
+  }
+}
+
+let _currentMasivoId=null;
+function viewLoanMasivoItems(id){
+  _currentMasivoId=id;
+  const masivo=LOANS_MASIVOS.find(m=>m.id===id);
+  if(!masivo){return;}
+  $('lmItemsSub').textContent=`${masivo.usuario_nombre} · ${fmtDate(masivo.fecha_prestamo)}`;
+
+  // Usar equipo_ids ya en memoria + EQ para evitar API call extra
+  const equipoIds=masivo.equipo_ids||[];
+  if(!equipoIds.length){
+    $('lmItemsContent').innerHTML='<p style="color:var(--text3);padding:12px 0">Sin equipos registrados.</p>';
+    document.getElementById('ovLoanMasivoItems').classList.add('open');
+    return;
+  }
+  const rows=equipoIds.map((eqId,i)=>{
+    const eq=EQ.find(e=>e.id===eqId)||{};
+    return`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 4px;color:var(--text3)">${i+1}</td>
+      <td style="padding:8px 4px;font-weight:600">${eq.nombre||'Equipo '+eqId}</td>
+      <td style="padding:8px 4px;color:var(--text3)">${eq.tipo_nombre||eq.tipo||'—'}</td>
+      <td style="padding:8px 4px;color:var(--text3)">${eq.marca||'—'}</td>
+      <td style="padding:8px 4px;color:var(--text3);font-family:monospace">${eq.serial||'—'}</td>
+    </tr>`;
+  }).join('');
+  $('lmItemsContent').innerHTML=`
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="padding:8px 4px;text-align:left">#</th>
+        <th style="padding:8px 4px;text-align:left">Equipo</th>
+        <th style="padding:8px 4px;text-align:left">Tipo</th>
+        <th style="padding:8px 4px;text-align:left">Marca</th>
+        <th style="padding:8px 4px;text-align:left">Serial</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  const firmaBtn=$('lmItemsFirmaBtn');
+  if(firmaBtn) firmaBtn.style.display=masivo.estado==='devuelto'?'none':'';
+  document.getElementById('ovLoanMasivoItems').classList.add('open');
+}
+
+function sendMasivoFirmaLink(id){
+  const masivoId=id||_currentMasivoId;
+  if(!masivoId) return;
+  const masivo=LOANS_MASIVOS.find(m=>m.id===masivoId);
+  if(!masivo) return;
+  const url=`${window.location.origin}/firma/${masivoId}?doc=masivo`;
+  // Reusar el modal de link de firma existente
+  const inp=$('sigLinkUrl');
+  if(inp){inp.value=url;}
+  document.getElementById('ovLoanMasivoItems').classList.remove('open');
+  open('ovSignLink');
+}
+
+async function returnLoanMasivo(id){
+  if(!confirm('¿Marcar todos los equipos de este préstamo como devueltos?')) return;
+  const res=await api(`/api/prestamos/masivos/${id}/devolver`,'PUT');
+  if(res.error){toast(res.error,'err');return;}
+  await _refreshLoansMasivos();
+  DASH=computeDash();renderLoan();renderDashboard();
+  toast('Préstamo masivo devuelto ✅','ok');
+}
+
+async function delLoanMasivo(id){
+  if(!confirm('¿Eliminar este préstamo masivo? Esta acción no se puede deshacer.')) return;
+  const res=await api(`/api/prestamos/masivos/${id}`,'DELETE');
+  if(res.error){toast(res.error,'err');return;}
+  await _refreshLoansMasivos();
+  DASH=computeDash();renderLoan();renderDashboard();
+  toast('Préstamo masivo eliminado','ok');
+}
+
 function openLoanModal(loan_id=null){
   editLoanId=null;
 
   // Excluir equipos que YA tienen préstamos NO devueltos (no solo 'activo')
   // Pero si estamos editando, excluir solo los demás préstamos activos
   const excludeLoanId=loan_id||null;
-  const asignados=LOANS.filter(p=>p.estado!=='devuelto'&&p.id!==excludeLoanId).map(p=>p.equipo_id);
-  window.equiposDisponibles=EQ.filter(e=>!asignados.includes(e.id)&&e.disponibilidad!=='Retirado');
+  const asignados=new Set(LOANS.filter(p=>p.estado!=='devuelto'&&p.id!==excludeLoanId).map(p=>p.equipo_id));
+  const enMasivo=new Set((LOANS_MASIVOS||[]).filter(m=>m.estado!=='devuelto').flatMap(m=>m.equipo_ids||[]));
+  window.equiposDisponibles=EQ.filter(e=>!asignados.has(e.id)&&!enMasivo.has(e.id)&&e.disponibilidad!=='Retirado');
   
   if(loan_id){
     // Modo edición
@@ -3066,7 +3332,8 @@ function filterEquipos(){
   const equipos=window.equiposDisponibles||[];
   
   const filtered=equipos.filter(e=>
-    e.nombre.toLowerCase().includes(q)||
+    (e.nombre||'').toLowerCase().includes(q)||
+    (e.serial||'').toLowerCase().includes(q)||
     (e.marca||'').toLowerCase().includes(q)||
     (e.tipo_nombre||e.tipo||'').toLowerCase().includes(q)
   );

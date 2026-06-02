@@ -62,21 +62,28 @@ def get_tipos_map() -> dict:
 def supabase_request(method: str, table: str, query: str = '', data=None):
     """Ejecuta una request a la Supabase REST API usando session persistente."""
     url = f"{SUPABASE_API_URL}/{table}{query}"
-    kwargs: dict = {}
+    kwargs: dict = {'timeout': 10}
     if method == 'POST':
         kwargs['headers'] = {'Prefer': 'return=representation'}
     if data is not None:
         kwargs['json'] = data
-    try:
-        resp = _session.request(method, url, **kwargs)
-        if resp.status_code in [200, 201]:
-            try:
-                return resp.json()
-            except Exception:
-                return {'ok': True}
-        return {'error': resp.text, 'status': resp.status_code}
-    except Exception as e:
-        return {'error': str(e)}
+    for attempt in range(2):
+        try:
+            resp = _session.request(method, url, **kwargs)
+            if resp.status_code in [200, 201]:
+                try:
+                    return resp.json()
+                except Exception:
+                    return {'ok': True}
+            if attempt == 0:
+                time.sleep(0.3)
+                continue
+            return {'error': resp.text, 'status': resp.status_code}
+        except Exception as e:
+            if attempt == 0:
+                time.sleep(0.3)
+                continue
+            return {'error': str(e)}
 
 
 def supabase_storage_upload(file_content, file_path: str):

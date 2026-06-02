@@ -114,6 +114,11 @@
     </div>
   </header>
 
+  <div id="globalLoader" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,12,18,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:14px">
+    <div style="width:44px;height:44px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="font-size:13px;color:var(--text3);font-weight:500">Cargando datos…</div>
+  </div>
+
   <div class="page-content">
 
     <!-- ════ DASHBOARD ════ -->
@@ -570,7 +575,10 @@
     <section class="page" id="page-prestamos">
       <div class="pg-header">
         <div class="pg-heading"><h2>Préstamos</h2><p>Control de equipos asignados y en uso</p></div>
-        <button class="btn btn-primary" onclick="openLoanModal()">+ Nuevo préstamo</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="openLoanModal()">+ Nuevo préstamo</button>
+          <button class="btn btn-secondary" onclick="openLoanMasivoModal()">+ Préstamo masivo</button>
+        </div>
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
@@ -1251,6 +1259,54 @@
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovLoan')">Cancelar</button>
         <button id="saveLoanBtn" class="btn btn-primary" onclick="saveLoan()">Registrar préstamo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CREAR PRÉSTAMO MASIVO -->
+<div class="overlay" id="ovLoanMasivo">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Préstamo masivo</h3><p>Selecciona múltiples equipos para un solo responsable</p></div>
+      <button class="m-close" onclick="close('ovLoanMasivo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid c1">
+        <div class="fg">
+          <label>Equipos seleccionados *</label>
+          <div id="lmChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px"></div>
+          <div style="position:relative">
+            <input type="text" id="lmEqSearch" placeholder="Buscar equipo por nombre, marca o tipo…" style="width:100%" oninput="filterEquiposMasivo()">
+            <div id="lmEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px" id="lmEqCount">0 equipos seleccionados</div>
+        </div>
+        <div class="fg"><label>Responsable *</label><select id="lmUsr"><option value="">Seleccionar responsable…</option></select></div>
+        <div class="fg"><label>Fecha de préstamo *</label><input type="date" id="lmFecha" style="color:white"></div>
+        <div class="fg"><label>Devolución esperada</label><input type="date" id="lmDevol" style="color:white"></div>
+        <div class="fg"><label>Notas</label><textarea id="lmNotas" placeholder="Motivo o condiciones del préstamo masivo…"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovLoanMasivo')">Cancelar</button>
+        <button id="saveLoanMasivoBtn" class="btn btn-primary" onclick="saveLoanMasivo()">Registrar préstamo masivo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER EQUIPOS PRÉSTAMO MASIVO -->
+<div class="overlay" id="ovLoanMasivoItems">
+  <div class="modal modal-md">
+    <div class="modal-head">
+      <div><h3>Equipos del préstamo masivo</h3><p id="lmItemsSub"></p></div>
+      <button class="m-close" onclick="document.getElementById('ovLoanMasivoItems').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="lmItemsContent"></div>
+      <div class="form-actions" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="document.getElementById('ovLoanMasivoItems').classList.remove('open')">Cerrar</button>
+        <button class="btn btn-success btn-sm" id="lmItemsFirmaBtn" onclick="sendMasivoFirmaLink()">🔗 Enviar link de firma</button>
       </div>
     </div>
   </div>

@@ -441,6 +441,8 @@
                 let url;
                 if (tipoDocumento === 'asignacion') {
                     url = `/api/asignaciones-equipos/${loanId}/publico`;
+                } else if (tipoDocumento === 'masivo') {
+                    url = `/api/prestamos/masivos/${loanId}/publico`;
                 } else {
                     url = `/api/prestamos/${loanId}`;
                 }
@@ -509,7 +511,9 @@
                 }
                 
                 // Llenar informacion
-                const equipo = loanData.equipo_nombre || loanData.equipo || '—';
+                const equipo = tipoDocumento === 'masivo'
+                    ? `${loanData.num_equipos || 0} equipo(s)`
+                    : (loanData.equipo_nombre || loanData.equipo || '—');
                 const codigoEquipo = loanData.equipo_codigo || loanData.codigo || '—';
                 const responsable = loanData.usuario_nombre || loanData.usuario || '—';
                 let fecha = loanData.fecha_prestamo || loanData.fecha_asignacion || '—';
@@ -526,6 +530,10 @@
                     $('fechaLabel').textContent = 'Fecha de Asignación';
                     // Ocultar columna Devolución Esperada para asignaciones
                     $('devolItem').style.display = 'none';
+                } else if (tipoDocumento === 'masivo') {
+                    $('infoCardTitle').textContent = 'Información del Préstamo Masivo';
+                    $('fechaLabel').textContent = 'Fecha de Préstamo';
+                    $('devolItem').style.display = 'grid';
                 } else {
                     $('infoCardTitle').textContent = 'Información del Préstamo';
                     $('fechaLabel').textContent = 'Fecha de Préstamo';
@@ -910,7 +918,7 @@
                     form1.append('numero', 1);
                     form1.append('tipo', tipoFirma);
                     
-                    const uploadEndpoint = `/api/prestamos/${loanId}/upload-image`;
+                    const uploadEndpoint = tipoDocumento === 'masivo' ? `/api/prestamos/masivos/${loanId}/upload-image` : `/api/prestamos/${loanId}/upload-image`;
                     
                     const res1 = await fetch(uploadEndpoint, {
                         method: 'POST',
@@ -934,7 +942,7 @@
                     form2.append('numero', 2);
                     form2.append('tipo', tipoFirma);
                     
-                    const uploadEndpoint = `/api/prestamos/${loanId}/upload-image`;
+                    const uploadEndpoint = tipoDocumento === 'masivo' ? `/api/prestamos/masivos/${loanId}/upload-image` : `/api/prestamos/${loanId}/upload-image`;
                     
                     const res2 = await fetch(uploadEndpoint, {
                         method: 'POST',
@@ -976,7 +984,9 @@
                 // Use correct endpoint based on document type
                 const signatureEndpoint = tipoDocumento === 'asignacion'
                   ? `/api/asignaciones-equipos/${loanId}/save-signature-public`
-                  : `/api/prestamos/${loanId}/save-signature`;
+                  : tipoDocumento === 'masivo'
+                    ? `/api/prestamos/masivos/${loanId}/save-signature`
+                    : `/api/prestamos/${loanId}/save-signature`;
                 
                 const res3 = await fetch(signatureEndpoint, {
                     method: 'POST',
@@ -1030,6 +1040,13 @@
                         photoList = '<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>';
                         successMsg = 'Equipo asignado exitosamente.';
                     }
+                } else if (tipoDocumento === 'masivo') {
+                    titulo = 'Préstamo Masivo Firmado';
+                    desc = 'Firma digital registrada exitosamente';
+                    photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
+                                ${img1File ? `<li>✅ <strong>Foto 1</strong> (${img1File.name}) - Guardada</li>` : ''}
+                                ${img2File ? `<li>✅ <strong>Foto 2</strong> (${img2File.name}) - Guardada</li>` : ''}`;
+                    successMsg = 'El préstamo masivo ha sido firmado y registrado en el sistema.';
                 } else {
                     titulo = tipoFirma === 'devolucion' ? 'Devolución Confirmada' : 'Préstamo Firmado';
                     desc = tipoFirma === 'devolucion' ? 'Devolución del equipo registrada exitosamente' : 'Documentación registrada exitosamente';

@@ -75,7 +75,15 @@ def delete_equipo(equipo_id: int):
 
 def get_all_usuarios() -> list:
     result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,departamento,telefono,estado,rol_id&order=nombre.asc')
-    return result if isinstance(result, list) else []
+    if isinstance(result, list):
+        return result
+    # Fallback: rol_id puede no existir en la tabla
+    result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,departamento,telefono,estado&order=nombre.asc')
+    if isinstance(result, list):
+        for u in result:
+            u.setdefault('rol_id', None)
+        return result
+    return []
 
 
 def get_usuario(usuario_id: int) -> dict | None:
@@ -104,6 +112,10 @@ def delete_usuario(usuario_id: int):
 
 def get_all_prestamos() -> list:
     result = supabase_request('GET', 'prestamos', '?select=id,equipo_id,usuario_id,estado,fecha_prestamo,fecha_devolucion_esperada,notas,creado_en&order=creado_en.desc')
+    if isinstance(result, list):
+        return result
+    # Fallback: creado_en puede no existir en la tabla
+    result = supabase_request('GET', 'prestamos', '?select=id,equipo_id,usuario_id,estado,fecha_prestamo,fecha_devolucion_esperada,notas&order=fecha_prestamo.desc')
     return result if isinstance(result, list) else []
 
 
@@ -167,6 +179,73 @@ def update_prestamo(prestamo_id: int, data: dict) -> dict:
 
 def delete_prestamo(prestamo_id: int):
     return supabase_request('DELETE', 'prestamos', f'?id=eq.{prestamo_id}')
+
+
+# ── Préstamos Masivos ──────────────────────────────────────────────────────────
+
+def get_all_prestamos_masivos() -> list:
+    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en&order=creado_en.desc')
+    if not isinstance(masivos, list):
+        return []
+    items = supabase_request('GET', 'prestamos_masivos_items', '?select=prestamo_masivo_id,equipo_id')
+    if isinstance(items, list):
+        from collections import defaultdict
+        eq_by_masivo: dict = defaultdict(list)
+        for item in items:
+            eq_by_masivo[item.get('prestamo_masivo_id')].append(item.get('equipo_id'))
+        for m in masivos:
+            m['equipo_ids'] = eq_by_masivo.get(m['id'], [])
+            m['num_equipos'] = len(m['equipo_ids'])
+    else:
+        for m in masivos:
+            m['equipo_ids'] = []
+            m['num_equipos'] = 0
+    return masivos
+
+
+def get_prestamo_masivo_by_id(prestamo_masivo_id: int) -> dict | None:
+    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,estado,notas,creado_en')
+    return result[0] if isinstance(result, list) and result else None
+
+
+def get_prestamo_masivo_items(prestamo_masivo_id: int) -> list:
+    result = supabase_request('GET', 'prestamos_masivos_items', f'?prestamo_masivo_id=eq.{prestamo_masivo_id}&select=id,equipo_id')
+    return result if isinstance(result, list) else []
+
+
+def create_prestamo_masivo(data: dict) -> dict:
+    result = supabase_request('POST', 'prestamos_masivos', '', data)
+    if isinstance(result, list) and result:
+        return result
+    # Supabase devolvió 201 sin cuerpo — buscar el registro recién insertado
+    fallback = supabase_request(
+        'GET', 'prestamos_masivos',
+        f'?usuario_id=eq.{data["usuario_id"]}&estado=eq.activo&order=id.desc&limit=1'
+    )
+    return fallback if isinstance(fallback, list) and fallback else result
+
+
+def create_prestamo_masivo_item(data: dict) -> dict:
+    return supabase_request('POST', 'prestamos_masivos_items', '', data)
+
+
+def update_prestamo_masivo(prestamo_masivo_id: int, data: dict) -> dict:
+    return supabase_request('PATCH', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}', data)
+
+
+def delete_prestamo_masivo(prestamo_masivo_id: int):
+    supabase_request('DELETE', 'prestamos_masivos_items', f'?prestamo_masivo_id=eq.{prestamo_masivo_id}')
+    return supabase_request('DELETE', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}')
+
+
+def get_active_masivo_equipo_ids() -> set:
+    """Equipo IDs que están en préstamos masivos no devueltos."""
+    active = supabase_request('GET', 'prestamos_masivos', '?estado=neq.devuelto&select=id')
+    if not isinstance(active, list) or not active:
+        return set()
+    ids_str = ','.join(str(m['id']) for m in active)
+    items = supabase_request('GET', 'prestamos_masivos_items', f'?prestamo_masivo_id=in.({ids_str})&select=equipo_id')
+    return {i['equipo_id'] for i in items} if isinstance(items, list) else set()
 
 
 # ── Mantenimientos ────────────────────────────────────────────────────────────

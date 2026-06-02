@@ -262,7 +262,7 @@ def get_init_data():
             'tipos': repo.get_all_tipos_equipos,
             'roles': repo.get_all_roles,
         }
-        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {k: executor.submit(fn) for k, fn in tasks.items()}
             return jsonify({k: f.result() for k, f in futures.items()})
     except Exception as e:
@@ -965,6 +965,9 @@ def create_prestamo():
         if repo.get_prestamos_activos_by_equipo(d['equipo_id']):
             return jsonify({'error': 'El equipo ya tiene un prestamo no devuelto'}), 400
 
+        if d['equipo_id'] in repo.get_active_masivo_equipo_ids():
+            return jsonify({'error': 'El equipo ya está en un préstamo masivo activo'}), 400
+
         result = repo.create_prestamo({
             'equipo_id': d['equipo_id'],
             'usuario_id': d['usuario_id'],
@@ -1169,6 +1172,191 @@ def delete_prestamo(id):
         return jsonify({'ok': True})
     except Exception as e:
         return _server_error(e)
+
+# ========== PRÉSTAMOS MASIVOS ==========
+@app.route('/api/prestamos/masivos', methods=['GET'])
+@require_api_login
+def get_prestamos_masivos():
+    try:
+        return jsonify(repo.get_all_prestamos_masivos())
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos', methods=['POST'])
+@require_api_login
+def create_prestamo_masivo():
+    try:
+        d = request.json
+        equipo_ids = d.get('equipo_ids', [])
+
+        if not equipo_ids or len(equipo_ids) < 1:
+            return jsonify({'error': 'Se requiere al menos 1 equipo'}), 400
+
+        if not repo.get_usuario(d.get('usuario_id')):
+            return jsonify({'error': f'Usuario no encontrado'}), 400
+
+        prestamos_activos_ids = {
+            p['equipo_id'] for p in repo.get_all_prestamos()
+            if p.get('estado') != 'devuelto'
+        }
+        masivos_activos_ids = repo.get_active_masivo_equipo_ids()
+
+        equipos_map = {e['id']: e for e in repo.get_all_equipos()}
+
+        errors = []
+        for eq_id in equipo_ids:
+            eq = equipos_map.get(eq_id)
+            if not eq:
+                errors.append(f'Equipo ID {eq_id} no encontrado')
+            elif eq.get('disponibilidad') == 'Retirado':
+                errors.append(f'Equipo "{eq["nombre"]}" está retirado')
+            elif eq_id in prestamos_activos_ids:
+                errors.append(f'Equipo "{eq["nombre"]}" ya tiene un préstamo activo')
+            elif eq_id in masivos_activos_ids:
+                errors.append(f'Equipo "{eq["nombre"]}" ya está en otro préstamo masivo activo')
+        if errors:
+            return jsonify({'error': ' | '.join(errors)}), 400
+
+        result = repo.create_prestamo_masivo({
+            'usuario_id': d['usuario_id'],
+            'fecha_prestamo': d['fecha_prestamo'],
+            'fecha_devolucion_esperada': d.get('fecha_devolucion_esperada') or None,
+            'estado': 'activo',
+            'notas': d.get('notas', '')
+        })
+
+        if isinstance(result, list) and len(result) > 0:
+            new_id = result[0]['id']
+        elif isinstance(result, dict) and 'id' in result:
+            new_id = result['id']
+        else:
+            err_detail = result.get('error', str(result)) if isinstance(result, dict) else str(result)
+            return jsonify({'error': f'No se pudo crear el préstamo masivo: {err_detail}'}), 500
+
+        for eq_id in equipo_ids:
+            repo.create_prestamo_masivo_item({'prestamo_masivo_id': new_id, 'equipo_id': eq_id})
+
+        return jsonify({'id': new_id, 'ok': True}), 201
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/items', methods=['GET'])
+@require_api_login
+def get_prestamo_masivo_items(id):
+    try:
+        items = repo.get_prestamo_masivo_items(id)
+        equipos_map = {e['id']: e for e in repo.get_all_equipos()}
+        for item in items:
+            eq = equipos_map.get(item.get('equipo_id'), {})
+            item['equipo_nombre'] = eq.get('nombre', 'Equipo desconocido')
+            item['equipo_serial'] = eq.get('serial', 'N/A')
+            item['equipo_tipo'] = eq.get('tipo_nombre') or eq.get('tipo', 'N/A')
+            item['equipo_marca'] = eq.get('marca', 'N/A')
+        return jsonify(items)
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/devolver', methods=['PUT'])
+@require_api_login
+def devolver_prestamo_masivo(id):
+    try:
+        from datetime import date
+        repo.update_prestamo_masivo(id, {
+            'estado': 'devuelto',
+            'fecha_devolucion_real': date.today().isoformat()
+        })
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_prestamo_masivo(id):
+    try:
+        repo.delete_prestamo_masivo(id)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/publico', methods=['GET'])
+def get_prestamo_masivo_publico(id):
+    """Público — usado por la página de firma para masivos."""
+    try:
+        masivo = repo.get_prestamo_masivo_by_id(id)
+        if masivo is None:
+            return jsonify({'error': 'Préstamo masivo no encontrado'}), 404
+        usuario = repo.get_usuario(masivo.get('usuario_id'))
+        masivo['usuario_nombre'] = usuario.get('nombre', 'Usuario desconocido') if usuario else 'Usuario desconocido'
+        items = repo.get_prestamo_masivo_items(id)
+        masivo['num_equipos'] = len(items)
+        masivo['equipo_nombre'] = f"{len(items)} equipo(s)"
+        return jsonify(masivo)
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/upload-image', methods=['POST'])
+def upload_masivo_image(id):
+    """Upload de imagen para firma de masivo — público."""
+    try:
+        imagen = request.files.get('imagen')
+        numero = request.form.get('numero', '1')
+        tipo_firma = request.form.get('tipo', 'inicial')
+        if not imagen:
+            return jsonify({'error': 'No image provided'}), 400
+        img_content = imagen.read()
+        if not img_content:
+            return jsonify({'error': 'Image is empty'}), 400
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        prefix = 'imagen' + str(numero) if tipo_firma == 'inicial' else f'imagen{numero}_dev'
+        img_path = f"masivo_{id}/{prefix}_{timestamp}.jpg"
+        img_url = supabase_storage_upload(img_content, img_path)
+        if not img_url:
+            return jsonify({'error': 'Storage upload failed'}), 500
+        return jsonify({'ok': True, 'url': img_url}), 201
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/save-signature', methods=['POST'])
+def save_masivo_signature(id):
+    """Guarda firma del responsable en un préstamo masivo — público."""
+    try:
+        firma_file = request.files.get('firma')
+        img1_url = request.form.get('img1_url')
+        img2_url = request.form.get('img2_url')
+        terminos_aceptados = request.form.get('terminos_aceptados', 'false').lower() == 'true'
+        if not firma_file:
+            return jsonify({'error': 'Missing signature'}), 400
+        firma_content = firma_file.read()
+        if not firma_content:
+            return jsonify({'error': 'Signature is empty'}), 400
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        firma_path = f"masivo_{id}/firma_{timestamp}.jpg"
+        firma_url = supabase_storage_upload(firma_content, firma_path)
+        if not firma_url:
+            return jsonify({'error': 'Storage upload failed'}), 500
+        update_data = {
+            'firma_url': firma_url,
+            'fecha_firma': datetime.now().isoformat(),
+            'terminos_aceptados': terminos_aceptados,
+        }
+        if img1_url:
+            update_data['imagen1_url'] = img1_url
+        if img2_url:
+            update_data['imagen2_url'] = img2_url
+        result = repo.update_prestamo_masivo(id, update_data)
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': str(result.get('error'))}), 500
+        return jsonify({'ok': True, 'firma_url': firma_url, 'message': 'Firma completada'}), 201
+    except Exception as e:
+        return _server_error(e)
+
 
 # ========== LICENCIAS ==========
 @app.route('/api/licencias', methods=['GET'])

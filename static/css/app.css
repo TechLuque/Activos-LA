@@ -294,6 +294,8 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 .btn-success:hover{background:rgba(52,211,153,.2)}
 .btn-info{background:var(--blue-soft);color:var(--blue);border:none}
 .btn-info:hover{background:rgba(79,142,247,.2)}
+.btn-secondary{background:var(--surface3);color:var(--text2);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
 .btn-sm{padding:6px 12px;font-size:12px}
 .btn-xs{padding:4px 9px;font-size:11px;border-radius:var(--radius-xs)}
 .btn-icon{padding:7px;border-radius:var(--radius-xs);font-size:14px}
@@ -316,8 +318,10 @@ select option{background:var(--surface2);color:var(--text)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:20px}
 .overlay.open{display:flex;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
 .modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp .25s ease}
 .modal-lg{max-width:720px}
+.modal-md{max-width:560px}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-head{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start}
 .modal-head h3{font-family:var(--font-d);font-size:17px;font-weight:800;color:var(--text)}
