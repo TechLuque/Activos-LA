@@ -486,19 +486,23 @@ input[type="file"]::file-selector-button{
 
 @media (max-width:768px){
   :root{--sidebar-w:0px}
+  /* Scroll natural del body en móvil */
+  body{overflow-x:hidden;overflow-y:auto}
+  .main{margin-left:0;overflow:visible;min-height:unset}
+  .page-content{overflow:visible;height:auto;flex:none;padding:16px}
+  .tbl-wrap{max-height:none;overflow:visible}
+  /* Topbar sticky para que siempre sea visible al scrollear */
+  .topbar{position:sticky;top:0;z-index:90;padding:12px 14px;flex-wrap:wrap}
   .sidebar{
     display:flex;transform:translateX(-100%);transition:transform .25s ease;
     position:fixed;z-index:100;width:260px;
   }
   .sidebar.open{transform:translateX(0)}
   .hamburger{display:flex}
-  .main{margin-left:0}
-  .page-content{padding:16px;flex:1;overflow-y:auto}
   .stats-row{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
   .dash-kpi-row{grid-template-columns:1fr}
   .dash-grid{grid-template-columns:1fr;gap:12px}
   .dash-right{order:-1}
-  .topbar{padding:12px 14px;flex-wrap:wrap}
   .topbar-left h1{font-size:16px}
   .search-wrap{flex:1;min-width:120px;max-width:none;margin-left:0;margin-top:8px}
   .user-pill{padding:4px 10px 4px 4px}
@@ -509,7 +513,6 @@ input[type="file"]::file-selector-button{
   .form-grid{grid-template-columns:1fr}
   .form-grid.c1{grid-template-columns:1fr}
   .form-grid .fg.s2{grid-column:span 1}
-  .tbl-wrap{max-height:calc(100vh - 250px);border-radius:8px}
   table{font-size:12px}
   th,td{padding:10px 12px}
   .pg-header{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px}
@@ -579,9 +582,10 @@ input[type="file"]::file-selector-button{
     position:fixed;z-index:100;width:260px;
   }
   .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0}
-  .page-content{padding:12px;}
-  .topbar{padding:10px 12px;flex-direction:column;gap:8px}
+  .main{margin-left:0;overflow:visible;min-height:unset}
+  .page-content{padding:12px;overflow:visible;height:auto;flex:none}
+  .tbl-wrap{max-height:none;overflow:visible}
+  .topbar{padding:10px 12px;flex-direction:column;gap:8px;position:sticky;top:0;z-index:90}
   .topbar-left{width:100%;display:flex;justify-content:space-between;align-items:center}
   .topbar-left h1{font-size:14px}
   .topbar-left p{font-size:10px}
