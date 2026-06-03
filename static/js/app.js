@@ -816,7 +816,7 @@ function renderEq(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','eq');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(currentPage,totalPages,'eq');
@@ -1123,36 +1123,30 @@ function updateItemsPerPage(entityType){
 
 function createPaginationControls(currentP,totalPages,entityType){
   if(totalPages<=1)return'';
-  let html=`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;padding:12px;background:var(--surface2);border-radius:8px">`;
-  
-  // Previous button
-  html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(${Math.max(1,currentP-1)},'${entityType}')" ${currentP===1?'disabled':''} style="${currentP===1?'opacity:0.5;cursor:not-allowed':''}">← Anterior</button>`;
-  
-  // Page indicators
+  const prev=Math.max(1,currentP-1);
+  const next=Math.min(totalPages,currentP+1);
   const startPage=Math.max(1,currentP-2);
   const endPage=Math.min(totalPages,currentP+2);
-  
+
+  let nums='';
   if(startPage>1){
-    html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(1,'${entityType}')">1</button>`;
-    if(startPage>2)html+=`<span style="color:var(--text3)">...</span>`;
+    nums+=`<button class="btn btn-ghost btn-sm pag-num" onclick="goToPage(1,'${entityType}')">1</button>`;
+    if(startPage>2)nums+=`<span class="pag-dots pag-num">…</span>`;
   }
-  
   for(let i=startPage;i<=endPage;i++){
-    html+=`<button class="btn ${i===currentP?'btn-primary':'btn-ghost'} btn-sm" onclick="goToPage(${i},'${entityType}')">${i}</button>`;
+    nums+=`<button class="btn ${i===currentP?'btn-primary':'btn-ghost'} btn-sm pag-num" onclick="goToPage(${i},'${entityType}')">${i}</button>`;
   }
-  
   if(endPage<totalPages){
-    if(endPage<totalPages-1)html+=`<span style="color:var(--text3)">...</span>`;
-    html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(${totalPages},'${entityType}')">${totalPages}</button>`;
+    if(endPage<totalPages-1)nums+=`<span class="pag-dots pag-num">…</span>`;
+    nums+=`<button class="btn btn-ghost btn-sm pag-num" onclick="goToPage(${totalPages},'${entityType}')">${totalPages}</button>`;
   }
-  
-  // Next button
-  html+=`<button class="btn btn-ghost btn-sm" onclick="goToPage(${Math.min(totalPages,currentP+1)},'${entityType}')" ${currentP===totalPages?'disabled':''} style="${currentP===totalPages?'opacity:0.5;cursor:not-allowed':''}">Siguiente →</button>`;
-  
-  html+=`<span style="margin-left:auto;color:var(--text3);font-size:12px">Página ${currentP} de ${totalPages}</span>`;
-  html+=`</div>`;
-  
-  return html;
+
+  return`<div class="pagination-bar">
+    <button class="btn btn-ghost btn-sm" onclick="goToPage(${prev},'${entityType}')" ${currentP===1?'disabled':''}>← Ant.</button>
+    ${nums}
+    <span class="pag-info">Pág. ${currentP} / ${totalPages}</span>
+    <button class="btn btn-ghost btn-sm" onclick="goToPage(${next},'${entityType}')" ${currentP===totalPages?'disabled':''}>Sig. →</button>
+  </div>`;
 }
 
 function goToPage(page,entityType){
@@ -1225,7 +1219,7 @@ function renderTipos(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','tipos');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'tipos');
@@ -1356,7 +1350,7 @@ function renderRoles(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','roles');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'roles');
@@ -1546,7 +1540,7 @@ function renderMant(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','mant');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'mant');
@@ -1781,7 +1775,7 @@ function renderUsr(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','usu');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'usu');
@@ -2008,7 +2002,7 @@ function renderLicenses(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','license');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'license');
@@ -2183,7 +2177,7 @@ function renderAplicativos(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','aplicativo');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'aplicativo');
@@ -2476,7 +2470,7 @@ function renderCelulares(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','celular');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'celular');
@@ -2750,7 +2744,7 @@ function renderSimcards(){
     if(!paginationContainer){
       paginationContainer=document.createElement('div');
       paginationContainer.setAttribute('data-pagination','simcard');
-      paginationContainer.style.padding='0 20px 20px 20px';
+      paginationContainer.className='pagination-wrap';
       wrapper.appendChild(paginationContainer);
     }
     paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'simcard');
