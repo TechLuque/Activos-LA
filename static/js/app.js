@@ -4709,9 +4709,9 @@ function printAllEtiquetas(){
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#fff}
-.pg{width:216mm;min-height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,1fr);gap:1.5mm;align-content:start;page-break-after:always}
+.pg{width:216mm;height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(10,1fr);gap:1.5mm;page-break-after:always}
 .pg:last-child{page-break-after:avoid}
-.lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden;height:auto}
+.lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden;height:100%}
 .lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}
 .ll{max-width:100%;max-height:20px;object-fit:contain;display:block}
 .le{width:16px;height:16px;border:1px dashed #bbb;border-radius:2px}
