@@ -4581,10 +4581,52 @@ function _onScanSuccess(text){
 const LABELS_PER_PAGE=16;
 let _labelsPage=0;
 
+function getLabelLogoUrl(){return localStorage.getItem('label_logo_url')||'';}
+
+function saveLabelLogo(){
+  const url=($('labelLogoUrl').value||'').trim();
+  if(url)localStorage.setItem('label_logo_url',url);
+  else localStorage.removeItem('label_logo_url');
+  renderEtiquetas();
+  toast('Logo actualizado','ok');
+}
+
+function clearLabelLogo(){
+  localStorage.removeItem('label_logo_url');
+  const inp=$('labelLogoUrl');if(inp)inp.value='';
+  const prev=$('labelLogoPreview');if(prev){prev.style.display='none';prev.src='';}
+  renderEtiquetas();
+}
+
+function updateLabelLogoPreview(){
+  const url=($('labelLogoUrl').value||'').trim();
+  const prev=$('labelLogoPreview');
+  if(!prev)return;
+  if(url){prev.src=url;prev.style.display='block';}
+  else{prev.style.display='none';prev.src='';}
+}
+
+function _labelCardHtml(eq,logoUrl){
+  const serial=eq.serial||eq.serialno||'—';
+  const logoHtml=logoUrl
+    ?`<img src="${logoUrl}" class="label-logo-img" alt="" onerror="this.style.display='none'">`
+    :`<div class="label-logo-empty"></div>`;
+  return`<div class="label-card">
+    <div class="label-left">${logoHtml}</div>
+    <div class="label-right"><svg id="lqr-${eq.id}" class="label-bc"></svg><div class="label-serial">${serial}</div></div>
+  </div>`;
+}
+
 function renderEtiquetas(){
   const grid=$('etiquetasGrid');
   const pag=$('etiquetasPagination');
   if(!grid)return;
+
+  // Sincronizar campo de URL con localStorage
+  const storedLogo=getLabelLogoUrl();
+  const inp=$('labelLogoUrl');
+  if(inp&&!inp.value&&storedLogo){inp.value=storedLogo;updateLabelLogoPreview();}
+
   if(!EQ.length){
     grid.innerHTML='<p style="color:var(--text3);text-align:center;padding:40px 0;grid-column:1/-1">No hay equipos cargados.</p>';
     if(pag)pag.innerHTML='';
@@ -4597,20 +4639,12 @@ function renderEtiquetas(){
   const start=_labelsPage*LABELS_PER_PAGE;
   const pageEqs=EQ.slice(start,start+LABELS_PER_PAGE);
 
-  grid.innerHTML=pageEqs.map(eq=>`
-    <div class="label-card">
-      <div class="label-bc-wrap"><svg id="lqr-${eq.id}" class="label-bc"></svg></div>
-      <div class="label-info">
-        <div class="label-name">${eq.nombre||'—'}</div>
-        <div class="label-tipo">${eq.tipo_nombre||eq.tipo||''}</div>
-        <div class="label-serial">${eq.serial||eq.serialno||'—'}</div>
-      </div>
-    </div>`).join('');
+  grid.innerHTML=pageEqs.map(eq=>_labelCardHtml(eq,storedLogo)).join('');
 
   if(pag){
     pag.innerHTML=`
       <button class="btn btn-ghost btn-sm" onclick="_labelsNav(-1)" ${_labelsPage===0?'disabled':''}>← Anterior</button>
-      <span style="font-size:13px;color:var(--text3)">Página ${_labelsPage+1} de ${totalPages} &nbsp;·&nbsp; ${start+1}–${Math.min(start+LABELS_PER_PAGE,total)} de ${total}</span>
+      <span style="font-size:13px;color:var(--text3)">Pág. ${_labelsPage+1}/${totalPages} &nbsp;·&nbsp; ${start+1}–${Math.min(start+LABELS_PER_PAGE,total)} de ${total}</span>
       <button class="btn btn-ghost btn-sm" onclick="_labelsNav(1)" ${_labelsPage>=totalPages-1?'disabled':''}>Siguiente →</button>`;
   }
 
@@ -4618,7 +4652,7 @@ function renderEtiquetas(){
   pageEqs.forEach(eq=>{
     const el=$(`lqr-${eq.id}`);
     if(!el)return;
-    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.2,height:38,displayValue:false,margin:2});}catch{}
+    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.5,height:32,displayValue:false,margin:2});}catch{}
   });
 }
 
@@ -4635,14 +4669,15 @@ function printEtiquetas(){
 
 function printAllEtiquetas(){
   if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
-  const PER=20; // 4 cols × 5 filas por hoja carta
+  const PER=40; // 5 cols × 8 filas por hoja carta
   const pages=Math.ceil(EQ.length/PER);
+  const logoUrl=getLabelLogoUrl();
 
   const getBC=(id)=>{
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.style.cssText='position:absolute;left:-9999px;top:-9999px';
     document.body.appendChild(svg);
-    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.2,height:35,displayValue:false,margin:2});}catch{}
+    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.3,height:28,displayValue:false,margin:1});}catch{}
     const xml=new XMLSerializer().serializeToString(svg);
     document.body.removeChild(svg);
     return xml;
@@ -4650,12 +4685,15 @@ function printAllEtiquetas(){
 
   toast('Generando etiquetas…','info');
 
+  const logoHtml=logoUrl
+    ?`<img src="${logoUrl}" class="ll" alt="">`
+    :`<div class="le"></div>`;
+
   const labelHTML=(eq)=>`
     <div class="lc">
-      <div class="lb">${getBC(eq.id)}</div>
-      <div class="li">
-        <div class="ln">${eq.nombre||'—'}</div>
-        <div class="lt">${eq.tipo_nombre||eq.tipo||''}</div>
+      <div class="lft">${logoHtml}</div>
+      <div class="lrt">
+        <div class="lb">${getBC(eq.id)}</div>
         <div class="ls">${eq.serial||eq.serialno||'—'}</div>
       </div>
     </div>`;
@@ -4667,19 +4705,21 @@ function printAllEtiquetas(){
 
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Etiquetas ActivosLA</title>
+<title>Etiquetas</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#fff}
-.pg{width:216mm;min-height:279mm;padding:6mm;display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;align-content:start;page-break-after:always}
+.pg{width:216mm;min-height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(5,1fr);gap:2mm;align-content:start;page-break-after:always}
 .pg:last-child{page-break-after:avoid}
-.lc{border:1px solid #ccc;border-radius:3px;padding:2.5mm;display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.lb svg{width:100%!important;height:auto!important}
-.ln{font-size:9px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lt{font-size:8px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ls{font-size:8px;font-family:monospace;background:#f5f5f5;padding:1px 3px;border-radius:2px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden;height:auto}
+.lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}
+.ll{max-width:100%;max-height:20px;object-fit:contain;display:block}
+.le{width:16px;height:16px;border:1px dashed #bbb;border-radius:2px}
+.lrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.lb svg{width:100%!important;height:auto!important;display:block}
+.ls{font-size:7px;font-family:monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}
 @page{size:letter;margin:0}
-</style></head><body>${pagesHTML}<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
+</style></head><body>${pagesHTML}<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
   win.document.close();
 }
 

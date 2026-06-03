@@ -720,11 +720,19 @@
     <!-- ═══════════════════ ETIQUETAS ═══════════════════ -->
     <section class="page" id="page-etiquetas">
       <div class="pg-header">
-        <div class="pg-heading"><h2>Etiquetas de Activos</h2><p>Genera e imprime etiquetas QR para todos los equipos</p></div>
+        <div class="pg-heading"><h2>Etiquetas de Activos</h2><p>Barcode + serial · mínimo espacio</p></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-ghost" onclick="printEtiquetas()">🖨️ Imprimir página</button>
           <button class="btn btn-primary" onclick="printAllEtiquetas()">🖨️ Imprimir todo</button>
         </div>
+      </div>
+      <!-- Config logo empresa -->
+      <div class="label-logo-config">
+        <label>Logo empresa:</label>
+        <input type="url" id="labelLogoUrl" placeholder="https://... (URL de imagen)" oninput="updateLabelLogoPreview()">
+        <img id="labelLogoPreview" class="label-logo-preview" alt="preview">
+        <button class="btn btn-ghost btn-sm" onclick="saveLabelLogo()">Guardar</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearLabelLogo()">✕ Quitar</button>
       </div>
       <div id="etiquetasGrid" class="label-grid"></div>
       <div id="etiquetasPagination" class="labels-pagination"></div>
