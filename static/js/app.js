@@ -4652,7 +4652,7 @@ function renderEtiquetas(){
   pageEqs.forEach(eq=>{
     const el=$(`lqr-${eq.id}`);
     if(!el)return;
-    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.5,height:32,displayValue:false,margin:2});}catch{}
+    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.2,height:24,displayValue:false,margin:1});}catch{}
   });
 }
 
@@ -4669,7 +4669,7 @@ function printEtiquetas(){
 
 function printAllEtiquetas(){
   if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
-  const PER=40; // 5 cols × 8 filas por hoja carta
+  const PER=60; // 6 cols × 10 filas por hoja carta
   const pages=Math.ceil(EQ.length/PER);
   const logoUrl=getLabelLogoUrl();
 
@@ -4677,7 +4677,7 @@ function printAllEtiquetas(){
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.style.cssText='position:absolute;left:-9999px;top:-9999px';
     document.body.appendChild(svg);
-    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.3,height:28,displayValue:false,margin:1});}catch{}
+    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.0,height:22,displayValue:false,margin:1});}catch{}
     const xml=new XMLSerializer().serializeToString(svg);
     document.body.removeChild(svg);
     return xml;
@@ -4709,7 +4709,7 @@ function printAllEtiquetas(){
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#fff}
-.pg{width:216mm;min-height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(5,1fr);gap:2mm;align-content:start;page-break-after:always}
+.pg{width:216mm;min-height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,1fr);gap:1.5mm;align-content:start;page-break-after:always}
 .pg:last-child{page-break-after:avoid}
 .lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden;height:auto}
 .lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}
