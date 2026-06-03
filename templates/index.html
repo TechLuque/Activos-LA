@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <link rel="stylesheet" href="/static/css/app.css?v={{ css_v }}">
 </head>
 <body>
@@ -1287,16 +1287,27 @@
 <div class="overlay" id="ovLoanMasivo">
   <div class="modal modal-lg">
     <div class="modal-head">
-      <div><h3>Préstamo masivo</h3><p>Selecciona múltiples equipos para un solo responsable</p></div>
-      <button class="m-close" onclick="close('ovLoanMasivo')">✕</button>
+      <div><h3>Préstamo masivo</h3><p>Escanea o busca los equipos para el préstamo</p></div>
+      <button class="m-close" onclick="closeLmScanner();close('ovLoanMasivo')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid c1">
+        <!-- Scanner inline -->
+        <div class="fg">
+          <button type="button" class="btn btn-ghost lm-scan-btn" id="lmScanToggle" onclick="toggleLmScanner()">
+            <span id="lmScanIcon">📷</span> <span id="lmScanLabel">Escanear código de barras</span>
+          </button>
+          <div id="lmScanArea" style="display:none;margin-top:8px">
+            <div id="lmScannerRegion"></div>
+            <p id="lmScanStatus" style="font-size:12px;color:var(--text3);text-align:center;margin-top:6px"></p>
+          </div>
+        </div>
+        <!-- Lista de equipos -->
         <div class="fg">
           <label>Equipos seleccionados *</label>
           <div id="lmChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px"></div>
           <div style="position:relative">
-            <input type="text" id="lmEqSearch" placeholder="Buscar equipo por nombre, marca o tipo…" style="width:100%" oninput="filterEquiposMasivo()">
+            <input type="text" id="lmEqSearch" placeholder="O busca por nombre, marca o tipo…" style="width:100%" oninput="filterEquiposMasivo()">
             <div id="lmEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:4px" id="lmEqCount">0 equipos seleccionados</div>
@@ -1307,7 +1318,7 @@
         <div class="fg"><label>Notas</label><textarea id="lmNotas" placeholder="Motivo o condiciones del préstamo masivo…"></textarea></div>
       </div>
       <div class="form-actions">
-        <button class="btn btn-ghost" onclick="close('ovLoanMasivo')">Cancelar</button>
+        <button class="btn btn-ghost" onclick="closeLmScanner();close('ovLoanMasivo')">Cancelar</button>
         <button id="saveLoanMasivoBtn" class="btn btn-primary" onclick="saveLoanMasivo()">Registrar préstamo masivo</button>
       </div>
     </div>

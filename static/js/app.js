@@ -3109,8 +3109,70 @@ function clearLoanFilters(){
 
 /* ── PRÉSTAMOS MASIVOS ────────────────────────────────────────── */
 let _lmSelectedIds=[];
+let _lmScannerInstance=null;
+
+async function toggleLmScanner(){
+  if(_lmScannerInstance) await closeLmScanner();
+  else await openLmScanner();
+}
+
+async function openLmScanner(){
+  const area=$('lmScanArea'),label=$('lmScanLabel'),icon=$('lmScanIcon'),status=$('lmScanStatus');
+  if(!area)return;
+  area.style.display='block';
+  if(label)label.textContent='Detener scanner';
+  if(icon)icon.textContent='⏹';
+  if(status)status.textContent='Iniciando cámara…';
+  if(typeof Html5Qrcode==='undefined'){if(status)status.textContent='Librería no disponible';return;}
+  await new Promise(r=>setTimeout(r,200));
+  _lmScannerInstance=new Html5Qrcode('lmScannerRegion');
+  const config={fps:25,qrbox:{width:260,height:80},experimentalFeatures:{useBarCodeDetectorIfSupported:true}};
+  if(typeof Html5QrcodeSupportedFormats!=='undefined'){
+    config.formatsToSupport=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.QR_CODE];
+  }
+  try{
+    await _lmScannerInstance.start({facingMode:'environment'},config,(text)=>_onLmScanSuccess(text),()=>{});
+    if(status)status.textContent='Apunta al código de barras del equipo';
+  }catch(err){
+    if(status)status.textContent='Sin acceso a cámara: '+(err.message||err);
+    _lmScannerInstance=null;
+    if(area)area.style.display='none';
+    if(label)label.textContent='Escanear código de barras';
+    if(icon)icon.textContent='📷';
+  }
+}
+
+async function closeLmScanner(){
+  if(_lmScannerInstance){
+    try{if(_lmScannerInstance.isScanning)await _lmScannerInstance.stop();_lmScannerInstance.clear();}catch{}
+    _lmScannerInstance=null;
+  }
+  const region=$('lmScannerRegion');if(region)region.innerHTML='';
+  const area=$('lmScanArea');if(area)area.style.display='none';
+  const label=$('lmScanLabel');if(label)label.textContent='Escanear código de barras';
+  const icon=$('lmScanIcon');if(icon)icon.textContent='📷';
+  const status=$('lmScanStatus');if(status)status.textContent='';
+}
+
+function _onLmScanSuccess(text){
+  let targetId=null;
+  try{const url=new URL(text);const m=url.pathname.match(/\/equipo\/(\d+)/);if(m)targetId=parseInt(m[1]);}
+  catch{if(/^\d+$/.test(text.trim()))targetId=parseInt(text.trim());}
+  if(!targetId){toast('Código no reconocido','err');return;}
+  if(_lmSelectedIds.includes(targetId)){toast('Este equipo ya fue agregado','info');return;}
+  const eq=(window.equiposMasivoDisponibles||[]).find(e=>e.id===targetId);
+  if(!eq){
+    const inAll=EQ.find(e=>e.id===targetId);
+    toast(inAll?`${inAll.nombre} no está disponible`:'Equipo no encontrado','err');
+    return;
+  }
+  _lmSelectedIds.push(targetId);
+  _lmRenderChips();
+  toast(`${eq.nombre} agregado ✓`,'ok');
+}
 
 function openLoanMasivoModal(){
+  closeLmScanner();
   _lmSelectedIds=[];
   const conPrestamo=new Set(
     LOANS.filter(l=>l.estado==='firmado'||l.estado==='activo').map(l=>l.equipo_id)
@@ -3211,6 +3273,7 @@ async function saveLoanMasivo(){
       notas:$('lmNotas').value
     });
     if(res.error){toast(res.error,'err');return;}
+    await closeLmScanner();
     close('ovLoanMasivo');
     await Promise.all([_refreshLoans(),_refreshLoansMasivos()]);
     DASH=computeDash();renderLoan();renderDashboard();
@@ -4465,14 +4528,18 @@ async function openScanner(){
   // Esperar a que el modal sea visible antes de iniciar la cámara
   await new Promise(r=>setTimeout(r,200));
   _html5Scanner=new Html5Qrcode('scannerRegion');
+  const _scanConfig={fps:25,qrbox:{width:240,height:90},experimentalFeatures:{useBarCodeDetectorIfSupported:true}};
+  if(typeof Html5QrcodeSupportedFormats!=='undefined'){
+    _scanConfig.formatsToSupport=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.QR_CODE];
+  }
   try{
     await _html5Scanner.start(
       {facingMode:'environment'},
-      {fps:15,qrbox:{width:220,height:220}},
+      _scanConfig,
       (text)=>_onScanSuccess(text),
       ()=>{}
     );
-    $('scanStatus').textContent='Apunta al código QR del equipo';
+    $('scanStatus').textContent='Apunta al código del equipo';
   }catch(err){
     $('scanStatus').textContent='Sin acceso a cámara: '+(err.message||err);
     _html5Scanner=null;
@@ -4538,7 +4605,7 @@ function renderEtiquetas(){
 
   grid.innerHTML=pageEqs.map(eq=>`
     <div class="label-card">
-      <div class="label-qr" id="lqr-${eq.id}"></div>
+      <div class="label-bc-wrap"><svg id="lqr-${eq.id}" class="label-bc"></svg></div>
       <div class="label-info">
         <div class="label-name">${eq.nombre||'—'}</div>
         <div class="label-tipo">${eq.tipo_nombre||eq.tipo||''}</div>
@@ -4553,11 +4620,11 @@ function renderEtiquetas(){
       <button class="btn btn-ghost btn-sm" onclick="_labelsNav(1)" ${_labelsPage>=totalPages-1?'disabled':''}>Siguiente →</button>`;
   }
 
-  if(typeof QRCode==='undefined')return;
+  if(typeof JsBarcode==='undefined')return;
   pageEqs.forEach(eq=>{
     const el=$(`lqr-${eq.id}`);
     if(!el)return;
-    new QRCode(el,{text:`${window.location.origin}/equipo/${eq.id}`,width:72,height:72,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.2,height:38,displayValue:false,margin:2});}catch{}
   });
 }
 
@@ -4573,60 +4640,53 @@ function printEtiquetas(){
 }
 
 function printAllEtiquetas(){
-  // Abre ventana nueva con todas las etiquetas en hojas carta separadas
-  if(typeof QRCode==='undefined'){toast('Librería QR no disponible','err');return;}
-  const PER=18; // 3 cols × 6 filas por hoja carta
+  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
+  const PER=20; // 4 cols × 5 filas por hoja carta
   const pages=Math.ceil(EQ.length/PER);
 
-  // Pre-generar QR como data URLs usando elemento temporal
-  const getQR=(url)=>new Promise(res=>{
-    const div=document.createElement('div');
-    div.style.cssText='position:absolute;left:-9999px;top:-9999px';
-    document.body.appendChild(div);
-    new QRCode(div,{text:url,width:72,height:72,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
-    // qrcodejs genera canvas o img — esperar tick
-    setTimeout(()=>{
-      const img=div.querySelector('img');
-      const cv=div.querySelector('canvas');
-      const src=img?img.src:(cv?cv.toDataURL():'');
-      document.body.removeChild(div);
-      res(src);
-    },30);
-  });
+  const getBC=(id)=>{
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.style.cssText='position:absolute;left:-9999px;top:-9999px';
+    document.body.appendChild(svg);
+    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.2,height:35,displayValue:false,margin:2});}catch{}
+    const xml=new XMLSerializer().serializeToString(svg);
+    document.body.removeChild(svg);
+    return xml;
+  };
 
   toast('Generando etiquetas…','info');
-  Promise.all(EQ.map(eq=>getQR(`${window.location.origin}/equipo/${eq.id}`))).then(qrSrcs=>{
-    const labelHTML=(eq,i)=>`
-      <div class="lc">
-        <img src="${qrSrcs[i]}" width="68" height="68">
-        <div class="li">
-          <div class="ln">${eq.nombre||'—'}</div>
-          <div class="lt">${eq.tipo_nombre||eq.tipo||''}</div>
-          <div class="ls">${eq.serial||eq.serialno||'—'}</div>
-        </div>
-      </div>`;
-    const pagesHTML=Array.from({length:pages},(_,pi)=>{
-      const slice=EQ.slice(pi*PER,(pi+1)*PER);
-      return`<div class="pg">${slice.map((eq,i)=>labelHTML(eq,pi*PER+i)).join('')}</div>`;
-    }).join('');
 
-    const win=window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  const labelHTML=(eq)=>`
+    <div class="lc">
+      <div class="lb">${getBC(eq.id)}</div>
+      <div class="li">
+        <div class="ln">${eq.nombre||'—'}</div>
+        <div class="lt">${eq.tipo_nombre||eq.tipo||''}</div>
+        <div class="ls">${eq.serial||eq.serialno||'—'}</div>
+      </div>
+    </div>`;
+
+  const pagesHTML=Array.from({length:pages},(_,pi)=>{
+    const slice=EQ.slice(pi*PER,(pi+1)*PER);
+    return`<div class="pg">${slice.map(eq=>labelHTML(eq)).join('')}</div>`;
+  }).join('');
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Etiquetas ActivosLA</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#fff}
-.pg{width:216mm;min-height:279mm;padding:8mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;align-content:start;page-break-after:always}
+.pg{width:216mm;min-height:279mm;padding:6mm;display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;align-content:start;page-break-after:always}
 .pg:last-child{page-break-after:avoid}
-.lc{border:1px solid #ccc;border-radius:4px;padding:3mm;display:flex;align-items:center;gap:5px;height:36mm;overflow:hidden}
-.li{flex:1;min-width:0}
-.ln{font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lt{font-size:9px;color:#555;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ls{font-size:9px;font-family:monospace;margin-top:3px;background:#f5f5f5;padding:1px 4px;border-radius:2px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc{border:1px solid #ccc;border-radius:3px;padding:2.5mm;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.lb svg{width:100%!important;height:auto!important}
+.ln{font-size:9px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt{font-size:8px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ls{font-size:8px;font-family:monospace;background:#f5f5f5;padding:1px 3px;border-radius:2px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @page{size:letter;margin:0}
 </style></head><body>${pagesHTML}<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
-    win.document.close();
-  });
+  win.document.close();
 }
 
 /* ════════════════════════════════════════════════════
