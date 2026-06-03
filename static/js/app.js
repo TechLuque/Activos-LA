@@ -4688,9 +4688,18 @@ function _buildLabelPageHTML(eqs){
 }
 
 function _openPrintWindow(bodyHTML){
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas</title><style>${_LABEL_PRINT_CSS}</style></head><body>${bodyHTML}<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
-  win.document.close();
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='position:absolute;left:-9999px;top:-9999px;width:0;height:0;border:none';
+  document.body.appendChild(iframe);
+  const doc=iframe.contentDocument||iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas</title><style>${_LABEL_PRINT_CSS}</style></head><body>${bodyHTML}</body></html>`);
+  doc.close();
+  setTimeout(()=>{
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(()=>document.body.removeChild(iframe),2000);
+  },400);
 }
 
 function printEtiquetas(){
