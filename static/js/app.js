@@ -281,19 +281,23 @@ async function _refreshAsigs(){const r=await api('/api/asignaciones-equipos');if
 
 async function loadAll(){
   try{
-    const d=await api('/api/init');
+    // Core y secundarios en paralelo — cada endpoint hace 2 olas de 3 a Supabase (6 max simultáneos)
+    const [d,sec]=await Promise.all([api('/api/init'),api('/api/init/secondary')]);
     if(d.error){toast('Error loading data: '+d.error,'err');return;}
-    EQ=d.equipos||[]; USR=d.usuarios||[]; LICENCIAS=d.licencias||[]; APLICATIVOS=d.aplicativos||[];
-    CELULARES=d.celulares||[]; SIMCARDS=d.simcards||[]; TIPOS=d.tipos||[]; ROLES=d.roles||[];
+
+    EQ=d.equipos||[];USR=d.usuarios||[];TIPOS=d.tipos||[];ROLES=d.roles||[];
+    LICENCIAS=sec.licencias||[];APLICATIVOS=sec.aplicativos||[];
+    CELULARES=sec.celulares||[];SIMCARDS=sec.simcards||[];
+
     const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
     const um=Object.fromEntries(USR.map(u=>[u.id,u]));
     LOANS=(d.prestamos||[]).map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
-    MANTS=(d.mantenimientos||[]).map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
-    ASIGNACIONES=(d.asignaciones||[]).map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
+    MANTS=(sec.mantenimientos||[]).map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
+    ASIGNACIONES=(sec.asignaciones||[]).map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
+
     DASH=computeDash();
     updateTiposFilter();
     updateNavBadges();
-    // Masivos se cargan en background para no aumentar la carga paralela en init
     _refreshLoansMasivos().then(()=>{DASH=computeDash();});
   }catch(e){
     console.error('[loadAll] excepción:',e);

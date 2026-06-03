@@ -253,22 +253,36 @@ def dashboard():
 @app.route('/api/init', methods=['GET'])
 @require_api_login
 def get_init_data():
-    """Carga inicial en una sola request: paraleliza 11 queries a Supabase con ThreadPoolExecutor."""
+    """Datos core: equipos, usuarios, préstamos, tipos, roles (5 queries, 2 olas de 3)."""
     try:
         tasks = {
-            'equipos': repo.get_all_equipos,
-            'usuarios': repo.get_all_usuarios,
+            'equipos':   repo.get_all_equipos,
+            'usuarios':  repo.get_all_usuarios,
             'prestamos': repo.get_all_prestamos,
-            'mantenimientos': repo.get_all_mantenimientos,
-            'licencias': repo.get_all_licencias,
-            'aplicativos': repo.get_all_aplicativos,
-            'celulares': repo.get_all_celulares,
-            'simcards': repo.get_all_simcards,
-            'asignaciones': repo.get_all_asignaciones,
-            'tipos': repo.get_all_tipos_equipos,
-            'roles': repo.get_all_roles,
+            'tipos':     repo.get_all_tipos_equipos,
+            'roles':     repo.get_all_roles,
         }
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {k: executor.submit(fn) for k, fn in tasks.items()}
+            return jsonify({k: f.result() for k, f in futures.items()})
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/init/secondary', methods=['GET'])
+@require_api_login
+def get_secondary_data():
+    """Datos secundarios: secciones que no bloquean el dashboard inicial (6 queries, 2 olas de 3)."""
+    try:
+        tasks = {
+            'mantenimientos': repo.get_all_mantenimientos,
+            'licencias':      repo.get_all_licencias,
+            'aplicativos':    repo.get_all_aplicativos,
+            'celulares':      repo.get_all_celulares,
+            'simcards':       repo.get_all_simcards,
+            'asignaciones':   repo.get_all_asignaciones,
+        }
+        with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {k: executor.submit(fn) for k, fn in tasks.items()}
             return jsonify({k: f.result() for k, f in futures.items()})
     except Exception as e:
