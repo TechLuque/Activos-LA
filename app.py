@@ -1351,6 +1351,7 @@ def save_masivo_signature(id):
             'firma_url': firma_url,
             'fecha_firma': datetime.now().isoformat(),
             'terminos_aceptados': terminos_aceptados,
+            'estado': 'firmado',
         }
         if img1_url:
             update_data['imagen1_url'] = img1_url
