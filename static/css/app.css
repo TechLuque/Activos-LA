@@ -599,14 +599,14 @@ input[type="file"]::file-selector-button{
   #page-etiquetas,#page-etiquetas *{visibility:visible}
   #page-etiquetas{position:fixed;top:0;left:0;width:100%;background:#fff;padding:5mm}
   .pg-header,#etiquetasPagination,.label-logo-config{display:none!important}
-  /* 6 cols × 10 filas — llena la hoja completa */
+  /* 6 cols, espacio distribuido entre filas para llenar la hoja */
   .label-grid{
     grid-template-columns:repeat(6,1fr);
-    grid-template-rows:repeat(10,1fr);
     height:calc(279mm - 10mm);
     gap:1.5mm;
+    align-content:space-between;
   }
-  .label-card{border:1px solid #ccc;border-radius:2px;padding:1.5mm;break-inside:avoid;height:100%}
+  .label-card{border:1px solid #ccc;border-radius:2px;padding:1.5mm;break-inside:avoid}
   .label-bc{width:100%!important;height:auto!important}
   @page{size:letter;margin:0}
 }
