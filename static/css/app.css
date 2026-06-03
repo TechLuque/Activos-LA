@@ -491,8 +491,8 @@ input[type="file"]::file-selector-button{
   .main{margin-left:0;overflow:visible;min-height:unset}
   .page-content{overflow:visible;height:auto;flex:none;padding:16px}
   .tbl-wrap{max-height:none;overflow:visible}
-  /* Topbar sticky para que siempre sea visible al scrollear */
-  .topbar{position:sticky;top:0;z-index:90;padding:12px 14px;flex-wrap:wrap}
+  /* Topbar sticky con padding reducido */
+  .topbar{position:sticky;top:0;z-index:90;padding:10px 14px;flex-wrap:wrap;gap:8px}
   .sidebar{
     display:flex;transform:translateX(-100%);transition:transform .25s ease;
     position:fixed;z-index:100;width:260px;
@@ -602,16 +602,15 @@ input[type="file"]::file-selector-button{
   .main{margin-left:0;overflow:visible;min-height:unset}
   .page-content{padding:12px;overflow:visible;height:auto;flex:none}
   .tbl-wrap{max-height:none;overflow:visible}
-  .topbar{padding:10px 12px;flex-direction:column;gap:8px;position:sticky;top:0;z-index:90}
-  .topbar-left{width:100%;display:flex;justify-content:space-between;align-items:center}
-  .topbar-left h1{font-size:14px}
-  .topbar-left p{font-size:10px}
-  .search-wrap{width:100%;max-width:none;margin:0}
-  .search-wrap input{font-size:12px;padding:8px 12px 8px 32px}
-  .user-pill{padding:4px 8px 4px 4px}
-  .user-name{font-size:11px}
-  .user-role{font-size:9px}
-  .user-av{width:24px;height:24px;font-size:10px}
+  /* ── Topbar: una sola fila compacta ── */
+  .topbar{flex-direction:row;flex-wrap:nowrap;align-items:center;gap:8px;padding:8px 12px;position:sticky;top:0;z-index:90}
+  .topbar-left{flex:1;min-width:0;overflow:hidden}
+  .topbar-left h1{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar-left p{display:none}
+  .search-wrap{display:none}
+  .user-name,.user-role{display:none}
+  .user-pill{padding:3px;background:transparent;border:none;gap:0}
+  .user-av{width:30px;height:30px;font-size:12px;flex-shrink:0}
   .stats-row{grid-template-columns:1fr;gap:10px;margin-bottom:12px}
   .stat-card{padding:14px}
   .stat-card h3{font-size:14px}
@@ -629,25 +628,26 @@ input[type="file"]::file-selector-button{
   .card-header{padding:14px 14px 0}
   .card-body{padding:12px 14px}
   .card-title{font-size:13px}
-  .tbl-wrap{max-height:calc(100vh - 220px);border-radius:8px;margin-bottom:10px}
+  .tbl-wrap{max-height:calc(100vh - 130px);border-radius:8px;margin-bottom:10px}
   table{font-size:11px;width:100%;display:block;overflow:hidden}
   thead{display:none}
   tbody{display:block}
-  tr{display:block;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.18)}
-  td{display:block;text-align:right;padding:8px 10px;border:none;position:relative;padding-left:42%;min-height:32px;border-bottom:1px solid var(--border)}
+  tr{display:block;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  td{display:block;text-align:right;padding:5px 10px;border:none;position:relative;padding-left:42%;min-height:28px;border-bottom:1px solid var(--border)}
   td:last-child{border-bottom:none}
   td::before{content:attr(data-label);position:absolute;left:10px;font-weight:600;color:var(--text3);font-size:10px;top:50%;transform:translateY(-50%)}
-  /* Fila nombre del equipo como cabecera de la card */
-  tr td:first-child{background:var(--surface3);text-align:left;padding-left:12px;font-size:13px}
+  /* Cabecera de card: nombre del equipo */
+  tr td:first-child{background:var(--surface3);text-align:left;padding-left:12px;font-size:12px}
   tr td:first-child::before{display:none}
-  /* Ocultar columnas secundarias en cards */
+  /* Ocultar columnas secundarias */
   td[data-label="Tipo"],
   td[data-label="Factura"],
   td[data-label="Proveedor"],
   td[data-label="Empresa"],
   td[data-label="Fecha Ingreso"],
-  td[data-label="Valor"]{display:none}
-  /* Acciones */
+  td[data-label="Valor"],
+  td[data-label="Disponibilidad"]{display:none}
+  /* Acciones alineadas izquierda */
   td[data-label="Acciones"]{padding-left:10px;text-align:left}
   td[data-label="Acciones"]::before{display:none}
   .act-cell{flex-direction:row;flex-wrap:wrap;gap:4px;justify-content:flex-start}
