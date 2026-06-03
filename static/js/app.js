@@ -4663,16 +4663,18 @@ function _labelsNav(dir){
 }
 
 function printEtiquetas(){
-  // Imprime la página actual (16 etiquetas)
-  window.print();
+  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
+  const start=_labelsPage*LABELS_PER_PAGE;
+  const eqs=EQ.slice(start,start+LABELS_PER_PAGE);
+  if(!eqs.length){toast('Sin etiquetas en esta página','err');return;}
+  _printLabelPage(eqs);
 }
 
-function printAllEtiquetas(){
-  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
-  const PER=60; // 6 cols × 10 filas por hoja carta
-  const pages=Math.ceil(EQ.length/PER);
-  const logoUrl=getLabelLogoUrl();
+const _LABEL_PRINT_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff}.pg{width:216mm;height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,1fr);gap:1.5mm;align-content:space-between;page-break-after:always}.pg:last-child{page-break-after:avoid}.lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden}.lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}.ll{max-width:100%;max-height:20px;object-fit:contain;display:block}.le{width:16px;height:16px;border:1px dashed #bbb;border-radius:2px}.lrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.lb svg{width:100%!important;height:auto!important;display:block}.ls{font-size:7px;font-family:monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}@page{size:letter;margin:0}`;
 
+function _buildLabelPageHTML(eqs){
+  const logoUrl=getLabelLogoUrl();
+  const logoHtml=logoUrl?`<img src="${logoUrl}" class="ll" alt="">`:`<div class="le"></div>`;
   const getBC=(id)=>{
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.style.cssText='position:absolute;left:-9999px;top:-9999px';
@@ -4682,45 +4684,31 @@ function printAllEtiquetas(){
     document.body.removeChild(svg);
     return xml;
   };
+  return`<div class="pg">${eqs.map(eq=>`<div class="lc"><div class="lft">${logoHtml}</div><div class="lrt"><div class="lb">${getBC(eq.id)}</div><div class="ls">${eq.serial||eq.serialno||'—'}</div></div></div>`).join('')}</div>`;
+}
 
-  toast('Generando etiquetas…','info');
-
-  const logoHtml=logoUrl
-    ?`<img src="${logoUrl}" class="ll" alt="">`
-    :`<div class="le"></div>`;
-
-  const labelHTML=(eq)=>`
-    <div class="lc">
-      <div class="lft">${logoHtml}</div>
-      <div class="lrt">
-        <div class="lb">${getBC(eq.id)}</div>
-        <div class="ls">${eq.serial||eq.serialno||'—'}</div>
-      </div>
-    </div>`;
-
-  const pagesHTML=Array.from({length:pages},(_,pi)=>{
-    const slice=EQ.slice(pi*PER,(pi+1)*PER);
-    return`<div class="pg">${slice.map(eq=>labelHTML(eq)).join('')}</div>`;
-  }).join('');
-
+function _openPrintWindow(bodyHTML){
   const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Etiquetas</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#fff}
-.pg{width:216mm;height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,1fr);gap:1.5mm;align-content:space-between;page-break-after:always}
-.pg:last-child{page-break-after:avoid}
-.lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden}
-.lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}
-.ll{max-width:100%;max-height:20px;object-fit:contain;display:block}
-.le{width:16px;height:16px;border:1px dashed #bbb;border-radius:2px}
-.lrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.lb svg{width:100%!important;height:auto!important;display:block}
-.ls{font-size:7px;font-family:monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}
-@page{size:letter;margin:0}
-</style></head><body>${pagesHTML}<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas</title><style>${_LABEL_PRINT_CSS}</style></head><body>${bodyHTML}<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
   win.document.close();
+}
+
+function printEtiquetas(){
+  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
+  const start=_labelsPage*LABELS_PER_PAGE;
+  const eqs=EQ.slice(start,start+LABELS_PER_PAGE);
+  if(!eqs.length){toast('Sin etiquetas en esta página','err');return;}
+  _openPrintWindow(_buildLabelPageHTML(eqs));
+}
+
+function printAllEtiquetas(){
+  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
+  const PER=60;
+  toast('Generando etiquetas…','info');
+  const body=Array.from({length:Math.ceil(EQ.length/PER)},(_,pi)=>
+    _buildLabelPageHTML(EQ.slice(pi*PER,(pi+1)*PER))
+  ).join('');
+  _openPrintWindow(body);
 }
 
 /* ════════════════════════════════════════════════════
