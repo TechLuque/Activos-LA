@@ -3039,7 +3039,7 @@ function renderLoan(){
         </td>
         <td data-label="Devuelto" class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
         <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
-        <td data-label="Términos"><span style="color:var(--text3);font-size:12px">—</span></td>
+        <td data-label="Términos"><span style="font-weight:600;color:${p.terminos_aceptados?'var(--green)':'var(--text3)'}">${p.terminos_aceptados?'✅ Aceptó':'⏳ Pendiente'}</span>${p.firma_url?'<br><span style="font-size:10px;color:var(--teal)">✍ Firmado</span>':''}</td>
         <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
         <td data-label="Acciones"><div class="act-cell">
           <button class="btn btn-primary btn-sm" onclick="viewLoanMasivoItems(${p.id})">👁 Ver equipos</button>

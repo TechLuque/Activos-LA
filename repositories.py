@@ -184,7 +184,7 @@ def delete_prestamo(prestamo_id: int):
 # ── Préstamos Masivos ──────────────────────────────────────────────────────────
 
 def get_all_prestamos_masivos() -> list:
-    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en&order=creado_en.desc')
+    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados&order=creado_en.desc')
     if not isinstance(masivos, list):
         return []
     items = supabase_request('GET', 'prestamos_masivos_items', '?select=prestamo_masivo_id,equipo_id')
@@ -204,7 +204,7 @@ def get_all_prestamos_masivos() -> list:
 
 
 def get_prestamo_masivo_by_id(prestamo_masivo_id: int) -> dict | None:
-    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,estado,notas,creado_en')
+    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados')
     return result[0] if isinstance(result, list) and result else None
 
 
