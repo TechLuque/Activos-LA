@@ -4578,7 +4578,7 @@ function _onScanSuccess(text){
 /* ════════════════════════════════════════════════════
    ETIQUETAS
 ════════════════════════════════════════════════════ */
-const LABELS_PER_PAGE=16;
+const LABELS_PER_PAGE=60;
 let _labelsPage=0;
 
 function getLabelLogoUrl(){return localStorage.getItem('label_logo_url')||'';}
