@@ -12,9 +12,11 @@ SUPABASE_SECRET_KEY = os.getenv('SUPABASE_SECRET_KEY')
 SUPABASE_API_URL = f"{SUPABASE_URL}/rest/v1"
 SUPABASE_STORAGE_BUCKET = 'prestamos'
 
+# service_role key para DB — bypasses RLS; la anon key queda bloqueada si RLS está activo
+_DB_KEY = SUPABASE_SECRET_KEY or SUPABASE_KEY
 HEADERS = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': f'Bearer {SUPABASE_KEY}',
+    'apikey': _DB_KEY,
+    'Authorization': f'Bearer {_DB_KEY}',
     'Content-Type': 'application/json'
 }
 
