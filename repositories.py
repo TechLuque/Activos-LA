@@ -96,6 +96,14 @@ def get_usuario_by_email(email: str) -> dict | None:
     return result[0] if isinstance(result, list) and result else None
 
 
+def get_usuario_by_login(value: str) -> dict | None:
+    """Busca usuario por email o nombre en una sola query."""
+    from urllib.parse import quote
+    q = quote(value)
+    result = supabase_request('GET', 'usuarios', f'?or=(email.eq.{q},nombre.ilike.{q})')
+    return result[0] if isinstance(result, list) and result else None
+
+
 def create_usuario(data: dict) -> dict:
     return supabase_request('POST', 'usuarios', '', data)
 
@@ -121,15 +129,28 @@ def get_all_prestamos() -> list:
 
 def get_prestamo(prestamo_id: int) -> dict | None:
     """Préstamo individual con datos de equipo y usuario enriquecidos."""
+    from concurrent.futures import ThreadPoolExecutor
     prestamos = supabase_request('GET', 'prestamos', f'?id=eq.{prestamo_id}')
     if not isinstance(prestamos, list) or not prestamos:
         return None
     loan = prestamos[0]
 
     equipo_id = loan.get('equipo_id')
+    usuario_id = loan.get('usuario_id')
     equipos_raw = None
+
+    # Fetch equipo y usuario en paralelo en vez de serial
+    if equipo_id and usuario_id:
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            f_eq = ex.submit(supabase_request, 'GET', 'equipos', f'?id=eq.{equipo_id}')
+            f_usr = ex.submit(supabase_request, 'GET', 'usuarios', f'?id=eq.{usuario_id}')
+            equipos_raw = f_eq.result()
+            usuarios_result = f_usr.result()
+    else:
+        equipos_raw = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}') if equipo_id else None
+        usuarios_result = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}') if usuario_id else None
+
     if equipo_id:
-        equipos_raw = supabase_request('GET', 'equipos', f'?id=eq.{equipo_id}')
         if isinstance(equipos_raw, list) and equipos_raw:
             eq = equipos_raw[0]
             loan['equipo_nombre'] = eq.get('nombre', 'Equipo desconocido')
@@ -143,11 +164,9 @@ def get_prestamo(prestamo_id: int) -> dict | None:
         loan['equipo_nombre'] = 'Sin equipo'
         loan['equipo_codigo'] = 'N/A'
 
-    usuario_id = loan.get('usuario_id')
     if usuario_id:
-        usuarios = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
-        if isinstance(usuarios, list) and usuarios:
-            usr = usuarios[0]
+        if isinstance(usuarios_result, list) and usuarios_result:
+            usr = usuarios_result[0]
             loan['usuario_nombre'] = usr.get('nombre', 'Usuario desconocido')
             loan['usuario_email'] = usr.get('email', '')
             loan['usuario_telefono'] = usr.get('telefono', '')
@@ -251,7 +270,8 @@ def get_active_masivo_equipo_ids() -> set:
 # ── Mantenimientos ────────────────────────────────────────────────────────────
 
 def get_all_mantenimientos() -> list:
-    result = supabase_request('GET', 'mantenimientos', '?order=fecha.desc')
+    result = supabase_request('GET', 'mantenimientos',
+        '?select=id,equipo_id,tipo,estado,fecha,proxima_revision,descripcion,costo,tecnico&order=fecha.desc')
     return result if isinstance(result, list) else []
 
 
@@ -310,17 +330,22 @@ def get_rol(rol_id: int) -> dict | None:
 # ── Asignaciones de equipos ───────────────────────────────────────────────────
 
 def get_all_asignaciones() -> list:
-    result = supabase_request('GET', 'asignaciones_equipos', '?order=fecha_asignacion.desc')
+    result = supabase_request('GET', 'asignaciones_equipos',
+        '?select=id,equipo_id,usuario_id,estado,fecha_asignacion,firma_entrada_url,firma_salida_url,fecha_firma_entrada,fecha_firma_salida,fecha_firma_desasignacion,notas&order=fecha_asignacion.desc')
     return result if isinstance(result, list) else []
 
 
 def get_asignacion(asig_id: int) -> dict | None:
+    from concurrent.futures import ThreadPoolExecutor
     result = supabase_request('GET', 'asignaciones_equipos', f'?id=eq.{asig_id}')
     if not isinstance(result, list) or not result:
         return None
     asig = result[0]
-    eq = supabase_request('GET', 'equipos', f'?id=eq.{asig.get("equipo_id")}')
-    usr = supabase_request('GET', 'usuarios', f'?id=eq.{asig.get("usuario_id")}')
+    eq_id, usr_id = asig.get('equipo_id'), asig.get('usuario_id')
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        f_eq = ex.submit(supabase_request, 'GET', 'equipos', f'?id=eq.{eq_id}')
+        f_usr = ex.submit(supabase_request, 'GET', 'usuarios', f'?id=eq.{usr_id}')
+        eq, usr = f_eq.result(), f_usr.result()
     asig['equipo'] = eq[0] if isinstance(eq, list) and eq else {}
     asig['usuario'] = usr[0] if isinstance(usr, list) and usr else {}
     return asig
@@ -402,7 +427,8 @@ def get_mantenimientos_raw() -> list:
 
 
 def get_mantenimientos_proxima_revision() -> list:
-    result = supabase_request('GET', 'mantenimientos', '?order=proxima_revision.asc')
+    result = supabase_request('GET', 'mantenimientos',
+        '?select=id,equipo_id,tipo,estado,fecha,proxima_revision,descripcion,costo,tecnico&order=proxima_revision.asc')
     return result if isinstance(result, list) else []
 
 
@@ -469,7 +495,8 @@ def delete_equipo_licencia(asignacion_id: int):
 # ── Préstamos ordenados por devolución (calendario) ───────────────────────────
 
 def get_prestamos_por_devolucion() -> list:
-    result = supabase_request('GET', 'prestamos', '?order=fecha_devolucion_esperada.asc')
+    result = supabase_request('GET', 'prestamos',
+        '?select=id,equipo_id,usuario_id,estado,fecha_devolucion_esperada&estado=neq.devuelto&order=fecha_devolucion_esperada.asc')
     return result if isinstance(result, list) else []
 
 

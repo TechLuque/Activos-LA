@@ -103,9 +103,7 @@ def api_login():
         if not username or not password:
             return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
         
-        user = repo.get_usuario_by_email(username)
-        if not user:
-            user = repo.get_usuario_by_nombre_ilike(username)
+        user = repo.get_usuario_by_login(username)
         if not user:
             return jsonify({'error': 'Usuario o contraseña incorrectos'}), 401
         
@@ -963,7 +961,6 @@ def get_prestamo_detalle(id):
         return jsonify(loan)
         
     except Exception as e:
-        pass
         return _server_error(e)
 
 @app.route('/api/prestamos', methods=['POST'])
@@ -1011,11 +1008,9 @@ def create_prestamo():
                 'ok': True
             }), 201
         else:
-            pass
             return jsonify({'error': 'Error al crear préstamo', 'result': result}), 500
-            
+
     except Exception as e:
-        pass
         return _server_error(e)
 
 @app.route('/api/prestamos/<int:id>/upload-image', methods=['POST'])

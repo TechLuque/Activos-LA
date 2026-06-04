@@ -21,7 +21,7 @@ HEADERS = {
 # Persistent session — reutiliza conexiones TCP/TLS entre requests
 _session = requests.Session()
 _session.headers.update(HEADERS)
-_session.mount('https://', HTTPAdapter(pool_connections=5, pool_maxsize=20))
+_session.mount('https://', HTTPAdapter(pool_connections=10, pool_maxsize=30))
 
 # ── Caché en memoria ──────────────────────────────────────────────────────────
 
@@ -75,13 +75,14 @@ def supabase_request(method: str, table: str, query: str = '', data=None):
                     return resp.json()
                 except Exception:
                     return {'ok': True}
-            if attempt == 0:
-                time.sleep(0.3)
+            # Solo reintentar en errores de servidor transitorios (5xx), no en 4xx
+            if attempt == 0 and resp.status_code >= 500:
+                time.sleep(0.1)
                 continue
             return {'error': resp.text, 'status': resp.status_code}
         except Exception as e:
             if attempt == 0:
-                time.sleep(0.3)
+                time.sleep(0.1)
                 continue
             return {'error': str(e)}
 
