@@ -287,7 +287,12 @@ async function loadAll(){
 
     EQ=d.equipos||[];USR=d.usuarios||[];TIPOS=d.tipos||[];ROLES=d.roles||[];
     LICENCIAS=sec.licencias||[];APLICATIVOS=sec.aplicativos||[];
-    CELULARES=sec.celulares||[];SIMCARDS=sec.simcards||[];
+    CELULARES=sec.celulares||[];
+    const cm=Object.fromEntries(CELULARES.map(c=>[c.id,c]));
+    SIMCARDS=(sec.simcards||[]).map(s=>({...s,celular:cm[s.celular_id]||null}));
+    const simsByCel={};
+    SIMCARDS.forEach(s=>{if(s.celular_id)(simsByCel[s.celular_id]=simsByCel[s.celular_id]||[]).push(s);});
+    CELULARES=CELULARES.map(c=>({...c,simcard:simsByCel[c.id]||[]}));
 
     const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
     const um=Object.fromEntries(USR.map(u=>[u.id,u]));
