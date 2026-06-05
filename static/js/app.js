@@ -5,13 +5,21 @@ let EQ=[],USR=[],LOANS=[],LOANS_MASIVOS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
+const CACHE_KEY='activosla_v1';
+const CACHE_TTL=60000;
+function _saveCache(d,sec,mr){try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),d,sec,mr}));}catch(e){}}
+function _loadCache(){try{const r=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');return r&&Date.now()-r.ts<CACHE_TTL?r:null;}catch(e){return null;}}
+function _invalidateCache(){try{localStorage.removeItem(CACHE_KEY);}catch(e){}}
+
+const _dbt={};
+function db(key,fn){clearTimeout(_dbt[key]);_dbt[key]=setTimeout(fn,200);}
+
 const api=async(url,m='GET',b=null)=>{
   try{
     const r=await fetch(url,{method:m,credentials:'include',headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null});
     const data=await r.json();
-    if(!r.ok){
-      return {error:data.error||'API Error'};
-    }
+    if(!r.ok) return {error:data.error||'API Error'};
+    if(m!=='GET') _invalidateCache();
     return data;
   }catch(e){
     return {error:e.message};
@@ -271,28 +279,40 @@ async function _refreshCels(){const r=await api('/api/celulares');if(!r.error&&A
 async function _refreshSims(){const r=await api('/api/simcards');if(!r.error&&Array.isArray(r))SIMCARDS=r;}
 async function _refreshAsigs(){const r=await api('/api/asignaciones-equipos');if(!r.error&&Array.isArray(r)){const em=Object.fromEntries(EQ.map(e=>[e.id,e])),um=Object.fromEntries(USR.map(u=>[u.id,u]));ASIGNACIONES=r.map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));}}
 
+function _applyData(d,sec,mr){
+  EQ=d.equipos||[];USR=d.usuarios||[];TIPOS=d.tipos||[];ROLES=d.roles||[];
+  LICENCIAS=sec.licencias||[];APLICATIVOS=sec.aplicativos||[];
+  CELULARES=sec.celulares||[];
+  const cm=Object.fromEntries(CELULARES.map(c=>[c.id,c]));
+  SIMCARDS=(sec.simcards||[]).map(s=>({...s,celular:cm[s.celular_id]||null}));
+  const simsByCel={};
+  SIMCARDS.forEach(s=>{if(s.celular_id)(simsByCel[s.celular_id]=simsByCel[s.celular_id]||[]).push(s);});
+  CELULARES=CELULARES.map(c=>({...c,simcard:simsByCel[c.id]||[]}));
+  const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
+  const um=Object.fromEntries(USR.map(u=>[u.id,u]));
+  LOANS=(d.prestamos||[]).map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
+  MANTS=(sec.mantenimientos||[]).map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
+  ASIGNACIONES=(sec.asignaciones||[]).map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
+  if(!mr.error&&Array.isArray(mr))
+    LOANS_MASIVOS=mr.map(l=>{const u=um[l.usuario_id]||{};return{...l,_tipo:'masivo',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
+}
+
 async function loadAll(){
   try{
-    const [d,sec,masivosRaw]=await Promise.all([api('/api/init'),api('/api/init/secondary'),api('/api/prestamos/masivos')]);
+    const cached=_loadCache();
+    if(cached){
+      _applyData(cached.d,cached.sec,cached.mr||[]);
+      DASH=computeDash();updateTiposFilter();updateNavBadges();
+      // Refrescar datos en background sin bloquear la UI
+      Promise.all([api('/api/init'),api('/api/init/secondary'),api('/api/prestamos/masivos')])
+        .then(([d,sec,mr])=>{if(!d.error){_saveCache(d,sec,mr);_applyData(d,sec,mr);DASH=computeDash();updateNavBadges();}})
+        .catch(()=>{});
+      return;
+    }
+    const [d,sec,mr]=await Promise.all([api('/api/init'),api('/api/init/secondary'),api('/api/prestamos/masivos')]);
     if(d.error){toast('Error loading data: '+d.error,'err');return;}
-
-    EQ=d.equipos||[];USR=d.usuarios||[];TIPOS=d.tipos||[];ROLES=d.roles||[];
-    LICENCIAS=sec.licencias||[];APLICATIVOS=sec.aplicativos||[];
-    CELULARES=sec.celulares||[];
-    const cm=Object.fromEntries(CELULARES.map(c=>[c.id,c]));
-    SIMCARDS=(sec.simcards||[]).map(s=>({...s,celular:cm[s.celular_id]||null}));
-    const simsByCel={};
-    SIMCARDS.forEach(s=>{if(s.celular_id)(simsByCel[s.celular_id]=simsByCel[s.celular_id]||[]).push(s);});
-    CELULARES=CELULARES.map(c=>({...c,simcard:simsByCel[c.id]||[]}));
-
-    const em=Object.fromEntries(EQ.map(e=>[e.id,e]));
-    const um=Object.fromEntries(USR.map(u=>[u.id,u]));
-    LOANS=(d.prestamos||[]).map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
-    MANTS=(sec.mantenimientos||[]).map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
-    ASIGNACIONES=(sec.asignaciones||[]).map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
-    if(!masivosRaw.error&&Array.isArray(masivosRaw))
-      LOANS_MASIVOS=masivosRaw.map(l=>{const u=um[l.usuario_id]||{};return{...l,_tipo:'masivo',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
-
+    _saveCache(d,sec,mr);
+    _applyData(d,sec,mr);
     DASH=computeDash();
     updateTiposFilter();
     updateNavBadges();

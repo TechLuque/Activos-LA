@@ -199,7 +199,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchEq" type="text" placeholder="Buscar nombre, serial, marca…" oninput="currentPage['eq']=1;renderEq()">
+          <input id="srchEq" type="text" placeholder="Buscar nombre, serial, marca…" oninput="db('eq',()=>{currentPage['eq']=1;renderEq()})">
           <select id="ftTipo" onchange="currentPage['eq']=1;renderEq()"><option value="">Todos los tipos</option></select>
           <select id="ftEst" onchange="currentPage['eq']=1;renderEq()">
             <option value="">Todos los estados</option>
@@ -251,7 +251,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico, descripción…" oninput="currentPage['mant']=1;renderMant()">
+          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico, descripción…" oninput="db('mant',()=>{currentPage['mant']=1;renderMant()})">
           <select id="ftMantEquipo" onchange="currentPage['mant']=1;renderMant()">
             <option value="">Todos los equipos</option>
           </select>
@@ -295,7 +295,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="currentPage['license']=1;renderLicenses()">
+          <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="db('lic',()=>{currentPage['license']=1;renderLicenses()})">
           <select id="ftLicenseTipo" onchange="currentPage['license']=1;renderLicenses()">
             <option value="">Todos los tipos</option>
             <option value="Software">Software</option>
@@ -343,7 +343,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="currentPage['aplicativo']=1;renderAplicativos()">
+          <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="db('app',()=>{currentPage['aplicativo']=1;renderAplicativos()})">
           <select id="ftAplicativoPeriodicidad" onchange="currentPage['aplicativo']=1;renderAplicativos()">
             <option value="">Todas las periodicidades</option>
             <option value="Mensual">Mensual</option>
@@ -388,7 +388,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="currentPage['celular']=1;renderCelulares()">
+          <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="db('cel',()=>{currentPage['celular']=1;renderCelulares()})">
           <select id="ftCelularMarca" onchange="currentPage['celular']=1;renderCelulares()">
             <option value="">Todas las marcas</option>
           </select>
@@ -429,8 +429,8 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="currentPage['simcard']=1;renderSimcards()">
-          <input id="srchSimcardIMEI" type="text" placeholder="Buscar IMEI del celular…" oninput="currentPage['simcard']=1;renderSimcards()">
+          <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="db('sim',()=>{currentPage['simcard']=1;renderSimcards()})">
+          <input id="srchSimcardIMEI" type="text" placeholder="Buscar IMEI del celular…" oninput="db('simImei',()=>{currentPage['simcard']=1;renderSimcards()})">
           <select id="ftSimcardOperador" onchange="currentPage['simcard']=1;renderSimcards()">
             <option value="">Todos los operadores</option>
             <option value="Movistar">Movistar</option>
@@ -476,7 +476,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="currentPage['usu']=1;renderUsr()">
+          <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="db('usu',()=>{currentPage['usu']=1;renderUsr()})">
           <select id="ftUsrDpto" onchange="currentPage['usu']=1;renderUsr()">
             <option value="">Todos los departamentos</option>
           </select>
@@ -514,7 +514,7 @@
       <div class="tbl-toolbar">
         <!-- Búsqueda Principal -->
         <div class="filter-row">
-          <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial, departamento…" oninput="currentPage['asignaciones']=1;renderAsignaciones()" style="flex:1;max-width:350px">
+          <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial, departamento…" oninput="db('asig',()=>{currentPage['asignaciones']=1;renderAsignaciones()})" style="flex:1;max-width:350px">
           
           <!-- Selector de Variable para Filtro -->
           <select id="ftAsigVariable" onchange="updateAsigFilterUI()" style="min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
@@ -588,7 +588,7 @@
       </div>
       <div class="tbl-toolbar">
         <div class="filter-row">
-          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable, departamento…" oninput="currentPage['loan']=1;renderLoan()">
+          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable, departamento…" oninput="db('loan',()=>{currentPage['loan']=1;renderLoan()})">
           <select id="ftLoanEst" onchange="currentPage['loan']=1;renderLoan()">
             <option value="">Todos los estados</option>
             <option value="solicitado">Solicitado</option>
