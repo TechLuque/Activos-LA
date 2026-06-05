@@ -200,23 +200,15 @@ function nav(page){
    INIT
 ════════════════════════════════════════════════════ */
 async function init(){
-  // Obtener información del usuario
-  try{
-    const user=await api('/api/user');
-    if(user && !user.error){
-      $('uName').textContent=user.nombre||'Administrador';
-      $('userEmail').textContent=user.email||'email@example.com';
-      $('pgDate').textContent=`Hola, ${user.nombre||'Administrador'} · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
-    }
-  }catch(e){
+  const [user]=await Promise.all([api('/api/user').catch(()=>null),loadAll()]);
+  if(user&&!user.error){
+    $('uName').textContent=user.nombre||'Administrador';
+    $('userEmail').textContent=user.email||'email@example.com';
+    $('pgDate').textContent=`Hola, ${user.nombre||'Administrador'} · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
   }
-  
-  await loadAll();
   renderDashboard();
-  // Re-render the active page so data shows even if the user navigated before loadAll finished
   const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
   if(activePage&&activePage!=='dashboard') nav(activePage);
-  // Deep-link: /equipo/<id> navega directamente al equipo
   const eqMatch=window.location.pathname.match(/\/equipo\/(\d+)/);
   if(eqMatch){
     const targetId=parseInt(eqMatch[1]);
@@ -281,8 +273,7 @@ async function _refreshAsigs(){const r=await api('/api/asignaciones-equipos');if
 
 async function loadAll(){
   try{
-    // Core y secundarios en paralelo — cada endpoint hace 2 olas de 3 a Supabase (6 max simultáneos)
-    const [d,sec]=await Promise.all([api('/api/init'),api('/api/init/secondary')]);
+    const [d,sec,masivosRaw]=await Promise.all([api('/api/init'),api('/api/init/secondary'),api('/api/prestamos/masivos')]);
     if(d.error){toast('Error loading data: '+d.error,'err');return;}
 
     EQ=d.equipos||[];USR=d.usuarios||[];TIPOS=d.tipos||[];ROLES=d.roles||[];
@@ -299,11 +290,12 @@ async function loadAll(){
     LOANS=(d.prestamos||[]).map(l=>{const e=em[l.equipo_id]||{},u=um[l.usuario_id]||{};return{...l,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
     MANTS=(sec.mantenimientos||[]).map(m=>{const e=em[m.equipo_id]||{};return{...m,equipo_nombre:e.nombre||'Equipo desconocido',equipo_tipo:e.tipo_nombre||'Desconocido'};});
     ASIGNACIONES=(sec.asignaciones||[]).map(a=>({...a,equipo:em[a.equipo_id]||{},usuario:um[a.usuario_id]||{}}));
+    if(!masivosRaw.error&&Array.isArray(masivosRaw))
+      LOANS_MASIVOS=masivosRaw.map(l=>{const u=um[l.usuario_id]||{};return{...l,_tipo:'masivo',usuario_nombre:u.nombre||'Usuario desconocido',departamento:u.departamento||''};});
 
     DASH=computeDash();
     updateTiposFilter();
     updateNavBadges();
-    _refreshLoansMasivos().then(()=>{DASH=computeDash();});
   }catch(e){
     console.error('[loadAll] excepción:',e);
     toast('Error fatal al cargar datos','err');
