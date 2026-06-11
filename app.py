@@ -2656,16 +2656,22 @@ def create_asignacion_equipo():
 
         existing_list = repo.get_asignaciones_activas_by_equipo(equipo_id)
         if existing_list:
-            asig_exist = existing_list[0]
-            cinco_segundos_atras = (datetime.now() - timedelta(seconds=5)).isoformat()
-            if (asig_exist.get('usuario_id') == usuario_id
-                    and asig_exist.get('fecha_asignacion', '') > cinco_segundos_atras):
-                return jsonify({
-                    'id': asig_exist.get('id'),
-                    'ok': True,
-                    'message': 'Asignación ya existe (posible click duplicado)'
-                }), 201
-            return jsonify({'error': 'Este equipo ya tiene una asignación abierta'}), 400
+            if equipo.get('usuario_id'):
+                # El equipo tiene responsable activo → verificar duplicado o bloquear
+                asig_exist = existing_list[0]
+                cinco_segundos_atras = (datetime.now() - timedelta(seconds=5)).isoformat()
+                if (asig_exist.get('usuario_id') == usuario_id
+                        and asig_exist.get('fecha_asignacion', '') > cinco_segundos_atras):
+                    return jsonify({
+                        'id': asig_exist.get('id'),
+                        'ok': True,
+                        'message': 'Asignación ya existe (posible click duplicado)'
+                    }), 201
+                return jsonify({'error': 'Este equipo ya tiene una asignación abierta'}), 400
+            else:
+                # El equipo no tiene responsable → las asignaciones abiertas son huérfanas, cerrarlas
+                for asig_huerfana in existing_list:
+                    repo.update_asignacion(asig_huerfana['id'], {'estado': 'desasignada'})
 
         estado_equipo = d.get('estado_equipo', 'bueno')
         notas = d.get('notas', '').strip()

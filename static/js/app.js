@@ -3088,6 +3088,7 @@ function renderLoan(){
       <td data-label="Términos"><span style="font-weight:600;color:${p.terminos_aceptados?'var(--green)':'var(--text3)'}">${p.terminos_aceptados?'✅ Aceptó':'⏳ Pendiente'}</span></td>
       <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
       <td data-label="Acciones"><div class="act-cell">
+        <button class="btn btn-info btn-sm" onclick="viewLoanDetails(${p.id})" title="Ver detalles">ℹ️ Detalles</button>
         ${p.estado==='solicitado'?`<button class="btn btn-warning btn-sm" onclick="openLoanModal(${p.id})">✏️ Editar</button>`:``}
         ${p.estado!=='devuelto'?`<button class="btn btn-success btn-sm" onclick="showSignatureLinkModal(${p.id})">🔗 Enviar Link</button>`:''}
         ${p.estado==='firmado'?`<button class="btn btn-teal btn-sm" onclick="returnLoan(${p.id})">📤 Devolver</button>`:''}
@@ -4233,11 +4234,15 @@ function filterEquiposAsignacion(){
   const q=$('aEqSearch').value.toLowerCase();
   const list=$('aEqList');
   
-  // Excluir equipos ya asignados (estado abierta)
-  const asignados=ASIGNACIONES.filter(a=>a.estado==='abierta').map(a=>a.equipo_id);
+  // Excluir equipos que tienen asignación abierta Y responsable activo.
+  // Si usuario_id es null, la asignación abierta es huérfana y el equipo debe poder reasignarse.
+  const asignadosConResponsable=new Set(
+    ASIGNACIONES.filter(a=>a.estado==='abierta').map(a=>a.equipo_id)
+      .filter(eqId=>{const eq=EQ.find(e=>e.id===eqId);return eq&&eq.usuario_id;})
+  );
   const equiposDisp=EQ.filter(e=>{
     const disp=(e.disponibilidad||'').toLowerCase();
-    return !asignados.includes(e.id)&&!disp.includes('retirado')&&!disp.includes('baja');
+    return !asignadosConResponsable.has(e.id)&&!disp.includes('retirado')&&!disp.includes('baja');
   });
   
   const filtered=equiposDisp.filter(e=>
