@@ -1646,8 +1646,48 @@ async function openHV(equipoId){
     <div class="mant-info-card"><div class="mic-label">Adquisición</div><div class="mic-val">${fmtDate(e.fecha_adquisicion)}</div></div>
     <div class="mant-info-card"><div class="mic-label">Ubicación</div><div class="mic-val">${e.ubicacion||'—'}</div></div>
   </div>`;
+  renderFacturaPreview(e.factura_url);
+  $('hvFacturaInput').value='';
+  _hvMantsOpen=true;
   await refreshHV();
   open('ovHV');
+}
+function renderFacturaPreview(url){
+  const div=$('hvFacturaPreview');
+  if(!url){div.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin factura adjunta</div>';return;}
+  const isPdf=url.toLowerCase().includes('.pdf');
+  div.innerHTML=isPdf
+    ?`<a href="${url}" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">📄 Ver factura PDF</a>`
+    :`<div style="position:relative;display:inline-block">
+        <img src="${url}" alt="Factura" style="max-height:120px;max-width:100%;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open('${url}','_blank')">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Clic para ver en tamaño completo</div>
+      </div>`;
+}
+async function uploadFactura(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>10*1024*1024){toast('Archivo muy grande (máx 10MB)','err');return;}
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const b64=ev.target.result.split(',')[1];
+    toast('Subiendo factura…','info');
+    const r=await api('/api/equipos/'+curHVId+'/factura','POST',{img:b64,ext});
+    if(r.error){toast('Error: '+r.error,'err');return;}
+    const eq=EQ.find(x=>x.id===curHVId);
+    if(eq) eq.factura_url=r.url;
+    renderFacturaPreview(r.url);
+    toast('Factura guardada','ok');
+  };
+  reader.readAsDataURL(file);
+}
+let _hvMantsOpen=true;
+function toggleHvMants(){
+  _hvMantsOpen=!_hvMantsOpen;
+  const el=$('hvMants');
+  const tog=$('hvMantsToggle');
+  el.style.display=_hvMantsOpen?'':'none';
+  tog.textContent=_hvMantsOpen?'▼':'▶';
 }
 async function refreshHV(){
   const [hvs,mants]=await Promise.all([api('/api/equipos/'+curHVId+'/hoja_vida'),api('/api/equipos/'+curHVId+'/mantenimientos')]);

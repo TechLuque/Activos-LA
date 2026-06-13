@@ -830,6 +830,28 @@ def delete_hoja_vida(id):
     except Exception as e:
         return _server_error(e)
 
+@app.route('/api/equipos/<int:id>/factura', methods=['POST'])
+@require_api_login
+def upload_factura_equipo(id):
+    try:
+        d = request.json or {}
+        img_b64 = d.get('img', '')
+        ext = d.get('ext', 'jpg').lower()
+        if ext not in ['jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf']:
+            ext = 'jpg'
+        if not img_b64:
+            return jsonify({'error': 'Sin imagen'}), 400
+        img_content = base64.b64decode(img_b64)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        img_path = f"facturas/equipo_{id}_{timestamp}.{ext}"
+        img_url = supabase_storage_upload(img_content, img_path)
+        if not img_url:
+            return jsonify({'error': 'Error al subir factura'}), 500
+        repo.update_equipo_factura(id, img_url)
+        return jsonify({'ok': True, 'url': img_url})
+    except Exception as e:
+        return _server_error(e)
+
 # ========== PRÉSTAMOS ==========
 @app.route('/api/prestamos', methods=['GET'])
 @require_api_login

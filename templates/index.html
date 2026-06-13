@@ -1469,27 +1469,49 @@
 
 <!-- HOJA DE VIDA -->
 <div class="overlay" id="ovHV" style="z-index:250">
-  <div class="modal modal-lg">
-    <div class="modal-head">
+  <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;overflow:hidden">
+    <div class="modal-head" style="flex-shrink:0">
       <div><h3 id="hvTitle">Hoja de vida</h3><p id="hvSub">Historial completo del equipo</p></div>
       <button class="m-close" onclick="close('ovHV')">✕</button>
     </div>
-    <div class="modal-body">
-      <div id="hvEquipoMeta"></div>
-      <hr class="section-sep">
-      <!-- Mantenimientos section -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title">🔧 Mantenimientos del equipo</div>
-        <button class="btn btn-teal btn-sm" onclick="openMantFromHV()">+ Agregar mantenimiento</button>
+    <div class="modal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:0;padding-bottom:0">
+      <!-- Meta cards -->
+      <div id="hvEquipoMeta" style="flex-shrink:0"></div>
+
+      <!-- Factura de compra -->
+      <hr class="section-sep" style="flex-shrink:0">
+      <div style="flex-shrink:0;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="card-title">🧾 Factura de compra</div>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0">
+            📎 Subir factura
+            <input type="file" id="hvFacturaInput" accept="image/*,application/pdf" style="display:none" onchange="uploadFactura(this)">
+          </label>
+        </div>
+        <div id="hvFacturaPreview"></div>
       </div>
-      <div id="hvMants" style="margin-bottom:18px"></div>
-      <hr class="section-sep">
-      <!-- Events / Hoja de vida -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title">📋 Historial de eventos</div>
-        <button class="btn btn-ghost btn-sm" onclick="open('ovAddHV')">+ Agregar evento</button>
+
+      <!-- Mantenimientos (colapsable, altura fija) -->
+      <hr class="section-sep" style="flex-shrink:0">
+      <div style="flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <button class="card-title" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px;color:var(--text)" onclick="toggleHvMants()">
+            🔧 Mantenimientos <span id="hvMantsToggle" style="font-size:11px;color:var(--text3)">▼</span>
+          </button>
+          <button class="btn btn-teal btn-sm" onclick="openMantFromHV()">+ Agregar</button>
+        </div>
+        <div id="hvMants" style="max-height:220px;overflow-y:auto;margin-bottom:4px"></div>
       </div>
-      <div id="hvTimeline"></div>
+
+      <!-- Historial de eventos — sección principal -->
+      <hr class="section-sep" style="flex-shrink:0">
+      <div style="flex:1;display:flex;flex-direction:column;min-height:320px;padding-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0">
+          <div class="card-title">📋 Historial de eventos</div>
+          <button class="btn btn-ghost btn-sm" onclick="open_ovAddHV()">+ Agregar evento</button>
+        </div>
+        <div id="hvTimeline" style="flex:1;overflow-y:auto"></div>
+      </div>
     </div>
   </div>
 </div>

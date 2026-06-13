@@ -403,6 +403,10 @@ def delete_hoja_vida(hv_id: int):
     supabase_request('DELETE', 'hoja_vida', f'?id=eq.{hv_id}')
 
 
+def update_equipo_factura(equipo_id: int, url: str):
+    supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'factura_url': url})
+
+
 # ── Préstamos (extras) ────────────────────────────────────────────────────────
 
 def get_prestamos_raw() -> list:
