@@ -1656,12 +1656,26 @@ function renderFacturaPreview(url){
   const div=$('hvFacturaPreview');
   if(!url){div.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin factura adjunta</div>';return;}
   const isPdf=url.toLowerCase().includes('.pdf');
+  const deleteBtn=`<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="deleteFactura()">🗑️ Eliminar factura</button>`;
   div.innerHTML=isPdf
-    ?`<a href="${url}" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">📄 Ver factura PDF</a>`
-    :`<div style="position:relative;display:inline-block">
+    ?`<div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        <a href="${url}" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">📄 Ver factura PDF</a>
+        ${deleteBtn}
+      </div>`
+    :`<div style="display:inline-block">
         <img src="${url}" alt="Factura" style="max-height:120px;max-width:100%;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open('${url}','_blank')">
         <div style="font-size:11px;color:var(--text3);margin-top:4px">Clic para ver en tamaño completo</div>
+        ${deleteBtn}
       </div>`;
+}
+async function deleteFactura(){
+  if(!confirm('¿Eliminar la factura adjunta? Esta acción no se puede deshacer.'))return;
+  const r=await api('/api/equipos/'+curHVId+'/factura','DELETE');
+  if(r.error){toast('Error: '+r.error,'err');return;}
+  const eq=EQ.find(x=>x.id===curHVId);
+  if(eq) eq.factura_url=null;
+  renderFacturaPreview(null);
+  toast('Factura eliminada','info');
 }
 async function uploadFactura(input){
   const file=input.files[0];

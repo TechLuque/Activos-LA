@@ -10,9 +10,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from urllib.parse import quote
 
 from db import (
-    supabase_request, supabase_storage_upload,
+    supabase_request, supabase_storage_upload, supabase_storage_delete,
     cache_invalidate, get_tipos_map,
-    SUPABASE_URL, SUPABASE_KEY, SUPABASE_SECRET_KEY
+    SUPABASE_URL, SUPABASE_KEY, SUPABASE_SECRET_KEY, SUPABASE_STORAGE_BUCKET
 )
 import repositories as repo
 
@@ -260,7 +260,7 @@ def get_init_data():
             'tipos':     repo.get_all_tipos_equipos,
             'roles':     repo.get_all_roles,
         }
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {k: executor.submit(fn) for k, fn in tasks.items()}
             return jsonify({k: f.result() for k, f in futures.items()})
     except Exception as e:
@@ -270,7 +270,7 @@ def get_init_data():
 @app.route('/api/init/secondary', methods=['GET'])
 @require_api_login
 def get_secondary_data():
-    """Datos secundarios: secciones que no bloquean el dashboard inicial (6 queries, 2 olas de 3)."""
+    """Datos secundarios: secciones que no bloquean el dashboard inicial (6 queries, 1 ola)."""
     try:
         tasks = {
             'mantenimientos': repo.get_all_mantenimientos,
@@ -280,7 +280,7 @@ def get_secondary_data():
             'simcards':       repo.get_all_simcards,
             'asignaciones':   repo.get_all_asignaciones,
         }
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {k: executor.submit(fn) for k, fn in tasks.items()}
             return jsonify({k: f.result() for k, f in futures.items()})
     except Exception as e:
@@ -852,6 +852,24 @@ def upload_factura_equipo(id):
     except Exception as e:
         return _server_error(e)
 
+@app.route('/api/equipos/<int:id>/factura', methods=['DELETE'])
+@require_api_login
+def delete_factura_equipo(id):
+    try:
+        eq = repo.get_equipo(id)
+        if not eq:
+            return jsonify({'error': 'Equipo no encontrado'}), 404
+        factura_url = eq.get('factura_url') or ''
+        if factura_url:
+            prefix = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}/"
+            if factura_url.startswith(prefix):
+                file_path = factura_url[len(prefix):]
+                supabase_storage_delete(file_path)
+        repo.update_equipo_factura(id, None)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
 # ========== PRÉSTAMOS ==========
 @app.route('/api/prestamos', methods=['GET'])
 @require_api_login
@@ -882,27 +900,21 @@ def get_prestamo_detalle(id):
         if loan is None:
             return jsonify({'error': 'Préstamo no encontrado'}), 404
 
-        if loan.get('equipo_id'):
-            eq = repo.get_equipo(loan['equipo_id'])
-            if eq:
-                loan['equipo'] = {
-                    'id': eq.get('id'),
-                    'nombre': eq.get('nombre'),
-                    'tipo': eq.get('tipo'),
-                    'serialno': eq.get('serialno'),
-                    'valor': eq.get('valor')
-                }
-
-        if loan.get('usuario_id'):
-            usr = repo.get_usuario(loan['usuario_id'])
-            if usr:
-                loan['usuario'] = {
-                    'id': usr.get('id'),
-                    'nombre': usr.get('nombre'),
-                    'email': usr.get('email'),
-                    'telefono': usr.get('telefono'),
-                    'departamento': usr.get('departamento')
-                }
+        # get_prestamo ya enriqueció equipo y usuario en paralelo; reutilizamos esos datos
+        # sin hacer 2 queries extra a Supabase.
+        loan['equipo'] = {
+            'id': loan.get('equipo_id'),
+            'nombre': loan.get('equipo_nombre', 'Equipo desconocido'),
+            'tipo': loan.get('equipo_tipo', ''),
+            'serialno': loan.get('equipo_serialno', ''),
+        }
+        loan['usuario'] = {
+            'id': loan.get('usuario_id'),
+            'nombre': loan.get('usuario_nombre', 'Usuario desconocido'),
+            'email': loan.get('usuario_email', ''),
+            'telefono': loan.get('usuario_telefono', ''),
+            'departamento': '',
+        }
         
         # Construir timeline de estados
         timeline = []

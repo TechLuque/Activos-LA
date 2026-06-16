@@ -108,3 +108,20 @@ def supabase_storage_upload(file_content, file_path: str):
         return None
     except Exception:
         return None
+
+
+def supabase_storage_delete(file_path: str) -> bool:
+    """Elimina un archivo del bucket de Storage. Retorna True si fue exitoso."""
+    try:
+        if not SUPABASE_URL or not SUPABASE_SECRET_KEY:
+            return False
+        delete_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_STORAGE_BUCKET}"
+        headers = {
+            'Authorization': f'Bearer {SUPABASE_SECRET_KEY}',
+            'apikey': SUPABASE_KEY,
+            'Content-Type': 'application/json'
+        }
+        resp = requests.delete(delete_url, headers=headers, json={'prefixes': [file_path]}, timeout=10)
+        return resp.status_code in [200, 201]
+    except Exception:
+        return False
