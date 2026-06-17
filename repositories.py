@@ -330,12 +330,7 @@ def get_rol(rol_id: int) -> dict | None:
 # ── Asignaciones de equipos ───────────────────────────────────────────────────
 
 def get_all_asignaciones() -> list:
-    result = supabase_request('GET', 'asignaciones_equipos',
-        '?select=id,equipo_id,usuario_id,estado,fecha_asignacion,'
-        'firma_entrada_url,firma_salida_url,fecha_firma_entrada,'
-        'fecha_firma_salida,fecha_firma_desasignacion,'
-        'notas_entrada,notas_salida,estado_equipo_entrada,estado_equipo_salida'
-        '&order=fecha_asignacion.desc')
+    result = supabase_request('GET', 'asignaciones_equipos', '?order=fecha_asignacion.desc')
     return result if isinstance(result, list) else []
 
 
