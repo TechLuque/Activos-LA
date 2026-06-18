@@ -63,6 +63,40 @@ def get_expiring_loans(days: int = 3) -> list:
     return _supabase_get(path)
 
 
+def get_overdue_loans() -> list:
+    today = date.today().isoformat()
+    path = (
+        'prestamos'
+        '?select=id,fecha_devolucion_esperada,estado,notas,'
+        'equipos(nombre,serial),'
+        'usuarios(nombre,email)'
+        f'&estado=neq.devuelto'
+        f'&fecha_devolucion_esperada=lt.{today}'
+        '&order=fecha_devolucion_esperada.asc'
+    )
+    return _supabase_get(path)
+
+
+def get_overdue_maintenance() -> list:
+    today = date.today().isoformat()
+    path = (
+        'mantenimientos'
+        '?select=id,equipo_id,tipo,estado,proxima_revision,descripcion,tecnico'
+        f'&estado=neq.completado'
+        f'&proxima_revision=lt.{today}'
+        '&order=proxima_revision.asc'
+    )
+    items = _supabase_get(path)
+    if not items:
+        return []
+    equipo_ids = ','.join(str(m['equipo_id']) for m in items)
+    equipos = _supabase_get(f'equipos?select=id,nombre,serial&id=in.({equipo_ids})')
+    equipos_map = {e['id']: e for e in equipos} if isinstance(equipos, list) else {}
+    for m in items:
+        m['equipos'] = equipos_map.get(m['equipo_id'], {})
+    return items
+
+
 def get_upcoming_maintenance(days: int = 3) -> list:
     today = date.today().isoformat()
     future = (date.today() + timedelta(days=days)).isoformat()
@@ -147,7 +181,7 @@ def _maintenance_section(items: list) -> str:
         <tr>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">
             <strong>{equipo.get('nombre', '—')}</strong><br>
-            <span style="color:#6b7280;font-size:13px">Serial: {equipo.get('serial', '—')} · {equipo.get('ubicacion', '')}</span>
+            <span style="color:#6b7280;font-size:13px">Serial: {equipo.get('serial', '—')}</span>
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-transform:capitalize">{m.get('tipo', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">
@@ -202,6 +236,105 @@ def build_email_html(loans: list, maintenance: list) -> str:
 </html>"""
 
 
+def _overdue_loans_section(loans: list) -> str:
+    rows = ''
+    for loan in loans:
+        equipo = loan.get('equipos') or {}
+        usuario = loan.get('usuarios') or {}
+        dias = abs((date.fromisoformat(loan['fecha_devolucion_esperada']) - date.today()).days)
+        rows += f"""
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
+            <strong>{equipo.get('nombre', '—')}</strong><br>
+            <span style="color:#6b7280;font-size:13px">Serial: {equipo.get('serial', '—')}</span>
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">{usuario.get('nombre', '—')}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
+            {_date_fmt(loan['fecha_devolucion_esperada'])}<br>
+            <span style="color:#dc2626;font-weight:bold;font-size:13px">Hace {dias} día(s)</span>
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2;text-transform:capitalize">{loan.get('estado', '—')}</td>
+        </tr>"""
+
+    return f"""
+    <h2 style="color:#991b1b;margin-top:32px;margin-bottom:8px">⚠️ Préstamos vencidos sin devolver</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+      <thead>
+        <tr style="background:#991b1b;color:#fff">
+          <th style="padding:10px 12px;text-align:left">Equipo</th>
+          <th style="padding:10px 12px;text-align:left">Responsable</th>
+          <th style="padding:10px 12px;text-align:left">Fecha vencimiento</th>
+          <th style="padding:10px 12px;text-align:left">Estado</th>
+        </tr>
+      </thead>
+      <tbody>{rows}</tbody>
+    </table>"""
+
+
+def _overdue_maintenance_section(items: list) -> str:
+    rows = ''
+    for m in items:
+        equipo = m.get('equipos') or {}
+        dias = abs((date.fromisoformat(m['proxima_revision']) - date.today()).days)
+        rows += f"""
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
+            <strong>{equipo.get('nombre', '—')}</strong><br>
+            <span style="color:#6b7280;font-size:13px">Serial: {equipo.get('serial', '—')}</span>
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2;text-transform:capitalize">{m.get('tipo', '—')}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
+            {_date_fmt(m['proxima_revision'])}<br>
+            <span style="color:#dc2626;font-weight:bold;font-size:13px">Hace {dias} día(s)</span>
+          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">{m.get('tecnico', '—')}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #fee2e2;font-size:13px;color:#374151">{m.get('descripcion', '')}</td>
+        </tr>"""
+
+    return f"""
+    <h2 style="color:#991b1b;margin-top:32px;margin-bottom:8px">⚠️ Mantenimientos vencidos sin completar</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+      <thead>
+        <tr style="background:#991b1b;color:#fff">
+          <th style="padding:10px 12px;text-align:left">Equipo</th>
+          <th style="padding:10px 12px;text-align:left">Tipo</th>
+          <th style="padding:10px 12px;text-align:left">Fecha vencimiento</th>
+          <th style="padding:10px 12px;text-align:left">Técnico</th>
+          <th style="padding:10px 12px;text-align:left">Descripción</th>
+        </tr>
+      </thead>
+      <tbody>{rows}</tbody>
+    </table>"""
+
+
+def build_overdue_email_html(loans: list, maintenance: list) -> str:
+    today_str = date.today().strftime('%d/%m/%Y')
+    sections = ''
+    if loans:
+        sections += _overdue_loans_section(loans)
+    if maintenance:
+        sections += _overdue_maintenance_section(maintenance)
+
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;background:#f9fafb;margin:0;padding:24px">
+  <div style="max-width:720px;margin:0 auto">
+    <div style="background:#7f1d1d;color:#fff;padding:20px 24px;border-radius:8px 8px 0 0">
+      <h1 style="margin:0;font-size:20px">🚨 Activos Vencidos — {today_str}</h1>
+      <p style="margin:4px 0 0;color:#fca5a5;font-size:13px">Requieren atención inmediata · Activos EQ</p>
+    </div>
+    <div style="background:#fef2f2;padding:20px 24px">
+      {sections}
+    </div>
+    <div style="background:#fee2e2;padding:12px 24px;border-radius:0 0 8px 8px;font-size:12px;color:#64748b;text-align:center">
+      Este correo es generado automáticamente. No responder.
+    </div>
+  </div>
+</body>
+</html>"""
+
+
 # ---------------------------------------------------------------------------
 # Email sending
 # ---------------------------------------------------------------------------
@@ -239,6 +372,10 @@ def run_notifications():
         logger.error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
         return
 
+    recipient = RECIPIENT_OVERRIDE or GMAIL_SENDER
+    today_str = date.today().strftime('%d/%m/%Y')
+
+    # — Correo 1: próximos a vencer (dentro de 3 días) —
     logger.info('Consultando préstamos próximos a vencer...')
     loans = get_expiring_loans(3)
     logger.info('Encontrados: %d préstamo(s)', len(loans))
@@ -247,18 +384,26 @@ def run_notifications():
     maintenance = get_upcoming_maintenance(3)
     logger.info('Encontrados: %d mantenimiento(s)', len(maintenance))
 
-    if not loans and not maintenance:
-        logger.info('Sin alertas pendientes. No se envía correo.')
-        return
+    if loans or maintenance:
+        html = build_email_html(loans, maintenance)
+        send_email(recipient, f'📌 Resumen de Activos — {today_str}', html)
+    else:
+        logger.info('Sin próximos vencimientos. No se envía correo 1.')
 
-    html = build_email_html(loans, maintenance)
-    today_str = date.today().strftime('%d/%m/%Y')
-    subject = f'📌 Resumen de Activos — {today_str}'
+    # — Correo 2: ya vencidos —
+    logger.info('Consultando préstamos vencidos...')
+    overdue_loans = get_overdue_loans()
+    logger.info('Encontrados: %d préstamo(s) vencido(s)', len(overdue_loans))
 
-    # En producción: agrupar por usuario y enviar individualmente.
-    # Por ahora: un correo consolidado al destinatario configurado.
-    recipient = RECIPIENT_OVERRIDE or GMAIL_SENDER
-    send_email(recipient, subject, html)
+    logger.info('Consultando mantenimientos vencidos...')
+    overdue_maintenance = get_overdue_maintenance()
+    logger.info('Encontrados: %d mantenimiento(s) vencido(s)', len(overdue_maintenance))
+
+    if overdue_loans or overdue_maintenance:
+        html = build_overdue_email_html(overdue_loans, overdue_maintenance)
+        send_email(recipient, f'🚨 Activos Vencidos — {today_str}', html)
+    else:
+        logger.info('Sin vencidos. No se envía correo 2.')
 
 
 # ---------------------------------------------------------------------------
