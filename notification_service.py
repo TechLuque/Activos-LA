@@ -68,14 +68,21 @@ def get_upcoming_maintenance(days: int = 3) -> list:
     future = (date.today() + timedelta(days=days)).isoformat()
     path = (
         'mantenimientos'
-        '?select=id,tipo,estado,proxima_revision,descripcion,tecnico,'
-        'equipos(nombre,serial,ubicacion)'
+        '?select=id,equipo_id,tipo,estado,proxima_revision,descripcion,tecnico'
         f'&estado=neq.completado'
         f'&proxima_revision=gte.{today}'
         f'&proxima_revision=lte.{future}'
         '&order=proxima_revision.asc'
     )
-    return _supabase_get(path)
+    items = _supabase_get(path)
+    if not items:
+        return []
+    equipo_ids = ','.join(str(m['equipo_id']) for m in items)
+    equipos = _supabase_get(f'equipos?select=id,nombre,serial&id=in.({equipo_ids})')
+    equipos_map = {e['id']: e for e in equipos} if isinstance(equipos, list) else {}
+    for m in items:
+        m['equipos'] = equipos_map.get(m['equipo_id'], {})
+    return items
 
 
 # ---------------------------------------------------------------------------
