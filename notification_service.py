@@ -91,12 +91,14 @@ def _fetch_maintenance_with_equipos(path: str) -> list:
 
 def get_overdue_maintenance() -> list:
     today = date.today().isoformat()
+    # proxima_revision la setea un registro completado para indicar cuándo
+    # toca el próximo mantenimiento — se filtra solo por fecha, sin importar estado.
     path = (
         'mantenimientos'
-        '?select=id,equipo_id,tipo,estado,fecha,descripcion,tecnico'
-        f'&estado=neq.completado'
-        f'&fecha=lt.{today}'
-        '&order=fecha.asc'
+        '?select=id,equipo_id,tipo,estado,proxima_revision,descripcion,tecnico'
+        f'&proxima_revision=lt.{today}'
+        f'&proxima_revision=not.is.null'
+        '&order=proxima_revision.asc'
     )
     return _fetch_maintenance_with_equipos(path)
 
@@ -106,11 +108,10 @@ def get_upcoming_maintenance(days: int = 3) -> list:
     future = (date.today() + timedelta(days=days)).isoformat()
     path = (
         'mantenimientos'
-        '?select=id,equipo_id,tipo,estado,fecha,descripcion,tecnico'
-        f'&estado=neq.completado'
-        f'&fecha=gte.{today}'
-        f'&fecha=lte.{future}'
-        '&order=fecha.asc'
+        '?select=id,equipo_id,tipo,estado,proxima_revision,descripcion,tecnico'
+        f'&proxima_revision=gte.{today}'
+        f'&proxima_revision=lte.{future}'
+        '&order=proxima_revision.asc'
     )
     return _fetch_maintenance_with_equipos(path)
 
@@ -181,8 +182,8 @@ def _maintenance_section(items: list) -> str:
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-transform:capitalize">{m.get('tipo', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">
-            {_date_fmt(m['fecha'])}<br>
-            <span style="font-size:13px">Vence {_days_label(m['fecha'])}</span>
+            {_date_fmt(m['proxima_revision'])}<br>
+            <span style="font-size:13px">Vence {_days_label(m['proxima_revision'])}</span>
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">{m.get('tecnico', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151">{m.get('descripcion', '')}</td>
@@ -271,7 +272,7 @@ def _overdue_maintenance_section(items: list) -> str:
     rows = ''
     for m in items:
         equipo = m.get('equipos') or {}
-        dias = abs((date.fromisoformat(m['fecha']) - date.today()).days)
+        dias = abs((date.fromisoformat(m['proxima_revision']) - date.today()).days)
         rows += f"""
         <tr>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
