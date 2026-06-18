@@ -1,0 +1,1015 @@
+{
+    "name": "Prestamos - Recordatorio Vencimiento",
+    "flow": [
+        {
+            "id": 1,
+            "module": "util:BasicTrigger",
+            "version": 1,
+            "parameters": {
+                "values": [
+                    {
+                        "spec": [
+                            {
+                                "name": "prueba",
+                                "value": "hola"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "values": {
+                            "items": [
+                                {
+                                    "spec": {
+                                        "mode": "chose",
+                                        "items": [
+                                            null
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "values",
+                        "spec": [
+                            {
+                                "name": "spec",
+                                "spec": [
+                                    {
+                                        "name": "name",
+                                        "type": "text",
+                                        "label": "Name",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "value",
+                                        "type": "text",
+                                        "label": "Value",
+                                        "required": true
+                                    }
+                                ],
+                                "type": "array",
+                                "label": "Items",
+                                "required": true
+                            }
+                        ],
+                        "type": "array",
+                        "label": "Bundles",
+                        "required": true
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "prueba",
+                        "type": "text",
+                        "label": "prueba"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 3,
+            "module": "http:MakeRequest",
+            "version": 4,
+            "parameters": {
+                "tlsType": "",
+                "authenticationType": "noAuth"
+            },
+            "mapper": {
+                "url": "https://rdrqizmgcwvvrznjhrkw.supabase.co/rest/v1/prestamos?select=id,fecha_prestamo,fecha_devolucion_esperada,estado,equipos(nombre,serial),usuarios(nombre)&estado=neq.devuelto&fecha_devolucion_esperada=lte.{{formatDate(addDays(now; 3); \"YYYY-MM-DD\")}}&fecha_devolucion_esperada=gte.{{formatDate(addDays(now; -1); \"YYYY-MM-DD\")}}&order=fecha_devolucion_esperada.asc",
+                "method": "get",
+                "headers": [
+                    {
+                        "name": "apikey",
+                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkcnFpem1nY3d2dnJ6bmpocmt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAzMTQyNSwiZXhwIjoyMDg5NjA3NDI1fQ.7wp4-nVpDrl-wUt5b87LNwZ75PhgeUmMjQwAxSsv-QE"
+                    },
+                    {
+                        "name": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkcnFpem1nY3d2dnJ6bmpocmt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAzMTQyNSwiZXhwIjoyMDg5NjA3NDI1fQ.7wp4-nVpDrl-wUt5b87LNwZ75PhgeUmMjQwAxSsv-QE"
+                    }
+                ],
+                "shareCookies": false,
+                "parseResponse": true,
+                "allowRedirects": true,
+                "stopOnHttpError": true,
+                "requestCompressedContent": true
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "method": {
+                            "mode": "chose",
+                            "label": "GET"
+                        },
+                        "headers": {
+                            "mode": "chose",
+                            "items": [
+                                null,
+                                null
+                            ]
+                        },
+                        "contentType": {
+                            "label": "Empty"
+                        },
+                        "shareCookies": {
+                            "mode": "chose"
+                        },
+                        "parseResponse": {
+                            "mode": "chose"
+                        },
+                        "allowRedirects": {
+                            "mode": "chose"
+                        },
+                        "paginationType": {
+                            "label": "Empty"
+                        },
+                        "queryParameters": {
+                            "mode": "chose"
+                        },
+                        "stopOnHttpError": {
+                            "mode": "chose"
+                        },
+                        "requestCompressedContent": {
+                            "mode": "chose"
+                        }
+                    },
+                    "parameters": {
+                        "tlsType": {
+                            "label": "Empty"
+                        },
+                        "authenticationType": {
+                            "label": "No authenticationUse when no credentials are required for the request."
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "authenticationType",
+                        "type": "select",
+                        "label": "Authentication type",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "noAuth",
+                                "apiKey",
+                                "basicAuth",
+                                "oAuth"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "tlsType",
+                        "type": "select",
+                        "label": "Transport layer security (TLS)",
+                        "validate": {
+                            "enum": [
+                                "mTls",
+                                "tls"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "proxyKeychain",
+                        "type": "keychain:proxy",
+                        "label": "Proxy"
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "url",
+                        "type": "url",
+                        "label": "URL",
+                        "required": true
+                    },
+                    {
+                        "name": "method",
+                        "type": "select",
+                        "label": "Method",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "get",
+                                "head",
+                                "post",
+                                "put",
+                                "patch",
+                                "delete",
+                                "options"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "headers",
+                        "spec": {
+                            "name": "value",
+                            "spec": [
+                                {
+                                    "name": "name",
+                                    "type": "text",
+                                    "label": "Name",
+                                    "required": true,
+                                    "validate": {
+                                        "pattern": "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$"
+                                    }
+                                },
+                                {
+                                    "name": "value",
+                                    "type": "text",
+                                    "label": "Value"
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Header"
+                        },
+                        "type": "array",
+                        "label": "Headers"
+                    },
+                    {
+                        "name": "queryParameters",
+                        "spec": {
+                            "name": "value",
+                            "spec": [
+                                {
+                                    "name": "name",
+                                    "type": "text",
+                                    "label": "Name",
+                                    "required": true
+                                },
+                                {
+                                    "name": "value",
+                                    "type": "text",
+                                    "label": "Value"
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Parameter"
+                        },
+                        "type": "array",
+                        "label": "Query parameters"
+                    },
+                    {
+                        "name": "contentType",
+                        "type": "select",
+                        "label": "Body content type",
+                        "validate": {
+                            "enum": [
+                                "json",
+                                "multipart",
+                                "urlEncoded",
+                                "custom"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "parseResponse",
+                        "type": "boolean",
+                        "label": "Parse response",
+                        "required": true
+                    },
+                    {
+                        "name": "stopOnHttpError",
+                        "type": "boolean",
+                        "label": "Return error if HTTP request fails",
+                        "required": true
+                    },
+                    {
+                        "name": "timeout",
+                        "type": "uinteger",
+                        "label": "Timeout",
+                        "validate": {
+                            "max": 300,
+                            "min": 1
+                        }
+                    },
+                    {
+                        "name": "allowRedirects",
+                        "type": "boolean",
+                        "label": "Allow redirects",
+                        "required": true
+                    },
+                    {
+                        "name": "shareCookies",
+                        "type": "boolean",
+                        "label": "Share cookies with other HTTP modules",
+                        "required": true
+                    },
+                    {
+                        "name": "requestCompressedContent",
+                        "type": "boolean",
+                        "label": "Request compressed content",
+                        "required": true
+                    },
+                    {
+                        "name": "paginationType",
+                        "type": "select",
+                        "label": "Pagination type",
+                        "validate": {
+                            "enum": [
+                                "offsetBased",
+                                "pageBased",
+                                "urlBased",
+                                "tokenBased"
+                            ]
+                        }
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "data",
+                        "type": "any",
+                        "label": "Data"
+                    },
+                    {
+                        "name": "statusCode",
+                        "type": "number",
+                        "label": "Status Code"
+                    },
+                    {
+                        "name": "headers",
+                        "spec": [
+                            {
+                                "name": "content-length",
+                                "type": "text",
+                                "label": "Content-Length"
+                            },
+                            {
+                                "name": "content-encoding",
+                                "type": "text",
+                                "label": "Content-Encoding"
+                            },
+                            {
+                                "name": "content-type",
+                                "type": "text",
+                                "label": "Content-Type"
+                            },
+                            {
+                                "name": "server",
+                                "type": "text",
+                                "label": "Server"
+                            },
+                            {
+                                "name": "cache-control",
+                                "type": "text",
+                                "label": "Cache-Control"
+                            },
+                            {
+                                "name": "set-cookie",
+                                "spec": {
+                                    "type": "text"
+                                },
+                                "type": "array",
+                                "label": "Set-Cookie"
+                            }
+                        ],
+                        "type": "collection",
+                        "label": "Headers"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 5,
+            "module": "util:TextAggregator",
+            "version": 1,
+            "parameters": {
+                "feeder": 3,
+                "rowSeparator": ""
+            },
+            "mapper": {
+                "value": "<h2>📋 PRÉSTAMOS PRÓXIMOS A VENCER </h2>\n\n<p><strong>• Equipo: </strong>{{3.data[].equipos.nombre}} </p>\n<p><strong>• Responsable:</strong> {{3.data[].usuarios.nombre}} </p>\n<p><strong>•  Vence:</strong> {{3.data[].fecha_devolucion_esperada}}</p>\n<p><strong>•  Estado: </strong>{{3.data[].estado}}</p> "
+            },
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 0
+                },
+                "restore": {
+                    "extra": {
+                        "feeder": {
+                            "label": "HTTP - Make a request [3]"
+                        }
+                    },
+                    "parameters": {
+                        "rowSeparator": {
+                            "label": "Empty"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "rowSeparator",
+                        "type": "select",
+                        "label": "Row separator",
+                        "validate": {
+                            "enum": [
+                                "\n",
+                                "\t",
+                                "other"
+                            ]
+                        }
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Text"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 10,
+            "module": "google-email:sendAnEmail",
+            "version": 4,
+            "parameters": {
+                "__IMTCONN__": 9449348
+            },
+            "filter": {
+                "name": "",
+                "conditions": [
+                    [
+                        {
+                            "a": "{{length(3.data)}}",
+                            "b": "0",
+                            "o": "number:greater"
+                        }
+                    ]
+                ]
+            },
+            "mapper": {
+                "to": [
+                    "santiagolazaro649@gmail.com"
+                ],
+                "content": "{{5.text}}",
+                "subject": "📌 Resumen de Activos — {{formatDate(now; \"DD/MM/YYYY\")}}",
+                "bodyType": "rawHtml"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 900,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "cc": {
+                            "mode": "chose"
+                        },
+                        "to": {
+                            "mode": "chose",
+                            "items": [
+                                null
+                            ]
+                        },
+                        "bcc": {
+                            "mode": "chose"
+                        },
+                        "from": {
+                            "mode": "chose"
+                        },
+                        "bodyType": {
+                            "label": "Raw HTML"
+                        },
+                        "attachments": {
+                            "mode": "chose"
+                        },
+                        "emailHeaders": {
+                            "mode": "chose"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google-email"
+                            },
+                            "label": "CONEXION CON TECH (tech@luqueacademy.com)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google-email",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "to",
+                        "spec": {
+                            "name": "value",
+                            "type": "email",
+                            "label": "Recipient email address",
+                            "required": true,
+                            "validate": true
+                        },
+                        "type": "array",
+                        "label": "To",
+                        "required": true
+                    },
+                    {
+                        "name": "subject",
+                        "type": "text",
+                        "label": "Subject"
+                    },
+                    {
+                        "name": "bodyType",
+                        "type": "select",
+                        "label": "Body type",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "rawHtml",
+                                "collection"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "attachments",
+                        "spec": {
+                            "name": "value",
+                            "spec": [
+                                {
+                                    "name": "filename",
+                                    "type": "filename",
+                                    "label": "File name",
+                                    "required": true,
+                                    "semantic": "file:name"
+                                },
+                                {
+                                    "name": "data",
+                                    "type": "buffer",
+                                    "label": "Data",
+                                    "required": true,
+                                    "semantic": "file:data"
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Attachment"
+                        },
+                        "type": "array",
+                        "label": "Attachments"
+                    },
+                    {
+                        "name": "from",
+                        "type": "select",
+                        "label": "From"
+                    },
+                    {
+                        "name": "cc",
+                        "spec": {
+                            "name": "value",
+                            "type": "email",
+                            "label": "Recipient email address"
+                        },
+                        "type": "array",
+                        "label": "CC recipients"
+                    },
+                    {
+                        "name": "bcc",
+                        "spec": {
+                            "name": "value",
+                            "type": "email",
+                            "label": "Recipient email address"
+                        },
+                        "type": "array",
+                        "label": "BCC recipients"
+                    },
+                    {
+                        "name": "emailHeaders",
+                        "spec": {
+                            "name": "value",
+                            "spec": [
+                                {
+                                    "name": "key",
+                                    "type": "text",
+                                    "label": "Key",
+                                    "required": true
+                                },
+                                {
+                                    "name": "value",
+                                    "type": "text",
+                                    "label": "Value"
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Email header"
+                        },
+                        "type": "array",
+                        "label": "Additional email headers"
+                    },
+                    {
+                        "name": "content",
+                        "type": "text",
+                        "label": "Content"
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": [
+                [
+                    {
+                        "id": 4,
+                        "module": "http:MakeRequest",
+                        "version": 4,
+                        "parameters": {
+                            "tlsType": "",
+                            "authenticationType": "noAuth"
+                        },
+                        "mapper": {
+                            "url": "https://rdrqizmgcwvvrznjhrkw.supabase.co/rest/v1/mantenimientos?select=id,equipo_id,tipo,estado,fecha,proxima_revision,descripcion,costo,tecnico,equipos(nombre,serial,marca,modelo,ubicacion)&tipo=eq.preventivo&estado=neq.completado&proxima_revision=lte.{{formatDate}}{{(addDays + now + \"3\")}}YYYY-MM-DD&order=proxima_revision.asc",
+                            "method": "get",
+                            "headers": [
+                                {
+                                    "name": "apikey",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkcnFpem1nY3d2dnJ6bmpocmt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAzMTQyNSwiZXhwIjoyMDg5NjA3NDI1fQ.7wp4-nVpDrl-wUt5b87LNwZ75PhgeUmMjQwAxSsv-QE"
+                                },
+                                {
+                                    "name": "Authorization",
+                                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkcnFpem1nY3d2dnJ6bmpocmt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAzMTQyNSwiZXhwIjoyMDg5NjA3NDI1fQ.7wp4-nVpDrl-wUt5b87LNwZ75PhgeUmMjQwAxSsv-QE"
+                                },
+                                {
+                                    "name": "Content-Type",
+                                    "value": "application/json"
+                                },
+                                {
+                                    "name": "Prefer",
+                                    "value": "count=exact"
+                                }
+                            ],
+                            "shareCookies": false,
+                            "parseResponse": false,
+                            "allowRedirects": true,
+                            "stopOnHttpError": true,
+                            "requestCompressedContent": true
+                        },
+                        "metadata": {
+                            "designer": {
+                                "x": 0,
+                                "y": 300,
+                                "messages": [
+                                    {
+                                        "category": "link",
+                                        "severity": "warning",
+                                        "message": "This module is not connected to the flow. This module and everything after it will be skipped during execution. <autoconnect>Link it to your scenario to include them.</autoconnect>"
+                                    }
+                                ]
+                            },
+                            "restore": {
+                                "expect": {
+                                    "method": {
+                                        "mode": "chose",
+                                        "label": "GET"
+                                    },
+                                    "headers": {
+                                        "mode": "chose",
+                                        "items": [
+                                            null,
+                                            null,
+                                            null,
+                                            null
+                                        ],
+                                        "collapsed": true
+                                    },
+                                    "contentType": {
+                                        "label": "Empty"
+                                    },
+                                    "shareCookies": {
+                                        "mode": "chose"
+                                    },
+                                    "parseResponse": {
+                                        "mode": "chose"
+                                    },
+                                    "allowRedirects": {
+                                        "mode": "chose"
+                                    },
+                                    "queryParameters": {
+                                        "mode": "chose"
+                                    },
+                                    "stopOnHttpError": {
+                                        "mode": "chose"
+                                    },
+                                    "requestCompressedContent": {
+                                        "mode": "chose"
+                                    }
+                                },
+                                "parameters": {
+                                    "tlsType": {
+                                        "label": "Empty"
+                                    },
+                                    "authenticationType": {
+                                        "label": "No authenticationUse when no credentials are required for the request."
+                                    }
+                                }
+                            },
+                            "parameters": [
+                                {
+                                    "name": "authenticationType",
+                                    "type": "select",
+                                    "label": "Authentication type",
+                                    "required": true,
+                                    "validate": {
+                                        "enum": [
+                                            "noAuth",
+                                            "apiKey",
+                                            "basicAuth",
+                                            "oAuth"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "tlsType",
+                                    "type": "select",
+                                    "label": "Transport layer security (TLS)",
+                                    "validate": {
+                                        "enum": [
+                                            "mTls",
+                                            "tls"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "proxyKeychain",
+                                    "type": "keychain:proxy",
+                                    "label": "Proxy"
+                                }
+                            ],
+                            "expect": [
+                                {
+                                    "name": "url",
+                                    "type": "url",
+                                    "label": "URL",
+                                    "required": true
+                                },
+                                {
+                                    "name": "method",
+                                    "type": "select",
+                                    "label": "Method",
+                                    "required": true,
+                                    "validate": {
+                                        "enum": [
+                                            "get",
+                                            "head",
+                                            "post",
+                                            "put",
+                                            "patch",
+                                            "delete",
+                                            "options"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "headers",
+                                    "spec": {
+                                        "name": "value",
+                                        "spec": [
+                                            {
+                                                "name": "name",
+                                                "type": "text",
+                                                "label": "Name",
+                                                "required": true,
+                                                "validate": {
+                                                    "pattern": "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$"
+                                                }
+                                            },
+                                            {
+                                                "name": "value",
+                                                "type": "text",
+                                                "label": "Value"
+                                            }
+                                        ],
+                                        "type": "collection",
+                                        "label": "Header"
+                                    },
+                                    "type": "array",
+                                    "label": "Headers"
+                                },
+                                {
+                                    "name": "queryParameters",
+                                    "spec": {
+                                        "name": "value",
+                                        "spec": [
+                                            {
+                                                "name": "name",
+                                                "type": "text",
+                                                "label": "Name",
+                                                "required": true
+                                            },
+                                            {
+                                                "name": "value",
+                                                "type": "text",
+                                                "label": "Value"
+                                            }
+                                        ],
+                                        "type": "collection",
+                                        "label": "Parameter"
+                                    },
+                                    "type": "array",
+                                    "label": "Query parameters"
+                                },
+                                {
+                                    "name": "contentType",
+                                    "type": "select",
+                                    "label": "Body content type",
+                                    "validate": {
+                                        "enum": [
+                                            "json",
+                                            "multipart",
+                                            "urlEncoded",
+                                            "custom"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "parseResponse",
+                                    "type": "boolean",
+                                    "label": "Parse response",
+                                    "required": true
+                                },
+                                {
+                                    "name": "stopOnHttpError",
+                                    "type": "boolean",
+                                    "label": "Return error if HTTP request fails",
+                                    "required": true
+                                },
+                                {
+                                    "name": "timeout",
+                                    "type": "uinteger",
+                                    "label": "Timeout",
+                                    "validate": {
+                                        "max": 300,
+                                        "min": 1
+                                    }
+                                },
+                                {
+                                    "name": "allowRedirects",
+                                    "type": "boolean",
+                                    "label": "Allow redirects",
+                                    "required": true
+                                },
+                                {
+                                    "name": "shareCookies",
+                                    "type": "boolean",
+                                    "label": "Share cookies with other HTTP modules",
+                                    "required": true
+                                },
+                                {
+                                    "name": "requestCompressedContent",
+                                    "type": "boolean",
+                                    "label": "Request compressed content",
+                                    "required": true
+                                }
+                            ],
+                            "interface": [
+                                {
+                                    "name": "data",
+                                    "type": "any",
+                                    "label": "Data"
+                                },
+                                {
+                                    "name": "statusCode",
+                                    "type": "number",
+                                    "label": "Status Code"
+                                },
+                                {
+                                    "name": "headers",
+                                    "spec": [
+                                        {
+                                            "name": "content-length",
+                                            "type": "text",
+                                            "label": "Content-Length"
+                                        },
+                                        {
+                                            "name": "content-encoding",
+                                            "type": "text",
+                                            "label": "Content-Encoding"
+                                        },
+                                        {
+                                            "name": "content-type",
+                                            "type": "text",
+                                            "label": "Content-Type"
+                                        },
+                                        {
+                                            "name": "server",
+                                            "type": "text",
+                                            "label": "Server"
+                                        },
+                                        {
+                                            "name": "cache-control",
+                                            "type": "text",
+                                            "label": "Cache-Control"
+                                        },
+                                        {
+                                            "name": "set-cookie",
+                                            "spec": {
+                                                "type": "text"
+                                            },
+                                            "type": "array",
+                                            "label": "Set-Cookie"
+                                        }
+                                    ],
+                                    "type": "collection",
+                                    "label": "Headers"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": 9,
+                        "module": "util:TextAggregator",
+                        "version": 1,
+                        "parameters": {
+                            "feeder": 4,
+                            "rowSeparator": ""
+                        },
+                        "mapper": {
+                            "value": "🔧 MANTENIMIENTOS PREVENTIVOS PRÓXIMOS\r\n{{#if}}{{(empty + data)}}\r\n✅ No hay mantenimientos preventivos pendientes\r\n{{else}}\r\n{{#forEach}}{{data}}\r\n────────────────────────\r\n• Equipo: {{this.equipos.nombre}}\r\n  Serial: {{this.equipos.serial}}\r\n  Modelo: {{this.equipos.marca}} {{this.equipos.modelo}}\r\n  Ubicación: {{this.equipos.ubicacion}}\r\n  Técnico: {{this.tecnico}}\r\n  Próxima revisión: {{formatDate}}{{this.proxima_revision}}DD/MM/YYYY\r\n  Descripción: {{this.descripcion}}{{\"\r\n\r\n\" / forEach}}{{\"\r\n\" / if}}"
+                        },
+                        "metadata": {
+                            "designer": {
+                                "x": 300,
+                                "y": 300,
+                                "messages": [
+                                    {
+                                        "category": "last",
+                                        "severity": "warning",
+                                        "message": "You're not using the data generated by this module. Consider removing it, or add module(s) after it."
+                                    }
+                                ]
+                            },
+                            "restore": {
+                                "extra": {
+                                    "feeder": {
+                                        "label": "HTTP - Make a request [4]"
+                                    }
+                                },
+                                "parameters": {
+                                    "rowSeparator": {
+                                        "label": "Empty"
+                                    }
+                                }
+                            },
+                            "parameters": [
+                                {
+                                    "name": "rowSeparator",
+                                    "type": "select",
+                                    "label": "Row separator",
+                                    "validate": {
+                                        "enum": [
+                                            "\n",
+                                            "\t",
+                                            "other"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "expect": [
+                                {
+                                    "name": "value",
+                                    "type": "text",
+                                    "label": "Text"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            ]
+        },
+        "zone": "us2.make.com",
+        "notes": []
+    }
+}

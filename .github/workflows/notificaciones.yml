@@ -1,0 +1,30 @@
+name: Notificaciones de Activos
+
+on:
+  schedule:
+    # 8:00am Colombia (UTC-5) = 13:00 UTC, de lunes a viernes
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
+    # Permite ejecutar manualmente desde GitHub → Actions → "Run workflow"
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Ejecutar notificaciones
+        run: python notification_service.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GMAIL_SENDER: ${{ secrets.GMAIL_SENDER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          NOTIFICATION_RECIPIENT_OVERRIDE: ${{ secrets.NOTIFICATION_RECIPIENT_OVERRIDE }}
