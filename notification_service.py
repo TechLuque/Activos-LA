@@ -281,7 +281,7 @@ def _overdue_maintenance_section(items: list) -> str:
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2;text-transform:capitalize">{m.get('tipo', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
-            {_date_fmt(m['fecha'])}<br>
+            {_date_fmt(m['proxima_revision'])}<br>
             <span style="color:#dc2626;font-weight:bold;font-size:13px">Hace {dias} día(s)</span>
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">{m.get('tecnico', '—')}</td>
