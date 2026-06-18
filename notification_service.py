@@ -77,15 +77,7 @@ def get_overdue_loans() -> list:
     return _supabase_get(path)
 
 
-def get_overdue_maintenance() -> list:
-    today = date.today().isoformat()
-    path = (
-        'mantenimientos'
-        '?select=id,equipo_id,tipo,estado,proxima_revision,descripcion,tecnico'
-        f'&estado=neq.completado'
-        f'&proxima_revision=lt.{today}'
-        '&order=proxima_revision.asc'
-    )
+def _fetch_maintenance_with_equipos(path: str) -> list:
     items = _supabase_get(path)
     if not items:
         return []
@@ -95,6 +87,18 @@ def get_overdue_maintenance() -> list:
     for m in items:
         m['equipos'] = equipos_map.get(m['equipo_id'], {})
     return items
+
+
+def get_overdue_maintenance() -> list:
+    today = date.today().isoformat()
+    path = (
+        'mantenimientos'
+        '?select=id,equipo_id,tipo,estado,fecha,descripcion,tecnico'
+        f'&estado=neq.completado'
+        f'&fecha=lt.{today}'
+        '&order=fecha.asc'
+    )
+    return _fetch_maintenance_with_equipos(path)
 
 
 def get_upcoming_maintenance(days: int = 3) -> list:
@@ -102,21 +106,13 @@ def get_upcoming_maintenance(days: int = 3) -> list:
     future = (date.today() + timedelta(days=days)).isoformat()
     path = (
         'mantenimientos'
-        '?select=id,equipo_id,tipo,estado,proxima_revision,descripcion,tecnico'
+        '?select=id,equipo_id,tipo,estado,fecha,descripcion,tecnico'
         f'&estado=neq.completado'
-        f'&proxima_revision=gte.{today}'
-        f'&proxima_revision=lte.{future}'
-        '&order=proxima_revision.asc'
+        f'&fecha=gte.{today}'
+        f'&fecha=lte.{future}'
+        '&order=fecha.asc'
     )
-    items = _supabase_get(path)
-    if not items:
-        return []
-    equipo_ids = ','.join(str(m['equipo_id']) for m in items)
-    equipos = _supabase_get(f'equipos?select=id,nombre,serial&id=in.({equipo_ids})')
-    equipos_map = {e['id']: e for e in equipos} if isinstance(equipos, list) else {}
-    for m in items:
-        m['equipos'] = equipos_map.get(m['equipo_id'], {})
-    return items
+    return _fetch_maintenance_with_equipos(path)
 
 
 # ---------------------------------------------------------------------------
@@ -185,8 +181,8 @@ def _maintenance_section(items: list) -> str:
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-transform:capitalize">{m.get('tipo', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">
-            {_date_fmt(m['proxima_revision'])}<br>
-            <span style="font-size:13px">Vence {_days_label(m['proxima_revision'])}</span>
+            {_date_fmt(m['fecha'])}<br>
+            <span style="font-size:13px">Vence {_days_label(m['fecha'])}</span>
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">{m.get('tecnico', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151">{m.get('descripcion', '')}</td>
@@ -275,7 +271,7 @@ def _overdue_maintenance_section(items: list) -> str:
     rows = ''
     for m in items:
         equipo = m.get('equipos') or {}
-        dias = abs((date.fromisoformat(m['proxima_revision']) - date.today()).days)
+        dias = abs((date.fromisoformat(m['fecha']) - date.today()).days)
         rows += f"""
         <tr>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
@@ -284,7 +280,7 @@ def _overdue_maintenance_section(items: list) -> str:
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2;text-transform:capitalize">{m.get('tipo', '—')}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">
-            {_date_fmt(m['proxima_revision'])}<br>
+            {_date_fmt(m['fecha'])}<br>
             <span style="color:#dc2626;font-weight:bold;font-size:13px">Hace {dias} día(s)</span>
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #fee2e2">{m.get('tecnico', '—')}</td>
