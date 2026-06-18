@@ -6,8 +6,9 @@ Servicio de notificaciones.
 Variables de entorno requeridas:
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
-  GMAIL_SENDER              (ej: tech@luqueacademy.com)
-  GMAIL_APP_PASSWORD        (App Password de Google, no la contraseña normal)
+  GMAIL_SENDER                     (ej: tech@luqueacademy.com)
+  GMAIL_APP_PASSWORD               (App Password de Google, no la contraseña normal)
+  MAINTENANCE_ADMIN_EMAIL          (correo que recibe alertas de mantenimiento)
   NOTIFICATION_RECIPIENT_OVERRIDE  (opcional — fuerza todos los correos a esta dirección, útil en pruebas)
 """
 
@@ -27,6 +28,7 @@ SUPABASE_URL = os.getenv('SUPABASE_URL', '')
 SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
 GMAIL_SENDER = os.getenv('GMAIL_SENDER', '')
 GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD', '')
+MAINTENANCE_ADMIN_EMAIL = os.getenv('MAINTENANCE_ADMIN_EMAIL', '')
 RECIPIENT_OVERRIDE = os.getenv('NOTIFICATION_RECIPIENT_OVERRIDE', '')
 
 META_PHONE_NUMBER_ID = os.getenv('META_WHATSAPP_PHONE_NUMBER_ID', '')
@@ -332,6 +334,54 @@ def build_overdue_email_html(loans: list, maintenance: list) -> str:
 </html>"""
 
 
+def _html_wrapper(header_color: str, title: str, subtitle: str, body_bg: str, footer_bg: str, sections: str) -> str:
+    today_str = date.today().strftime('%d/%m/%Y')
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;background:#f9fafb;margin:0;padding:24px">
+  <div style="max-width:720px;margin:0 auto">
+    <div style="background:{header_color};color:#fff;padding:20px 24px;border-radius:8px 8px 0 0">
+      <h1 style="margin:0;font-size:20px">{title} — {today_str}</h1>
+      <p style="margin:4px 0 0;opacity:.7;font-size:13px">{subtitle}</p>
+    </div>
+    <div style="background:{body_bg};padding:20px 24px">{sections}</div>
+    <div style="background:{footer_bg};padding:12px 24px;border-radius:0 0 8px 8px;font-size:12px;color:#64748b;text-align:center">
+      Este correo es generado automáticamente. No responder.
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+def build_user_loans_email_html(upcoming: list, overdue: list) -> str:
+    sections = ''
+    if upcoming:
+        sections += _loans_section(upcoming)
+    if overdue:
+        sections += _overdue_loans_section(overdue)
+    return _html_wrapper('#1e293b', '📌 Resumen de tus préstamos', 'Notificación automática · Activos EQ', '#f1f5f9', '#e2e8f0', sections)
+
+
+def build_maintenance_email_html(upcoming: list, overdue: list) -> str:
+    sections = ''
+    if upcoming:
+        sections += _maintenance_section(upcoming)
+    if overdue:
+        sections += _overdue_maintenance_section(overdue)
+    return _html_wrapper('#1e293b', '🔧 Resumen de Mantenimientos', 'Notificación automática · Activos EQ', '#f1f5f9', '#e2e8f0', sections)
+
+
+def _loans_by_user(loans: list) -> dict:
+    """Agrupa préstamos por email del responsable → {email: [loans]}."""
+    grouped: dict = {}
+    for loan in loans:
+        email = (loan.get('usuarios') or {}).get('email', '')
+        if email:
+            grouped.setdefault(email, []).append(loan)
+    return grouped
+
+
 # ---------------------------------------------------------------------------
 # Email sending
 # ---------------------------------------------------------------------------
@@ -369,38 +419,59 @@ def run_notifications():
         logger.error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
         return
 
-    recipient = RECIPIENT_OVERRIDE or GMAIL_SENDER
     today_str = date.today().strftime('%d/%m/%Y')
 
-    # — Correo 1: próximos a vencer (dentro de 3 días) —
     logger.info('Consultando préstamos próximos a vencer...')
     loans = get_expiring_loans(3)
     logger.info('Encontrados: %d préstamo(s)', len(loans))
+
+    logger.info('Consultando préstamos vencidos...')
+    overdue_loans = get_overdue_loans()
+    logger.info('Encontrados: %d préstamo(s) vencido(s)', len(overdue_loans))
 
     logger.info('Consultando mantenimientos próximos...')
     maintenance = get_upcoming_maintenance(3)
     logger.info('Encontrados: %d mantenimiento(s)', len(maintenance))
 
-    if loans or maintenance:
-        html = build_email_html(loans, maintenance)
-        send_email(recipient, f'📌 Resumen de Activos — {today_str}', html)
-    else:
-        logger.info('Sin próximos vencimientos. No se envía correo 1.')
-
-    # — Correo 2: ya vencidos —
-    logger.info('Consultando préstamos vencidos...')
-    overdue_loans = get_overdue_loans()
-    logger.info('Encontrados: %d préstamo(s) vencido(s)', len(overdue_loans))
-
     logger.info('Consultando mantenimientos vencidos...')
     overdue_maintenance = get_overdue_maintenance()
     logger.info('Encontrados: %d mantenimiento(s) vencido(s)', len(overdue_maintenance))
 
-    if overdue_loans or overdue_maintenance:
-        html = build_overdue_email_html(overdue_loans, overdue_maintenance)
-        send_email(recipient, f'🚨 Activos Vencidos — {today_str}', html)
+    if RECIPIENT_OVERRIDE:
+        # Modo pruebas: todo va a un solo correo de override
+        if loans or maintenance:
+            send_email(RECIPIENT_OVERRIDE, f'📌 Resumen de Activos — {today_str}',
+                       build_email_html(loans, maintenance))
+        if overdue_loans or overdue_maintenance:
+            send_email(RECIPIENT_OVERRIDE, f'🚨 Activos Vencidos — {today_str}',
+                       build_overdue_email_html(overdue_loans, overdue_maintenance))
+        return
+
+    # Modo producción — préstamos: un correo por responsable
+    all_users: dict = {}
+    for loan in loans:
+        email = (loan.get('usuarios') or {}).get('email', '')
+        if email:
+            all_users.setdefault(email, {'upcoming': [], 'overdue': []})['upcoming'].append(loan)
+    for loan in overdue_loans:
+        email = (loan.get('usuarios') or {}).get('email', '')
+        if email:
+            all_users.setdefault(email, {'upcoming': [], 'overdue': []})['overdue'].append(loan)
+
+    for email, user_loans in all_users.items():
+        html = build_user_loans_email_html(user_loans['upcoming'], user_loans['overdue'])
+        send_email(email, f'📌 Resumen de tus préstamos — {today_str}', html)
+
+    if not all_users:
+        logger.info('Sin alertas de préstamos.')
+
+    # Modo producción — mantenimientos: un correo al admin
+    if maintenance or overdue_maintenance:
+        maint_recipient = MAINTENANCE_ADMIN_EMAIL or GMAIL_SENDER
+        html = build_maintenance_email_html(maintenance, overdue_maintenance)
+        send_email(maint_recipient, f'🔧 Resumen de Mantenimientos — {today_str}', html)
     else:
-        logger.info('Sin vencidos. No se envía correo 2.')
+        logger.info('Sin alertas de mantenimientos.')
 
 
 # ---------------------------------------------------------------------------
