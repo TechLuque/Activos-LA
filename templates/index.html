@@ -502,7 +502,7 @@
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Nombre</th><th>Email</th><th>Cargo</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
+          <th>Nombre</th><th>Email</th><th>Notif.Email</th><th>Cargo</th><th>Departamento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="usrTbody"></tbody></table>
       </div>
     </section>
@@ -988,6 +988,7 @@
         <div class="fg"><label>Cargo *</label><select id="uRol" onchange="updateDptoFromRol()"><option value="">Seleccionar cargo…</option></select></div>
         <div class="fg"><label>Departamento (automático)</label><input id="uDpto" type="text" readonly placeholder="Se asigna automáticamente"></div>
         <div class="fg"><label>Teléfono</label><input id="uTel" type="tel" placeholder="Ej: 300 123 4567" autocomplete="off"></div>
+        <div class="fg s2"><label>Email notificaciones</label><input id="uNotifEmail" type="email" placeholder="Correo alternativo para notificaciones (opcional)" autocomplete="off"></div>
         <div class="fg"><label>Estado</label><select id="uEst"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
       </div>
       <div class="form-actions">

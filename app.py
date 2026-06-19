@@ -329,6 +329,7 @@ def create_usuario():
         usuario_data = {
             'nombre': d['nombre'],
             'email': d['email'],
+            'notification_email': d.get('notification_email', '') or None,
             'password': generate_password_hash(password),
             'departamento': departamento,
             'telefono': d.get('telefono', ''),
@@ -371,6 +372,7 @@ def update_usuario(id):
         update_data = {
             'nombre': d.get('nombre', ''),
             'email': d.get('email', ''),
+            'notification_email': d.get('notification_email', '') or None,
             'departamento': d.get('departamento', ''),
             'telefono': d.get('telefono', ''),
             'estado': d.get('estado', 'activo')

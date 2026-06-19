@@ -87,7 +87,7 @@ function bsLabel(s){
 // Definición de campos de búsqueda por vista
 const SEARCH_FIELDS={
   eq:['nombre','serial','marca','modelo','tipo_nombre','disponibilidad'],
-  usu:['nombre','email','departamento','telefono'],
+  usu:['nombre','email','notification_email','departamento','telefono'],
   mant:['equipo_nombre','descripcion','tecnico'],
   loan:['equipo_nombre','usuario_nombre','departamento'],
   license:['nombre','proveedor','tipo'],
@@ -1818,7 +1818,7 @@ function renderUsr(){
   
   const tb=$('usrTbody');
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">👥</div><h3>Sin resultados</h3></div></td></tr>`;
     const wrapper=tb.parentElement.parentElement;
     const oldPagination=wrapper.querySelector('[data-pagination="usu"]');
     if(oldPagination) oldPagination.remove();
@@ -1832,6 +1832,7 @@ function renderUsr(){
         <div class="name">${u.nombre}</div>
       </div></td>
       <td data-label="Email" style="color:var(--text3)">${u.email}</td>
+      <td data-label="Notif.Email" style="color:var(--text3);font-size:13px">${u.notification_email||'—'}</td>
       <td data-label="Cargo"><span style="font-size:11px;background:var(--blue-soft);color:var(--blue);padding:4px 8px;border-radius:6px;display:inline-block">${rol?.nombre||'—'}</span></td>
       <td data-label="Departamento">${u.departamento||'—'}</td>
       <td data-label="Teléfono" class="mono">${u.telefono||'—'}</td>
@@ -1876,6 +1877,8 @@ function openUsrModal(){
   if(uPass) uPass.value='';
   if(uDpto) uDpto.value='';
   if(uTel) uTel.value='';
+  const uNotifEmail=$('uNotifEmail');
+  if(uNotifEmail) uNotifEmail.value='';
   
   $('uPassLabel').textContent='Contraseña * (min. 6 caracteres)';
   $('uPass').required=true;
@@ -1907,6 +1910,7 @@ function editUsr(id){
   $('uPass').required=false;
   $('uDpto').value=u.departamento||'';
   $('uTel').value=u.telefono||'';
+  $('uNotifEmail').value=u.notification_email||'';
   $('uEst').value=u.estado;
   
   // Llenar y seleccionar cargo
@@ -1955,6 +1959,7 @@ async function saveUsr(){
     nombre, email, password,
     departamento,
     telefono: document.getElementById('uTel')?.value.trim() || '',
+    notification_email: document.getElementById('uNotifEmail')?.value.trim() || '',
     estado: document.getElementById('uEst')?.value || 'activo',
     rol_id: rolId
   };

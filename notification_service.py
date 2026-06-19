@@ -56,7 +56,7 @@ def get_expiring_loans(days: int = 3) -> list:
         'prestamos'
         '?select=id,fecha_devolucion_esperada,estado,notas,'
         'equipos(nombre,serial),'
-        'usuarios(nombre,email)'
+        'usuarios(nombre,email,notification_email)'
         f'&estado=neq.devuelto'
         f'&fecha_devolucion_esperada=gte.{today}'
         f'&fecha_devolucion_esperada=lte.{future}'
@@ -71,7 +71,7 @@ def get_overdue_loans() -> list:
         'prestamos'
         '?select=id,fecha_devolucion_esperada,estado,notas,'
         'equipos(nombre,serial),'
-        'usuarios(nombre,email)'
+        'usuarios(nombre,email,notification_email)'
         f'&estado=neq.devuelto'
         f'&fecha_devolucion_esperada=lt.{today}'
         '&order=fecha_devolucion_esperada.asc'
@@ -373,10 +373,12 @@ def build_maintenance_email_html(upcoming: list, overdue: list) -> str:
 
 
 def _loans_by_user(loans: list) -> dict:
-    """Agrupa préstamos por email del responsable → {email: [loans]}."""
+    """Agrupa préstamos por email del responsable → {email: [loans]}.
+    Usa notification_email si está disponible, de lo contrario usa email."""
     grouped: dict = {}
     for loan in loans:
-        email = (loan.get('usuarios') or {}).get('email', '')
+        user = loan.get('usuarios') or {}
+        email = user.get('notification_email') or user.get('email', '')
         if email:
             grouped.setdefault(email, []).append(loan)
     return grouped
@@ -450,11 +452,13 @@ def run_notifications():
     # Modo producción — préstamos: un correo por responsable
     all_users: dict = {}
     for loan in loans:
-        email = (loan.get('usuarios') or {}).get('email', '')
+        user = loan.get('usuarios') or {}
+        email = user.get('notification_email') or user.get('email', '')
         if email:
             all_users.setdefault(email, {'upcoming': [], 'overdue': []})['upcoming'].append(loan)
     for loan in overdue_loans:
-        email = (loan.get('usuarios') or {}).get('email', '')
+        user = loan.get('usuarios') or {}
+        email = user.get('notification_email') or user.get('email', '')
         if email:
             all_users.setdefault(email, {'upcoming': [], 'overdue': []})['overdue'].append(loan)
 
