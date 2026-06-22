@@ -3123,6 +3123,7 @@ function renderLoan(){
         <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
         <td data-label="Acciones"><div class="act-cell">
           <button class="btn btn-primary btn-sm" onclick="viewLoanMasivoItems(${p.id})">👁 Ver equipos</button>
+          ${p.firma_url?`<button class="btn btn-info btn-sm" onclick="viewLoanMasivoDocuments(${p.id})">📄 Firma/Fotos</button>`:''}
           ${p.estado!=='devuelto'?`<button class="btn btn-success btn-sm" onclick="sendMasivoFirmaLink(${p.id})">🔗 Enlace Firma</button>`:''}
           ${p.estado!=='devuelto'?`<button class="btn btn-teal btn-sm" onclick="returnLoanMasivo(${p.id})">📤 Devolver</button>`:''}
           <button class="btn btn-danger btn-icon btn-sm" onclick="delLoanMasivo(${p.id})">🗑️ Eliminar</button>
@@ -3376,12 +3377,14 @@ function viewLoanMasivoItems(id){
   }
   const rows=equipoIds.map((eqId,i)=>{
     const eq=EQ.find(e=>e.id===eqId)||{};
+    const detailBtn=eq.id?`<button class="btn btn-ghost btn-icon btn-sm" title="Ver hoja de vida" onclick="document.getElementById('ovLoanMasivoItems').classList.remove('open');openHV(${eq.id})">📋</button>`:'—';
     return`<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 4px;color:var(--text3)">${i+1}</td>
       <td style="padding:8px 4px;font-weight:600">${eq.nombre||'Equipo '+eqId}</td>
       <td style="padding:8px 4px;color:var(--text3)">${eq.tipo_nombre||eq.tipo||'—'}</td>
       <td style="padding:8px 4px;color:var(--text3)">${eq.marca||'—'}</td>
       <td style="padding:8px 4px;color:var(--text3);font-family:monospace">${eq.serial||'—'}</td>
+      <td style="padding:8px 4px;text-align:center">${detailBtn}</td>
     </tr>`;
   }).join('');
   $('lmItemsContent').innerHTML=`
@@ -3392,6 +3395,7 @@ function viewLoanMasivoItems(id){
         <th style="padding:8px 4px;text-align:left">Tipo</th>
         <th style="padding:8px 4px;text-align:left">Marca</th>
         <th style="padding:8px 4px;text-align:left">Serial</th>
+        <th style="padding:8px 4px;text-align:center">Detalle</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -3399,6 +3403,46 @@ function viewLoanMasivoItems(id){
   const firmaBtn=$('lmItemsFirmaBtn');
   if(firmaBtn) firmaBtn.style.display=masivo.estado==='devuelto'?'none':'';
   document.getElementById('ovLoanMasivoItems').classList.add('open');
+}
+
+function viewLoanMasivoDocuments(id){
+  const masivo=LOANS_MASIVOS.find(m=>m.id===id);
+  if(!masivo){toast('Préstamo masivo no encontrado','err');return;}
+
+  let html=`<div style="margin-bottom:20px"><h3>${masivo.usuario_nombre}</h3><p style="color:var(--text3);font-size:12px">${masivo.num_equipos||0} equipo(s) — ${fmtDate(masivo.fecha_prestamo)}</p></div>`;
+
+  if(masivo.firma_url){
+    html+=`<div style="margin-bottom:20px">
+      <div class="card-title">✍️ Firma Digital</div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface2)">
+        <img src="${masivo.firma_url}" style="max-width:100%;height:auto;border-radius:6px;background:white;padding:8px" onerror="this.style.display='none';" onload="this.style.display='block'">
+      </div>
+    </div>`;
+  }
+
+  if(masivo.imagen1_url||masivo.imagen2_url){
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos de Recepción</div><div class="img-grid">`;
+    if(masivo.imagen1_url){
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+        <img src="${masivo.imagen1_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Recepción</div>
+      </div>`;
+    }
+    if(masivo.imagen2_url){
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+        <img src="${masivo.imagen2_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Verificación</div>
+      </div>`;
+    }
+    html+=`</div></div>`;
+  }
+
+  if(!masivo.firma_url&&!masivo.imagen1_url&&!masivo.imagen2_url){
+    html+=`<div style="padding:20px;text-align:center;color:var(--text3)"><p>Sin documentos registrados aún</p></div>`;
+  }
+
+  $('loanDocsContent').innerHTML=html;
+  open('ovLoanDocs');
 }
 
 function sendMasivoFirmaLink(id){

@@ -210,7 +210,7 @@ def delete_prestamo(prestamo_id: int):
 # ── Préstamos Masivos ──────────────────────────────────────────────────────────
 
 def get_all_prestamos_masivos() -> list:
-    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados&order=creado_en.desc')
+    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,imagen1_url,imagen2_url&order=creado_en.desc')
     if not isinstance(masivos, list):
         return []
     items = supabase_request('GET', 'prestamos_masivos_items', '?select=prestamo_masivo_id,equipo_id')
