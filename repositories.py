@@ -77,11 +77,18 @@ def get_all_usuarios() -> list:
     result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,notification_email,departamento,telefono,estado,rol_id&order=nombre.asc')
     if isinstance(result, list):
         return result
-    # Fallback: rol_id puede no existir en la tabla
-    result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,notification_email,departamento,telefono,estado&order=nombre.asc')
+    # Fallback: notification_email o rol_id pueden no existir en la tabla
+    result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,departamento,telefono,estado,rol_id&order=nombre.asc')
+    if isinstance(result, list):
+        for u in result:
+            u.setdefault('notification_email', None)
+        return result
+    # Fallback final: sin rol_id
+    result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,departamento,telefono,estado&order=nombre.asc')
     if isinstance(result, list):
         for u in result:
             u.setdefault('rol_id', None)
+            u.setdefault('notification_email', None)
         return result
     return []
 
