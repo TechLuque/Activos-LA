@@ -30,6 +30,7 @@ GMAIL_SENDER = os.getenv('GMAIL_SENDER', '')
 GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD', '')
 MAINTENANCE_ADMIN_EMAIL = os.getenv('MAINTENANCE_ADMIN_EMAIL', '')
 RECIPIENT_OVERRIDE = os.getenv('NOTIFICATION_RECIPIENT_OVERRIDE', '')
+NOTIFICATION_ADMIN_EMAIL = os.getenv('NOTIFICATION_ADMIN_EMAIL', '')
 
 META_PHONE_NUMBER_ID = os.getenv('META_WHATSAPP_PHONE_NUMBER_ID', '')
 META_ACCESS_TOKEN = os.getenv('META_WHATSAPP_ACCESS_TOKEN', '')
@@ -476,6 +477,15 @@ def run_notifications():
         send_email(maint_recipient, f'🔧 Resumen de Mantenimientos — {today_str}', html)
     else:
         logger.info('Sin alertas de mantenimientos.')
+
+    # Copia consolidada al admin general (recibe todo, igual que el override en pruebas)
+    if NOTIFICATION_ADMIN_EMAIL:
+        if loans or maintenance:
+            send_email(NOTIFICATION_ADMIN_EMAIL, f'📌 Resumen de Activos — {today_str}',
+                       build_email_html(loans, maintenance))
+        if overdue_loans or overdue_maintenance:
+            send_email(NOTIFICATION_ADMIN_EMAIL, f'🚨 Activos Vencidos — {today_str}',
+                       build_overdue_email_html(overdue_loans, overdue_maintenance))
 
 
 # ---------------------------------------------------------------------------
