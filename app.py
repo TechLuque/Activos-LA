@@ -63,6 +63,25 @@ def _server_error(e):
     print(f"[ERROR] {type(e).__name__}: {e}\n{traceback.format_exc()}", flush=True)
     return jsonify({'error': 'Error interno del servidor'}), 500
 
+
+def _cerrar_asignaciones_masivo(prestamo_masivo_id: int):
+    """Cierra asignaciones abiertas y limpia usuario_id de los equipos de un masivo devuelto."""
+    items = repo.get_prestamo_masivo_items(prestamo_masivo_id)
+    if not isinstance(items, list):
+        return
+    for item in items:
+        equipo_id = item.get('equipo_id')
+        if not equipo_id:
+            continue
+        asignaciones = repo.get_asignaciones_activas_by_equipo(equipo_id)
+        for asig in asignaciones:
+            repo.update_asignacion(asig['id'], {
+                'estado': 'cerrada',
+                'fecha_devolucion': date.today().isoformat(),
+                'notas_salida': 'Cerrada automáticamente al devolver el préstamo masivo'
+            })
+        repo.update_equipo(equipo_id, {'usuario_id': None})
+
 # ═══════════════════════════════════════════════════════════════
 # AUTENTICACIÓN
 # ═══════════════════════════════════════════════════════════════
@@ -1319,6 +1338,7 @@ def devolver_prestamo_masivo(id):
             'estado': 'devuelto',
             'fecha_devolucion_real': date.today().isoformat()
         })
+        _cerrar_asignaciones_masivo(id)
         return jsonify({'ok': True})
     except Exception as e:
         return _server_error(e)

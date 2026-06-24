@@ -4707,7 +4707,7 @@ function _onScanSuccess(text){
 /* ════════════════════════════════════════════════════
    ETIQUETAS
 ════════════════════════════════════════════════════ */
-const LABELS_PER_PAGE=60;
+const LABELS_PER_PAGE=108;
 let _labelsPage=0;
 
 function getLabelLogoUrl(){return localStorage.getItem('label_logo_url')||'';}
@@ -4781,7 +4781,7 @@ function renderEtiquetas(){
   pageEqs.forEach(eq=>{
     const el=$(`lqr-${eq.id}`);
     if(!el)return;
-    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.2,height:24,displayValue:false,margin:1});}catch{}
+    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.2,height:18,displayValue:false,margin:1});}catch{}
   });
 }
 
@@ -4799,7 +4799,7 @@ function printEtiquetas(){
   _printLabelPage(eqs);
 }
 
-const _LABEL_PRINT_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff}.pg{width:216mm;height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,1fr);gap:1.5mm;align-content:space-between;page-break-after:always}.pg:last-child{page-break-after:avoid}.lc{border:1px solid #ccc;border-radius:2px;padding:1.5mm;display:flex;flex-direction:row;align-items:center;gap:1.5mm;overflow:hidden}.lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}.ll{max-width:100%;max-height:20px;object-fit:contain;display:block}.le{width:16px;height:16px;border:1px dashed #bbb;border-radius:2px}.lrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.lb svg{width:100%!important;height:auto!important;display:block}.ls{font-size:9px;font-family:monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}@page{size:letter;margin:0}`;
+const _LABEL_PRINT_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff}.pg{width:216mm;height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,30mm);gap:1.5mm;align-content:start;page-break-after:always}.pg:last-child{page-break-after:avoid}.lc{border:1px solid #ccc;border-radius:2px;padding:1mm;height:13mm;display:flex;flex-direction:row;align-items:center;gap:1mm;overflow:hidden}.lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}.ll{max-width:100%;max-height:14px;object-fit:contain;display:block}.le{width:10px;height:10px;border:1px dashed #bbb;border-radius:2px}.lrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.lb svg{width:100%!important;height:auto!important;display:block}.ls{font-size:8px;font-family:monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}@page{size:letter;margin:0}`;
 
 function _buildLabelPageHTML(eqs){
   const logoUrl=getLabelLogoUrl();
@@ -4808,7 +4808,7 @@ function _buildLabelPageHTML(eqs){
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.style.cssText='position:absolute;left:-9999px;top:-9999px';
     document.body.appendChild(svg);
-    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.0,height:22,displayValue:false,margin:1});}catch{}
+    try{JsBarcode(svg,String(id),{format:'CODE128',width:1.0,height:16,displayValue:false,margin:1});}catch{}
     const xml=new XMLSerializer().serializeToString(svg);
     document.body.removeChild(svg);
     return xml;
@@ -4841,7 +4841,7 @@ function printEtiquetas(){
 
 function printAllEtiquetas(){
   if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
-  const PER=60;
+  const PER=108;
   toast('Generando etiquetas…','info');
   const body=Array.from({length:Math.ceil(EQ.length/PER)},(_,pi)=>
     _buildLabelPageHTML(EQ.slice(pi*PER,(pi+1)*PER))
