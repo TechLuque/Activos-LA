@@ -3123,9 +3123,9 @@ function renderLoan(){
         <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
         <td data-label="Acciones"><div class="act-cell">
           <button class="btn btn-primary btn-sm" onclick="viewLoanMasivoItems(${p.id})">👁 Ver equipos</button>
-          ${p.firma_url?`<button class="btn btn-info btn-sm" onclick="viewLoanMasivoDocuments(${p.id})">📄 Firma/Fotos</button>`:''}
+          ${(p.firma_url||p.firma_devolucion_url)?`<button class="btn btn-info btn-sm" onclick="viewLoanMasivoDocuments(${p.id})">📄 Firma/Fotos</button>`:''}
           ${p.estado!=='devuelto'?`<button class="btn btn-success btn-sm" onclick="sendMasivoFirmaLink(${p.id})">🔗 Enlace Firma</button>`:''}
-          ${p.estado!=='devuelto'?`<button class="btn btn-teal btn-sm" onclick="returnLoanMasivo(${p.id})">📤 Devolver</button>`:''}
+          ${p.estado==='firmado'?`<button class="btn btn-teal btn-sm" onclick="returnLoanMasivo(${p.id})">📤 Devolver</button>`:''}
           <button class="btn btn-danger btn-icon btn-sm" onclick="delLoanMasivo(${p.id})">🗑️ Eliminar</button>
         </div></td>
       </tr>`;
@@ -3437,7 +3437,33 @@ function viewLoanMasivoDocuments(id){
     html+=`</div></div>`;
   }
 
-  if(!masivo.firma_url&&!masivo.imagen1_url&&!masivo.imagen2_url){
+  if(masivo.firma_devolucion_url){
+    html+=`<div style="margin-bottom:20px">
+      <div class="card-title">✍️ Firma Digital (Devolución)</div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface2)">
+        <img src="${masivo.firma_devolucion_url}" style="max-width:100%;height:auto;border-radius:6px;background:white;padding:8px" onerror="this.style.display='none';" onload="this.style.display='block'">
+      </div>
+    </div>`;
+  }
+
+  if(masivo.imagen1_devolucion_url||masivo.imagen2_devolucion_url){
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos de Devolución</div><div class="img-grid">`;
+    if(masivo.imagen1_devolucion_url){
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+        <img src="${masivo.imagen1_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Estado devolución</div>
+      </div>`;
+    }
+    if(masivo.imagen2_devolucion_url){
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+        <img src="${masivo.imagen2_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Confirmación</div>
+      </div>`;
+    }
+    html+=`</div></div>`;
+  }
+
+  if(!masivo.firma_url&&!masivo.imagen1_url&&!masivo.imagen2_url&&!masivo.firma_devolucion_url&&!masivo.imagen1_devolucion_url&&!masivo.imagen2_devolucion_url){
     html+=`<div style="padding:20px;text-align:center;color:var(--text3)"><p>Sin documentos registrados aún</p></div>`;
   }
 
@@ -3458,13 +3484,11 @@ function sendMasivoFirmaLink(id){
   open('ovSignLink');
 }
 
-async function returnLoanMasivo(id){
-  if(!confirm('¿Marcar todos los equipos de este préstamo como devueltos?')) return;
-  const res=await api(`/api/prestamos/masivos/${id}/devolver`,'PUT');
-  if(res.error){toast(res.error,'err');return;}
-  await _refreshLoansMasivos();
-  DASH=computeDash();renderLoan();renderDashboard();
-  toast('Préstamo masivo devuelto ✅','ok');
+function returnLoanMasivo(id){
+  const url=`${window.location.origin}/firma/${id}?doc=masivo&tipo=devolucion`;
+  const inp=$('returnLinkUrl');
+  if(inp){inp.value=url;}
+  open('ovReturnLink');
 }
 
 async function delLoanMasivo(id){

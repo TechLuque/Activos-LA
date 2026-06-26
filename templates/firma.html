@@ -1041,12 +1041,21 @@
                         successMsg = 'Equipo asignado exitosamente.';
                     }
                 } else if (tipoDocumento === 'masivo') {
-                    titulo = 'Préstamo Masivo Firmado';
-                    desc = 'Firma digital registrada exitosamente';
-                    photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
-                                ${img1File ? `<li>✅ <strong>Foto 1</strong> (${img1File.name}) - Guardada</li>` : ''}
-                                ${img2File ? `<li>✅ <strong>Foto 2</strong> (${img2File.name}) - Guardada</li>` : ''}`;
-                    successMsg = 'El préstamo masivo ha sido firmado y registrado en el sistema.';
+                    if (tipoFirma === 'devolucion') {
+                        titulo = 'Devolución Masiva Confirmada';
+                        desc = 'Devolución de equipos registrada exitosamente';
+                        photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
+                                    ${img1File ? `<li>✅ <strong>Foto 1 (Estado devolución)</strong> (${img1File.name}) - Guardada</li>` : ''}
+                                    ${img2File ? `<li>✅ <strong>Foto 2 (Confirmación)</strong> (${img2File.name}) - Guardada</li>` : ''}`;
+                        successMsg = 'Los equipos han sido devueltos y registrados en el sistema.';
+                    } else {
+                        titulo = 'Préstamo Masivo Firmado';
+                        desc = 'Firma digital registrada exitosamente';
+                        photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
+                                    ${img1File ? `<li>✅ <strong>Foto 1</strong> (${img1File.name}) - Guardada</li>` : ''}
+                                    ${img2File ? `<li>✅ <strong>Foto 2</strong> (${img2File.name}) - Guardada</li>` : ''}`;
+                        successMsg = 'El préstamo masivo ha sido firmado y registrado en el sistema.';
+                    }
                 } else {
                     titulo = tipoFirma === 'devolucion' ? 'Devolución Confirmada' : 'Préstamo Firmado';
                     desc = tipoFirma === 'devolucion' ? 'Devolución del equipo registrada exitosamente' : 'Documentación registrada exitosamente';

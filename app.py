@@ -1401,6 +1401,7 @@ def save_masivo_signature(id):
         firma_file = request.files.get('firma')
         img1_url = request.form.get('img1_url')
         img2_url = request.form.get('img2_url')
+        tipo_firma = request.form.get('tipo', 'inicial')
         terminos_aceptados = request.form.get('terminos_aceptados', 'false').lower() == 'true'
         if not firma_file:
             return jsonify({'error': 'Missing signature'}), 400
@@ -1408,23 +1409,41 @@ def save_masivo_signature(id):
         if not firma_content:
             return jsonify({'error': 'Signature is empty'}), 400
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        firma_path = f"masivo_{id}/firma_{timestamp}.jpg"
+        if tipo_firma == 'devolucion':
+            firma_path = f"masivo_{id}/firma_dev_{timestamp}.jpg"
+        else:
+            firma_path = f"masivo_{id}/firma_{timestamp}.jpg"
         firma_url = supabase_storage_upload(firma_content, firma_path)
         if not firma_url:
             return jsonify({'error': 'Storage upload failed'}), 500
-        update_data = {
-            'firma_url': firma_url,
-            'fecha_firma': datetime.now().isoformat(),
-            'terminos_aceptados': terminos_aceptados,
-            'estado': 'firmado',
-        }
-        if img1_url:
-            update_data['imagen1_url'] = img1_url
-        if img2_url:
-            update_data['imagen2_url'] = img2_url
-        result = repo.update_prestamo_masivo(id, update_data)
-        if isinstance(result, dict) and result.get('error'):
-            return jsonify({'error': str(result.get('error'))}), 500
+        if tipo_firma == 'devolucion':
+            update_data = {
+                'firma_devolucion_url': firma_url,
+                'estado': 'devuelto',
+                'fecha_devolucion_real': datetime.now().isoformat(),
+            }
+            if img1_url:
+                update_data['imagen1_devolucion_url'] = img1_url
+            if img2_url:
+                update_data['imagen2_devolucion_url'] = img2_url
+            result = repo.update_prestamo_masivo(id, update_data)
+            if isinstance(result, dict) and result.get('error'):
+                return jsonify({'error': str(result.get('error'))}), 500
+            _cerrar_asignaciones_masivo(id)
+        else:
+            update_data = {
+                'firma_url': firma_url,
+                'fecha_firma': datetime.now().isoformat(),
+                'terminos_aceptados': terminos_aceptados,
+                'estado': 'firmado',
+            }
+            if img1_url:
+                update_data['imagen1_url'] = img1_url
+            if img2_url:
+                update_data['imagen2_url'] = img2_url
+            result = repo.update_prestamo_masivo(id, update_data)
+            if isinstance(result, dict) and result.get('error'):
+                return jsonify({'error': str(result.get('error'))}), 500
         return jsonify({'ok': True, 'firma_url': firma_url, 'message': 'Firma completada'}), 201
     except Exception as e:
         return _server_error(e)
