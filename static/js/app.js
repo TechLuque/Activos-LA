@@ -4805,7 +4805,7 @@ function renderEtiquetas(){
   pageEqs.forEach(eq=>{
     const el=$(`lqr-${eq.id}`);
     if(!el)return;
-    try{JsBarcode(el,String(eq.id),{format:'CODE128',width:1.2,height:18,displayValue:false,margin:1});}catch{}
+    try{JsBarcode(el,String(eq.serial||eq.serialno||eq.id),{format:'CODE128',width:1.2,height:18,displayValue:false,margin:1});}catch{}
   });
 }
 
@@ -4837,7 +4837,7 @@ function _buildLabelPageHTML(eqs){
     document.body.removeChild(svg);
     return xml;
   };
-  return`<div class="pg">${eqs.map(eq=>`<div class="lc"><div class="lft">${logoHtml}</div><div class="lrt"><div class="lb">${getBC(eq.id)}</div><div class="ls">${eq.serial||eq.serialno||'—'}</div></div></div>`).join('')}</div>`;
+  return`<div class="pg">${eqs.map(eq=>`<div class="lc"><div class="lft">${logoHtml}</div><div class="lrt"><div class="lb">${getBC(eq.serial||eq.serialno||eq.id)}</div><div class="ls">${eq.serial||eq.serialno||'—'}</div></div></div>`).join('')}</div>`;
 }
 
 function _openPrintWindow(bodyHTML){
