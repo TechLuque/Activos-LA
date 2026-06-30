@@ -1468,7 +1468,12 @@
   </div>
 </div>
 
-
+<!-- LIGHTBOX FOTOS -->
+<div id="ovImageLightbox" onclick="closeImageLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;padding:20px">
+  <button onclick="event.stopPropagation();closeImageLightbox()" style="position:fixed;top:16px;right:20px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:24px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+  <div id="lightboxTitle" style="color:#fff;font-size:14px;font-weight:600;margin-bottom:12px;opacity:0.85"></div>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()" style="max-width:95vw;max-height:85vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+</div>
 
 <!-- HOJA DE VIDA -->
 <div class="overlay" id="ovHV" style="z-index:250">

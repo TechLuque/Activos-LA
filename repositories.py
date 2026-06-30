@@ -134,6 +134,15 @@ def get_all_prestamos() -> list:
     return result if isinstance(result, list) else []
 
 
+def get_prestamo_fotos(prestamo_id: int) -> dict:
+    """Devuelve solo las URLs de fotos y fechas de un préstamo. Query mínima sin joins."""
+    fields = 'firma_url,imagen1_url,imagen2_url,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url,fecha_firma,fecha_devolucion_real'
+    result = supabase_request('GET', 'prestamos', f'?id=eq.{prestamo_id}&select={fields}')
+    if isinstance(result, list) and result:
+        return result[0]
+    return {}
+
+
 def get_prestamo(prestamo_id: int) -> dict | None:
     """Préstamo individual con datos de equipo y usuario enriquecidos."""
     from concurrent.futures import ThreadPoolExecutor

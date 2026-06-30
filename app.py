@@ -927,6 +927,16 @@ def get_prestamo(id):
         return _server_error(e)
 
 
+@app.route('/api/prestamos/<int:id>/fotos', methods=['GET'])
+@require_api_login
+def get_prestamo_fotos(id):
+    """Devuelve solo las URLs de fotos/firma de un préstamo. Query mínima."""
+    try:
+        return jsonify(repo.get_prestamo_fotos(id))
+    except Exception as e:
+        return _server_error(e)
+
+
 @app.route('/api/prestamos/<int:id>/detalle', methods=['GET'])
 @require_api_login
 def get_prestamo_detalle(id):

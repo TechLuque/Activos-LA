@@ -32,6 +32,15 @@ const close=id=>{
   // Resetear flag de envío si el modal se cierra
   isSubmitting=false;
 };
+function openImageLightbox(url,title=''){
+  document.getElementById('lightboxImg').src=url;
+  document.getElementById('lightboxTitle').textContent=title;
+  document.getElementById('ovImageLightbox').style.display='flex';
+}
+function closeImageLightbox(){
+  document.getElementById('ovImageLightbox').style.display='none';
+  document.getElementById('lightboxImg').src='';
+}
 const $=id=>document.getElementById(id);
 
 function toast(msg,type='info'){
@@ -3490,7 +3499,7 @@ function viewLoanMasivoDocuments(id){
   if(masivo.firma_url){
     html+=`<div style="margin-bottom:20px">
       <div class="card-title">✍️ Firma Digital</div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface2)">
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.firma_url}','✍️ Firma Inicial')">
         <img src="${masivo.firma_url}" style="max-width:100%;height:auto;border-radius:6px;background:white;padding:8px" onerror="this.style.display='none';" onload="this.style.display='block'">
       </div>
     </div>`;
@@ -3499,13 +3508,13 @@ function viewLoanMasivoDocuments(id){
   if(masivo.imagen1_url||masivo.imagen2_url){
     html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos de Recepción</div><div class="img-grid">`;
     if(masivo.imagen1_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen1_url}','📷 Foto 1 — Recepción')">
         <img src="${masivo.imagen1_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
         <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Recepción</div>
       </div>`;
     }
     if(masivo.imagen2_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen2_url}','📷 Foto 2 — Verificación')">
         <img src="${masivo.imagen2_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
         <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Verificación</div>
       </div>`;
@@ -3516,7 +3525,7 @@ function viewLoanMasivoDocuments(id){
   if(masivo.firma_devolucion_url){
     html+=`<div style="margin-bottom:20px">
       <div class="card-title">✍️ Firma Digital (Devolución)</div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface2)">
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.firma_devolucion_url}','✍️ Firma Devolución')">
         <img src="${masivo.firma_devolucion_url}" style="max-width:100%;height:auto;border-radius:6px;background:white;padding:8px" onerror="this.style.display='none';" onload="this.style.display='block'">
       </div>
     </div>`;
@@ -3525,13 +3534,13 @@ function viewLoanMasivoDocuments(id){
   if(masivo.imagen1_devolucion_url||masivo.imagen2_devolucion_url){
     html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos de Devolución</div><div class="img-grid">`;
     if(masivo.imagen1_devolucion_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen1_devolucion_url}','📷 Foto 1 — Estado devolución')">
         <img src="${masivo.imagen1_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
         <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Estado devolución</div>
       </div>`;
     }
     if(masivo.imagen2_devolucion_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen2_devolucion_url}','📷 Foto 2 — Confirmación')">
         <img src="${masivo.imagen2_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
         <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Confirmación</div>
       </div>`;
@@ -3828,104 +3837,79 @@ function viewLoanDocuments(id){
   open('ovLoanDocs');
 }
 
+function _buildLoanTimeline(loan, fotos={}){
+  const f={...loan,...fotos};
+  const timeline=[];
+  if(f.fecha_prestamo) timeline.push({icono:'📋',titulo:'Préstamo Solicitado',fecha:f.fecha_prestamo,completado:true});
+  if(f.fecha_firma) timeline.push({icono:'✍️',titulo:'Documento Firmado',fecha:f.fecha_firma,completado:true});
+  else if(f.firma_url) timeline.push({icono:'⏳',titulo:'Pendiente de Firma',fecha:'Pendiente de firmar',completado:false});
+  else timeline.push({icono:'⏳',titulo:'Pendiente de Firma',fecha:'No iniciado',completado:false});
+  if(f.fecha_devolucion_esperada) timeline.push({icono:'📅',titulo:'Fecha Esperada de Devolución',fecha:f.fecha_devolucion_esperada,completado:f.estado==='devuelto'});
+  if(f.fecha_devolucion_real) timeline.push({icono:'✅',titulo:'Equipo Devuelto',fecha:f.fecha_devolucion_real,completado:true});
+  else if(f.estado==='devuelto') timeline.push({icono:'✅',titulo:'Equipo Devuelto',fecha:'Completado',completado:true});
+  else timeline.push({icono:'⏳',titulo:'Pendiente de Devolución',fecha:'Pendiente',completado:false});
+  return timeline;
+}
+
+function _renderLoanFotos(fotos){
+  let h='';
+  const {firma_url,imagen1_url,imagen2_url,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url}=fotos;
+  if(firma_url||imagen1_url||imagen2_url){
+    h+=`<div class="card" style="margin-bottom:16px"><div class="card-title">📄 Firma Inicial + Fotos</div><div class="img-grid-3">`;
+    if(firma_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${firma_url}','✍️ Firma Inicial')"><img src="${firma_url}" style="width:100%;height:80px;object-fit:cover;background:var(--surface2)"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">✍️ Firma</div></div>`;
+    if(imagen1_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen1_url}','📷 Foto 1 — Recepción')"><img src="${imagen1_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1</div></div>`;
+    if(imagen2_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen2_url}','📷 Foto 2 — Verificación')"><img src="${imagen2_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2</div></div>`;
+    h+=`</div></div>`;
+  }
+  if(firma_devolucion_url||imagen1_devolucion_url||imagen2_devolucion_url){
+    h+=`<div class="card"><div class="card-title">📄 Firma Devolución + Fotos</div><div class="img-grid-3">`;
+    if(firma_devolucion_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${firma_devolucion_url}','✍️ Firma Devolución')"><img src="${firma_devolucion_url}" style="width:100%;height:80px;object-fit:cover;background:var(--surface2)"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">✍️ Firma Dev.</div></div>`;
+    if(imagen1_devolucion_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen1_devolucion_url}','📷 Foto 1 — Devolución')"><img src="${imagen1_devolucion_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1 Dev.</div></div>`;
+    if(imagen2_devolucion_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen2_devolucion_url}','📷 Foto 2 — Devolución')"><img src="${imagen2_devolucion_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2 Dev.</div></div>`;
+    h+=`</div></div>`;
+  }
+  if(!h) h=`<div style="padding:20px;text-align:center;color:var(--text3)"><p>Sin documentos registrados aún</p></div>`;
+  return h;
+}
+
 async function viewLoanDetails(id){
-  try{
-    const loan=await api(`/api/prestamos/${id}/detalle`);
-    if(loan.error){toast(loan.error,'err');return}
-    
-    // Encabezado
-    let html=`<div style="margin-bottom:24px">
-      <h2 style="margin-bottom:8px">${loan.equipo?.nombre||loan.equipo_nombre||'Equipo'}</h2>
-      <p style="color:var(--text3);font-size:13px">Responsable: ${loan.usuario?.nombre||loan.usuario_nombre||'Usuario'}</p>
+  const loan=LOANS.find(l=>l.id===id);
+  if(!loan){toast('Préstamo no encontrado','err');return;}
+
+  // Encabezado y timeline desde datos locales — abre el modal al instante
+  const timeline=_buildLoanTimeline(loan);
+  let timelineHtml=`<div class="card" style="margin-bottom:16px"><div class="card-title">📅 Historial de Estados</div><div style="margin-top:16px">`;
+  timeline.forEach((item,idx)=>{
+    const isLast=idx===timeline.length-1;
+    const color=item.completado?'var(--green)':'var(--amber)';
+    timelineHtml+=`<div style="display:flex;position:relative;margin-bottom:24px">
+      <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:${color};color:white">${item.icono}</div>
+      <div style="margin-left:16px;flex:1">
+        <div style="font-weight:600;color:var(--text);margin-bottom:4px">${item.titulo}</div>
+        <div style="font-size:13px;color:var(--text2)">📅 ${item.fecha}</div>
+        <div style="font-size:11px;color:${color};margin-top:4px;font-weight:600">${item.completado?'✅ Completado':'⏳ Pendiente'}</div>
+      </div>
+      ${!isLast?`<div style="position:absolute;left:19px;top:40px;width:2px;height:25px;background:var(--border)"></div>`:''}
     </div>`;
-    
-    // Timeline si existe
-    if(loan.timeline && loan.timeline.length > 0){
-      html+=`<div class="card" style="margin-bottom:16px">
-        <div class="card-title">📅 Historial de Estados</div>
-        <div style="margin-top:16px">`;
-      
-      loan.timeline.forEach((item,idx)=>{
-        const isLast=idx===loan.timeline.length-1;
-        const color=item.completado?'var(--green)':'var(--amber)';
-        html+=`<div style="display:flex;position:relative;margin-bottom:24px">
-          <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:${color};color:white">${item.icono}</div>
-          <div style="margin-left:16px;flex:1">
-            <div style="font-weight:600;color:var(--text);margin-bottom:4px">${item.titulo}</div>
-            <div style="font-size:13px;color:var(--text2)">📅 ${item.fecha}</div>
-            <div style="font-size:11px;color:${color};margin-top:4px;font-weight:600">${item.completado?'✅ Completado':'⏳ Pendiente'}</div>
-          </div>
-          ${!isLast?`<div style="position:absolute;left:19px;top:40px;width:2px;height:25px;background:var(--border)"></div>`:''}
-        </div>`;
-      });
-      
-      html+=`</div></div>`;
-    }
-    
-    // Documentos firmados
-    if(loan.firma_url || loan.imagen1_url || loan.imagen2_url){
-      html+=`<div class="card" style="margin-bottom:16px">
-        <div class="card-title">📄 Firma Inicial + Fotos</div>
-        <div class="img-grid-3">`;
-      
-      if(loan.firma_url){
-        html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <img src="${loan.firma_url}" style="width:100%;height:80px;object-fit:cover;background:var(--surface2)">
-          <div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">✍️ Firma</div>
-        </div>`;
-      }
-      
-      if(loan.imagen1_url){
-        html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <img src="${loan.imagen1_url}" style="width:100%;height:80px;object-fit:cover">
-          <div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1</div>
-        </div>`;
-      }
-      
-      if(loan.imagen2_url){
-        html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <img src="${loan.imagen2_url}" style="width:100%;height:80px;object-fit:cover">
-          <div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2</div>
-        </div>`;
-      }
-      
-      html+=`</div></div>`;
-    }
-    
-    // Documentos de devolución
-    if(loan.firma_devolucion_url || loan.imagen1_devolucion_url || loan.imagen2_devolucion_url){
-      html+=`<div class="card">
-        <div class="card-title">📄 Firma Devolución + Fotos</div>
-        <div class="img-grid-3">`;
-      
-      if(loan.firma_devolucion_url){
-        html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <img src="${loan.firma_devolucion_url}" style="width:100%;height:80px;object-fit:cover;background:var(--surface2)">
-          <div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">✍️ Firma Dev.</div>
-        </div>`;
-      }
-      
-      if(loan.imagen1_devolucion_url){
-        html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <img src="${loan.imagen1_devolucion_url}" style="width:100%;height:80px;object-fit:cover">
-          <div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1 Dev.</div>
-        </div>`;
-      }
-      
-      if(loan.imagen2_devolucion_url){
-        html+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <img src="${loan.imagen2_devolucion_url}" style="width:100%;height:80px;object-fit:cover">
-          <div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2 Dev.</div>
-        </div>`;
-      }
-      
-      html+=`</div></div>`;
-    }
-    
-    $('loanDetailsContent').innerHTML=html;
-    open('ovLoanDetails');
+  });
+  timelineHtml+=`</div></div>`;
+
+  const header=`<div style="margin-bottom:24px">
+    <h2 style="margin-bottom:8px">${loan.equipo_nombre||'Equipo'}</h2>
+    <p style="color:var(--text3);font-size:13px">Responsable: ${loan.usuario_nombre||'Usuario'}</p>
+  </div>`;
+
+  $('loanDetailsContent').innerHTML=header+timelineHtml+`<div id="loanFotosSection"><div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Cargando fotos...</div></div>`;
+  open('ovLoanDetails');
+
+  // Fetch fotos en background — query mínima, sin enriquecimiento
+  try{
+    const fotos=await api(`/api/prestamos/${id}/fotos`);
+    const fotosEl=$('loanFotosSection');
+    if(fotosEl) fotosEl.innerHTML=_renderLoanFotos(fotos.error?{}:fotos);
   }catch(e){
-    toast('Error al cargar detalles: '+e.message,'err');
+    const fotosEl=$('loanFotosSection');
+    if(fotosEl) fotosEl.innerHTML=`<div style="padding:16px;text-align:center;color:var(--text3)">Sin documentos</div>`;
   }
 }
 
