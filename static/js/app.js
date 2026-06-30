@@ -1649,6 +1649,7 @@ async function openHV(equipoId){
   renderFacturaPreview(e.factura_url);
   $('hvFacturaInput').value='';
   _hvMantsOpen=true;
+  _hvRespOpen=true;
   await refreshHV();
   open('ovHV');
 }
@@ -1696,6 +1697,7 @@ async function uploadFactura(input){
   reader.readAsDataURL(file);
 }
 let _hvMantsOpen=true;
+let _hvRespOpen=true;
 function toggleHvMants(){
   _hvMantsOpen=!_hvMantsOpen;
   const el=$('hvMants');
@@ -1703,8 +1705,15 @@ function toggleHvMants(){
   el.style.display=_hvMantsOpen?'':'none';
   tog.textContent=_hvMantsOpen?'▼':'▶';
 }
+function toggleHvResponsables(){
+  _hvRespOpen=!_hvRespOpen;
+  const el=$('hvResponsables');
+  const tog=$('hvRespToggle');
+  el.style.display=_hvRespOpen?'flex':'none';
+  tog.textContent=_hvRespOpen?'▼':'▶';
+}
 async function refreshHV(){
-  const [hvs,mants]=await Promise.all([api('/api/equipos/'+curHVId+'/hoja_vida'),api('/api/equipos/'+curHVId+'/mantenimientos')]);
+  const [hvs,mants,resps]=await Promise.all([api('/api/equipos/'+curHVId+'/hoja_vida'),api('/api/equipos/'+curHVId+'/mantenimientos'),api('/api/equipos/'+curHVId+'/historial-responsables')]);
   // Mants section
   const hmDiv=$('hvMants');
   if(!mants.length){hmDiv.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">🔧</div><h3>Sin mantenimientos registrados</h3></div>'}
@@ -1749,6 +1758,24 @@ async function refreshHV(){
         </div>
       </div>
     </div>`).join('')+'</div>'}
+  // Responsables section
+  const rrDiv=$('hvResponsables');
+  if(!Array.isArray(resps)||!resps.length){
+    rrDiv.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0">Sin historial de responsables</div>';
+  }else{
+    rrDiv.innerHTML=resps.map(item=>{
+      const isActual=item.estado==='actual';
+      return`<div style="padding:10px 12px;background:${isActual?'var(--surface2)':'var(--surface)'};border:1px solid ${isActual?'var(--blue)':'var(--border)'};border-radius:8px;border-left:3px solid ${isActual?'var(--blue)':'var(--text3)'};display:flex;gap:10px;align-items:flex-start">
+        <div style="width:6px;height:6px;border-radius:50%;background:${isActual?'var(--green)':'var(--text3)'};margin-top:5px;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:var(--text);font-size:13px">${item.responsable}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Desde: ${fmtDate(item.fecha)}</div>
+          ${item.notas?`<div style="font-size:11px;background:var(--surface3);padding:4px 6px;border-radius:4px;color:var(--text2);margin-top:4px">${item.notas}</div>`:''}
+        </div>
+        ${isActual?`<div style="background:var(--green-soft);color:var(--green);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap">ACTUAL</div>`:''}
+      </div>`;
+    }).join('');
+  }
 }
 function openMantFromHV(){
   close('ovHV');

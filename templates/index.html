@@ -1494,6 +1494,15 @@
         <div id="hvFacturaPreview"></div>
       </div>
 
+      <!-- Responsables (colapsable) -->
+      <hr class="section-sep" style="flex-shrink:0">
+      <div style="flex-shrink:0">
+        <button class="card-title" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px;color:var(--text)" onclick="toggleHvResponsables()">
+          👤 Responsables <span id="hvRespToggle" style="font-size:11px;color:var(--text3)">▼</span>
+        </button>
+        <div id="hvResponsables" style="max-height:200px;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
       <!-- Mantenimientos (colapsable, altura fija) -->
       <hr class="section-sep" style="flex-shrink:0">
       <div style="flex-shrink:0">
