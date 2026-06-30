@@ -406,6 +406,10 @@ def create_hoja_vida(data: dict) -> dict:
     return supabase_request('POST', 'hoja_vida', '', data)
 
 
+def update_hoja_vida(hv_id: int, data: dict) -> dict:
+    return supabase_request('PATCH', 'hoja_vida', f'?id=eq.{hv_id}', data)
+
+
 def delete_hoja_vida(hv_id: int):
     supabase_request('DELETE', 'hoja_vida', f'?id=eq.{hv_id}')
 

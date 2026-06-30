@@ -843,6 +843,21 @@ def add_hoja_vida(id):
     except Exception as e:
         return _server_error(e)
 
+@app.route('/api/hoja_vida/<int:id>', methods=['PATCH'])
+@require_api_login
+def update_hoja_vida(id):
+    try:
+        d = request.json
+        allowed = ('tipo', 'titulo', 'descripcion', 'fecha', 'responsable')
+        data = {k: d[k] for k in allowed if k in d}
+        if not data:
+            return jsonify({'error': 'Sin campos para actualizar'}), 400
+        repo.update_hoja_vida(id, data)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+
 @app.route('/api/hoja_vida/<int:id>', methods=['DELETE'])
 def delete_hoja_vida(id):
     try:

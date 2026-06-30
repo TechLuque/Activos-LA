@@ -1532,7 +1532,7 @@
 <div class="overlay" id="ovAddHV" style="z-index:250">
   <div class="modal">
     <div class="modal-head">
-      <div><h3>Agregar evento</h3><p>Registro en hoja de vida</p></div>
+      <div><h3 id="ovAddHVTitle">Agregar evento</h3><p id="ovAddHVSub">Registro en hoja de vida</p></div>
       <button class="m-close" onclick="close('ovAddHV')">✕</button>
     </div>
     <div class="modal-body">
@@ -1550,7 +1550,7 @@
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovAddHV')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveHVEvent()">Registrar evento</button>
+        <button class="btn btn-primary" id="ovAddHVBtn" onclick="saveHVEvent()">Registrar evento</button>
       </div>
     </div>
   </div>

@@ -1735,11 +1735,15 @@ async function refreshHV(){
       </div>
       <button class="btn btn-danger btn-icon btn-sm" onclick="delMantFromHV(${m.id})">🗑️</button>
     </div>`).join('')+'</div>'}
-  // Timeline
+  // Timeline: eventos HV + préstamos individuales + préstamos masivos mezclados por fecha
   const tlDiv=$('hvTimeline');
   const hvIcons={adquisicion:'🟢',mantenimiento:'🟡',reparacion:'🔴',proceso:'🔵',otro:'⚪'};
-  if(!hvs.length){tlDiv.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">📋</div><h3>Sin eventos registrados</h3></div>'}
-  else{tlDiv.innerHTML='<div class="hv-tl">'+hvs.map(h=>`
+  const loanItems=(LOANS||[]).filter(l=>l.equipo_id===curHVId).map(l=>({_t:'loan',fecha:l.fecha_prestamo||'',_l:l}));
+  const masivoItems=(LOANS_MASIVOS||[]).filter(l=>Array.isArray(l._equipos)&&l._equipos.includes(curHVId)).map(l=>({_t:'masivo',fecha:l.fecha_prestamo||'',_l:l}));
+  const allItems=[...hvs.map(h=>({_t:'hv',fecha:h.fecha||'',_h:h})),...loanItems,...masivoItems].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  if(!allItems.length){tlDiv.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">📋</div><h3>Sin eventos registrados</h3></div>'}
+  else{tlDiv.innerHTML='<div class="hv-tl">'+allItems.map(item=>{
+    if(item._t==='hv'){const h=item._h;return`
     <div class="hv-item hv-${h.tipo}">
       <div class="hv-card">
         <div class="hv-card-top">
@@ -1749,6 +1753,7 @@ async function refreshHV(){
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             <span class="bs ${bsClass(h.tipo)} bs-xs">${bsLabel(h.tipo)}</span>
+            <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editHV(${h.id},'${h.tipo}',${JSON.stringify(h.titulo)},${JSON.stringify(h.descripcion||'')},${JSON.stringify(h.fecha||'')},${JSON.stringify(h.responsable||'')})">✏️</button>
             <button class="btn btn-danger btn-icon btn-sm" onclick="delHV(${h.id})">🗑️</button>
           </div>
         </div>
@@ -1757,7 +1762,25 @@ async function refreshHV(){
           ${h.responsable?`<span>👤 ${h.responsable}</span>`:''}
         </div>
       </div>
-    </div>`).join('')+'</div>'}
+    </div>`;}
+    const l=item._l;const esMasivo=item._t==='masivo';return`
+    <div class="hv-item">
+      <div class="hv-card" style="border-left:3px solid var(--blue)">
+        <div class="hv-card-top">
+          <div>
+            <h4>📤 Préstamo${esMasivo?' masivo':''}</h4>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">👤 ${l.usuario_nombre||'—'}${l.departamento?` · ${l.departamento}`:''}</div>
+            ${l.notas?`<p style="margin-top:4px;font-size:12px">${l.notas}</p>`:''}
+          </div>
+          <span class="bs ${bsClass(l.estado)} bs-xs" style="flex-shrink:0">${bsLabel(l.estado)}</span>
+        </div>
+        <div class="hv-meta">
+          <span>📅 ${fmtDate(l.fecha_prestamo)}</span>
+          ${l.fecha_devolucion_esperada?`<span>⏳ Dev. esperada: ${fmtDate(l.fecha_devolucion_esperada)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('')+'</div>'}
   // Responsables section
   const rrDiv=$('hvResponsables');
   if(!Array.isArray(resps)||!resps.length){
@@ -1792,13 +1815,39 @@ async function delHV(id){
   if(!confirm('¿Eliminar este evento?'))return;
   await api('/api/hoja_vida/'+id,'DELETE');await refreshHV();toast('Evento eliminado','info');
 }
-function open_ovAddHV(){$('hvFechaEv').value=TODAY;open('ovAddHV')}
+let _editHVId=null;
+function open_ovAddHV(){
+  _editHVId=null;
+  $('ovAddHVTitle').textContent='Agregar evento';
+  $('ovAddHVSub').textContent='Registro en hoja de vida';
+  $('ovAddHVBtn').textContent='Registrar evento';
+  $('hvTipo').value='mantenimiento';
+  $('hvFechaEv').value=TODAY;
+  ['hvTit','hvDescEv','hvResp'].forEach(id=>$(id).value='');
+  open('ovAddHV');
+}
+function editHV(id,tipo,titulo,desc,fecha,resp){
+  _editHVId=id;
+  $('ovAddHVTitle').textContent='Editar evento';
+  $('ovAddHVSub').textContent='Modificar registro en hoja de vida';
+  $('ovAddHVBtn').textContent='Guardar cambios';
+  $('hvTipo').value=tipo||'otro';
+  $('hvTit').value=titulo||'';
+  $('hvDescEv').value=desc||'';
+  $('hvFechaEv').value=fecha||TODAY;
+  $('hvResp').value=resp||'';
+  open('ovAddHV');
+}
 async function saveHVEvent(){
   const data={tipo:$('hvTipo').value,titulo:$('hvTit').value.trim(),descripcion:$('hvDescEv').value,fecha:$('hvFechaEv').value,responsable:$('hvResp').value};
   if(!data.titulo||!data.fecha){toast('Título y fecha requeridos','err');return}
-  await api('/api/equipos/'+curHVId+'/hoja_vida','POST',data);
-  close('ovAddHV');['hvTit','hvDescEv','hvResp'].forEach(id=>$(id).value='');
-  await refreshHV();toast('Evento registrado','ok');
+  if(_editHVId){
+    await api('/api/hoja_vida/'+_editHVId,'PATCH',data);
+    close('ovAddHV');await refreshHV();toast('Evento actualizado','ok');
+  }else{
+    await api('/api/equipos/'+curHVId+'/hoja_vida','POST',data);
+    close('ovAddHV');await refreshHV();toast('Evento registrado','ok');
+  }
 }
 
 /* ════════════════════════════════════════════════════
