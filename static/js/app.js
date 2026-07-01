@@ -1750,8 +1750,10 @@ function toggleHvResponsables(){
   el.style.display=_hvRespOpen?'flex':'none';
   tog.textContent=_hvRespOpen?'▼':'▶';
 }
+let _hvEventsCache=[];
 async function refreshHV(){
   const [hvs,mants,resps]=await Promise.all([api('/api/equipos/'+curHVId+'/hoja_vida'),api('/api/equipos/'+curHVId+'/mantenimientos'),api('/api/equipos/'+curHVId+'/historial-responsables')]);
+  _hvEventsCache=hvs;
   // Mants section
   const hmDiv=$('hvMants');
   if(!mants.length){hmDiv.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">🔧</div><h3>Sin mantenimientos registrados</h3></div>'}
@@ -1791,7 +1793,7 @@ async function refreshHV(){
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             <span class="bs ${bsClass(h.tipo)} bs-xs">${bsLabel(h.tipo)}</span>
-            <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editHV(${h.id},'${h.tipo}',${JSON.stringify(h.titulo)},${JSON.stringify(h.descripcion||'')},${JSON.stringify(h.fecha||'')},${JSON.stringify(h.responsable||'')})">✏️</button>
+            <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editHV(${h.id})">✏️</button>
             <button class="btn btn-danger btn-icon btn-sm" onclick="delHV(${h.id})">🗑️</button>
           </div>
         </div>
@@ -1864,16 +1866,18 @@ function open_ovAddHV(){
   ['hvTit','hvDescEv','hvResp'].forEach(id=>$(id).value='');
   open('ovAddHV');
 }
-function editHV(id,tipo,titulo,desc,fecha,resp){
+function editHV(id){
+  const h=_hvEventsCache.find(x=>x.id===id);
+  if(!h){toast('Evento no encontrado','err');return;}
   _editHVId=id;
   $('ovAddHVTitle').textContent='Editar evento';
   $('ovAddHVSub').textContent='Modificar registro en hoja de vida';
   $('ovAddHVBtn').textContent='Guardar cambios';
-  $('hvTipo').value=tipo||'otro';
-  $('hvTit').value=titulo||'';
-  $('hvDescEv').value=desc||'';
-  $('hvFechaEv').value=fecha||TODAY;
-  $('hvResp').value=resp||'';
+  $('hvTipo').value=h.tipo||'otro';
+  $('hvTit').value=h.titulo||'';
+  $('hvDescEv').value=h.descripcion||'';
+  $('hvFechaEv').value=h.fecha||TODAY;
+  $('hvResp').value=h.responsable||'';
   open('ovAddHV');
 }
 async function saveHVEvent(){
