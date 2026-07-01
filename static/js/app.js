@@ -1655,39 +1655,20 @@ async function openHV(equipoId){
     <div class="mant-info-card"><div class="mic-label">Adquisición</div><div class="mic-val">${fmtDate(e.fecha_adquisicion)}</div></div>
     <div class="mant-info-card"><div class="mic-label">Ubicación</div><div class="mic-val">${e.ubicacion||'—'}</div></div>
   </div>`;
-  renderFacturaPreview(e.factura_url);
-  $('hvFacturaInput').value='';
+  renderHvAvatar(e.foto_url);
+  $('hvAdjuntoInput').value='';
+  $('hvFotoInput').value='';
   _hvMantsOpen=true;
   _hvRespOpen=true;
-  await refreshHV();
+  await Promise.all([refreshHV(),refreshAdjuntos()]);
   open('ovHV');
 }
-function renderFacturaPreview(url){
-  const div=$('hvFacturaPreview');
-  if(!url){div.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin factura adjunta</div>';return;}
-  const isPdf=url.toLowerCase().includes('.pdf');
-  const deleteBtn=`<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="deleteFactura()">🗑️ Eliminar factura</button>`;
-  div.innerHTML=isPdf
-    ?`<div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
-        <a href="${url}" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">📄 Ver factura PDF</a>
-        ${deleteBtn}
-      </div>`
-    :`<div style="display:inline-block">
-        <img src="${url}" alt="Factura" style="max-height:120px;max-width:100%;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open('${url}','_blank')">
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">Clic para ver en tamaño completo</div>
-        ${deleteBtn}
-      </div>`;
+function renderHvAvatar(url){
+  const img=$('hvAvatarImg'),ph=$('hvAvatarPlaceholder');
+  if(url){img.src=url;img.style.display='';ph.style.display='none';}
+  else{img.style.display='none';ph.style.display='flex';}
 }
-async function deleteFactura(){
-  if(!confirm('¿Eliminar la factura adjunta? Esta acción no se puede deshacer.'))return;
-  const r=await api('/api/equipos/'+curHVId+'/factura','DELETE');
-  if(r.error){toast('Error: '+r.error,'err');return;}
-  const eq=EQ.find(x=>x.id===curHVId);
-  if(eq) eq.factura_url=null;
-  renderFacturaPreview(null);
-  toast('Factura eliminada','info');
-}
-async function uploadFactura(input){
+async function uploadFotoEquipo(input){
   const file=input.files[0];
   if(!file)return;
   if(file.size>10*1024*1024){toast('Archivo muy grande (máx 10MB)','err');return;}
@@ -1695,13 +1676,61 @@ async function uploadFactura(input){
   const reader=new FileReader();
   reader.onload=async ev=>{
     const b64=ev.target.result.split(',')[1];
-    toast('Subiendo factura…','info');
-    const r=await api('/api/equipos/'+curHVId+'/factura','POST',{img:b64,ext});
+    toast('Subiendo foto…','info');
+    const r=await api('/api/equipos/'+curHVId+'/foto','POST',{img:b64,ext});
     if(r.error){toast('Error: '+r.error,'err');return;}
     const eq=EQ.find(x=>x.id===curHVId);
-    if(eq) eq.factura_url=r.url;
-    renderFacturaPreview(r.url);
-    toast('Factura guardada','ok');
+    if(eq) eq.foto_url=r.url;
+    renderHvAvatar(r.url);
+    toast('Foto guardada','ok');
+  };
+  reader.readAsDataURL(file);
+}
+const ADJUNTO_LABELS={factura:'🧾 Factura',garantia:'📜 Garantía',foto:'📷 Foto',informe:'🗒️ Informe',otro:'📄 Otro'};
+function renderAdjuntos(list){
+  const div=$('hvAdjuntos');
+  if(!list||!list.length){div.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin adjuntos</div>';return;}
+  div.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:10px">'+list.map(a=>{
+    const isPdf=(a.url||'').toLowerCase().includes('.pdf');
+    const label=ADJUNTO_LABELS[a.tipo]||ADJUNTO_LABELS.otro;
+    const body=isPdf
+      ?`<a href="${a.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;height:90px;background:var(--surface2);font-size:28px;text-decoration:none">📄</a>`
+      :`<img src="${a.url}" alt="${label}" style="width:100%;height:90px;object-fit:cover;cursor:pointer" onclick="openImageLightbox('${a.url}','${label}')">`;
+    return `<div style="width:130px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
+        ${body}
+        <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
+          <button class="btn btn-danger btn-sm" style="padding:2px 6px;font-size:11px" onclick="deleteAdjunto(${a.id})">🗑️</button>
+        </div>
+      </div>`;
+  }).join('')+'</div>';
+}
+async function refreshAdjuntos(){
+  const list=await api('/api/equipos/'+curHVId+'/adjuntos');
+  renderAdjuntos(Array.isArray(list)?list:[]);
+}
+async function deleteAdjunto(id){
+  if(!confirm('¿Eliminar este adjunto? Esta acción no se puede deshacer.'))return;
+  const r=await api('/api/adjuntos/'+id,'DELETE');
+  if(r.error){toast('Error: '+r.error,'err');return;}
+  await refreshAdjuntos();
+  toast('Adjunto eliminado','info');
+}
+async function uploadAdjunto(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>10*1024*1024){toast('Archivo muy grande (máx 10MB)','err');return;}
+  const tipo=$('hvAdjuntoTipo').value;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const b64=ev.target.result.split(',')[1];
+    toast('Subiendo adjunto…','info');
+    const r=await api('/api/equipos/'+curHVId+'/adjuntos','POST',{img:b64,ext,tipo,nombre_archivo:file.name});
+    if(r.error){toast('Error: '+r.error,'err');return;}
+    input.value='';
+    await refreshAdjuntos();
+    toast('Adjunto guardado','ok');
   };
   reader.readAsDataURL(file);
 }

@@ -866,42 +866,98 @@ def delete_hoja_vida(id):
     except Exception as e:
         return _server_error(e)
 
-@app.route('/api/equipos/<int:id>/factura', methods=['POST'])
+TIPOS_ADJUNTO = ['factura', 'garantia', 'foto', 'informe', 'otro']
+
+
+@app.route('/api/equipos/<int:id>/adjuntos', methods=['GET'])
 @require_api_login
-def upload_factura_equipo(id):
+def get_adjuntos_equipo(id):
+    try:
+        return jsonify(repo.get_adjuntos_by_equipo(id))
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/equipos/<int:id>/adjuntos', methods=['POST'])
+@require_api_login
+def upload_adjunto_equipo(id):
     try:
         d = request.json or {}
         img_b64 = d.get('img', '')
         ext = d.get('ext', 'jpg').lower()
+        tipo = d.get('tipo', 'otro')
+        nombre_archivo = d.get('nombre_archivo') or None
         if ext not in ['jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf']:
+            ext = 'jpg'
+        if tipo not in TIPOS_ADJUNTO:
+            tipo = 'otro'
+        if not img_b64:
+            return jsonify({'error': 'Sin archivo'}), 400
+        img_content = base64.b64decode(img_b64)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        img_path = f"adjuntos/{tipo}/equipo_{id}_{timestamp}.{ext}"
+        img_url = supabase_storage_upload(img_content, img_path)
+        if not img_url:
+            return jsonify({'error': 'Error al subir archivo'}), 500
+        adjunto = repo.create_adjunto(id, tipo, img_url, nombre_archivo)
+        return jsonify({'ok': True, 'adjunto': adjunto})
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/adjuntos/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_adjunto_equipo(id):
+    try:
+        adjunto = repo.get_adjunto(id)
+        if not adjunto:
+            return jsonify({'error': 'Adjunto no encontrado'}), 404
+        url = adjunto.get('url') or ''
+        prefix = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}/"
+        if url.startswith(prefix):
+            supabase_storage_delete(url[len(prefix):])
+        repo.delete_adjunto(id)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/equipos/<int:id>/foto', methods=['POST'])
+@require_api_login
+def upload_foto_equipo(id):
+    try:
+        d = request.json or {}
+        img_b64 = d.get('img', '')
+        ext = d.get('ext', 'jpg').lower()
+        if ext not in ['jpg', 'jpeg', 'png', 'webp']:
             ext = 'jpg'
         if not img_b64:
             return jsonify({'error': 'Sin imagen'}), 400
         img_content = base64.b64decode(img_b64)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        img_path = f"facturas/equipo_{id}_{timestamp}.{ext}"
+        img_path = f"fotos_equipo/equipo_{id}_{timestamp}.{ext}"
         img_url = supabase_storage_upload(img_content, img_path)
         if not img_url:
-            return jsonify({'error': 'Error al subir factura'}), 500
-        repo.update_equipo_factura(id, img_url)
+            return jsonify({'error': 'Error al subir foto'}), 500
+        repo.update_equipo_foto(id, img_url)
         return jsonify({'ok': True, 'url': img_url})
     except Exception as e:
         return _server_error(e)
 
-@app.route('/api/equipos/<int:id>/factura', methods=['DELETE'])
+@app.route('/api/equipos/<int:id>/foto', methods=['DELETE'])
 @require_api_login
-def delete_factura_equipo(id):
+def delete_foto_equipo(id):
     try:
         eq = repo.get_equipo(id)
         if not eq:
             return jsonify({'error': 'Equipo no encontrado'}), 404
-        factura_url = eq.get('factura_url') or ''
-        if factura_url:
+        foto_url = eq.get('foto_url') or ''
+        if foto_url:
             prefix = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}/"
-            if factura_url.startswith(prefix):
-                file_path = factura_url[len(prefix):]
+            if foto_url.startswith(prefix):
+                file_path = foto_url[len(prefix):]
                 supabase_storage_delete(file_path)
-        repo.update_equipo_factura(id, None)
+        repo.update_equipo_foto(id, None)
         return jsonify({'ok': True})
     except Exception as e:
         return _server_error(e)

@@ -423,8 +423,30 @@ def delete_hoja_vida(hv_id: int):
     supabase_request('DELETE', 'hoja_vida', f'?id=eq.{hv_id}')
 
 
-def update_equipo_factura(equipo_id: int, url: str | None):
-    supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'factura_url': url})
+def update_equipo_foto(equipo_id: int, url: str | None):
+    supabase_request('PATCH', 'equipos', f'?id=eq.{equipo_id}', {'foto_url': url})
+
+
+# ── Adjuntos de equipo (galería) ───────────────────────────────────────────────
+
+def get_adjuntos_by_equipo(equipo_id: int) -> list:
+    result = supabase_request('GET', 'equipo_adjuntos', f'?equipo_id=eq.{equipo_id}&order=creado_en.desc')
+    return result if isinstance(result, list) else []
+
+
+def create_adjunto(equipo_id: int, tipo: str, url: str, nombre_archivo: str | None = None) -> dict:
+    data = {'equipo_id': equipo_id, 'tipo': tipo, 'url': url, 'nombre_archivo': nombre_archivo}
+    result = supabase_request('POST', 'equipo_adjuntos', '', data)
+    return result[0] if isinstance(result, list) and result else result
+
+
+def get_adjunto(adjunto_id: int) -> dict | None:
+    result = supabase_request('GET', 'equipo_adjuntos', f'?id=eq.{adjunto_id}')
+    return result[0] if isinstance(result, list) and result else None
+
+
+def delete_adjunto(adjunto_id: int):
+    supabase_request('DELETE', 'equipo_adjuntos', f'?id=eq.{adjunto_id}')
 
 
 # ── Préstamos (extras) ────────────────────────────────────────────────────────

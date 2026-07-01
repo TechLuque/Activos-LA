@@ -1479,24 +1479,41 @@
 <div class="overlay" id="ovHV" style="z-index:250">
   <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;overflow:hidden">
     <div class="modal-head" style="flex-shrink:0">
-      <div><h3 id="hvTitle">Hoja de vida</h3><p id="hvSub">Historial completo del equipo</p></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <label style="position:relative;cursor:pointer;flex-shrink:0" title="Cambiar foto del equipo">
+          <img id="hvAvatarImg" src="" alt="" style="display:none;width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border)">
+          <div id="hvAvatarPlaceholder" style="width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px">🖥️</div>
+          <input type="file" id="hvFotoInput" accept="image/*" style="display:none" onchange="uploadFotoEquipo(this)">
+        </label>
+        <div>
+          <h3 id="hvTitle">Hoja de vida</h3>
+          <p id="hvSub">Historial completo del equipo</p>
+        </div>
+      </div>
       <button class="m-close" onclick="close('ovHV')">✕</button>
     </div>
     <div class="modal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:0;padding-bottom:0">
       <!-- Meta cards -->
       <div id="hvEquipoMeta" style="flex-shrink:0"></div>
 
-      <!-- Factura de compra -->
+      <!-- Adjuntos (galería) -->
       <hr class="section-sep" style="flex-shrink:0">
       <div style="flex-shrink:0;margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div class="card-title">🧾 Factura de compra</div>
-          <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0">
-            📎 Subir factura
-            <input type="file" id="hvFacturaInput" accept="image/*,application/pdf" style="display:none" onchange="uploadFactura(this)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div class="card-title">📎 Adjuntos</div>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0;display:flex;align-items:center;gap:6px">
+            <select id="hvAdjuntoTipo" onclick="event.stopPropagation()" style="font-size:12px;padding:2px 4px">
+              <option value="factura">Factura</option>
+              <option value="garantia">Garantía</option>
+              <option value="foto">Foto</option>
+              <option value="informe">Informe</option>
+              <option value="otro">Otro</option>
+            </select>
+            📎 Subir adjunto
+            <input type="file" id="hvAdjuntoInput" accept="image/*,application/pdf" style="display:none" onchange="uploadAdjunto(this)">
           </label>
         </div>
-        <div id="hvFacturaPreview"></div>
+        <div id="hvAdjuntos"></div>
       </div>
 
       <!-- Responsables (colapsable) -->
