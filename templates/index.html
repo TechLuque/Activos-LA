@@ -1490,7 +1490,10 @@
           <p id="hvSub">Historial completo del equipo</p>
         </div>
       </div>
-      <button class="m-close" onclick="close('ovHV')">✕</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="printHV()">🖨️ Imprimir HV</button>
+        <button class="m-close" onclick="close('ovHV')">✕</button>
+      </div>
     </div>
     <div class="modal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:0;padding-bottom:0">
       <!-- Meta cards -->

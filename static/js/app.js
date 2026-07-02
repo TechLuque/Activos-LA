@@ -1840,6 +1840,58 @@ async function refreshHV(){
     }).join('');
   }
 }
+const _HV_PRINT_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;font-size:12px;line-height:1.4}.hvp-page{width:210mm;padding:15mm}.hvp-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:14px}.hvp-head img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid #ccc}.hvp-head h1{font-size:18px}.hvp-head p{font-size:12px;color:#555;margin-top:2px}.hvp-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.hvp-meta div{border:1px solid #ddd;border-radius:4px;padding:6px 8px}.hvp-meta .l{font-size:9px;text-transform:uppercase;color:#888}.hvp-meta .v{font-size:12px;font-weight:600;margin-top:2px}.hvp-sec{margin-bottom:16px}.hvp-sec h2{font-size:13px;border-bottom:1px solid #bbb;padding-bottom:4px;margin-bottom:8px}.hvp-row{border:1px solid #ddd;border-radius:4px;padding:6px 10px;margin-bottom:6px;break-inside:avoid}.hvp-row .t{font-weight:600;font-size:12px}.hvp-row .d{font-size:11px;color:#333;margin-top:2px}.hvp-row .m{font-size:10px;color:#666;margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}.hvp-empty{font-size:11px;color:#888;padding:4px 0}.hvp-adj{display:flex;flex-wrap:wrap;gap:6px}.hvp-adj span{font-size:10px;border:1px solid #ddd;border-radius:4px;padding:3px 6px}@page{size:letter;margin:12mm}`;
+
+function _buildHVPrintHTML(e,timelineItems,mants,resps,adjuntos){
+  const hvIcons={adquisicion:'🟢',mantenimiento:'🟡',reparacion:'🔴',proceso:'🔵',otro:'⚪'};
+  const metaHtml=`<div class="hvp-meta">
+    <div><div class="l">Estado</div><div class="v">${bsLabel(e.estado)}</div></div>
+    <div><div class="l">Valor</div><div class="v">${fmt(e.valor)}</div></div>
+    <div><div class="l">Adquisición</div><div class="v">${fmtDate(e.fecha_adquisicion)}</div></div>
+    <div><div class="l">Ubicación</div><div class="v">${e.ubicacion||'—'}</div></div>
+  </div>`;
+  const respHtml=!resps.length?'<div class="hvp-empty">Sin historial de responsables</div>':resps.map(r=>`
+    <div class="hvp-row"><div class="t">${r.responsable}${r.estado==='actual'?' · ACTUAL':''}</div><div class="d">Desde: ${fmtDate(r.fecha)}</div>${r.notas?`<div class="d">${r.notas}</div>`:''}</div>`).join('');
+  const mantsHtml=!mants.length?'<div class="hvp-empty">Sin mantenimientos registrados</div>':mants.map(m=>`
+    <div class="hvp-row"><div class="t">${m.tipo==='preventivo'?'🛡️':'🔧'} ${bsLabel(m.tipo)} · ${bsLabel(m.estado)}</div><div class="d">${m.descripcion||''}</div>
+    <div class="m"><span>📅 ${fmtDate(m.fecha)}</span>${m.tecnico?`<span>👤 ${m.tecnico}</span>`:''}${m.costo?`<span>💰 ${fmt(m.costo)}</span>`:''}${m.proxima_revision?`<span>🔄 Próx: ${fmtDate(m.proxima_revision)}</span>`:''}</div></div>`).join('');
+  const tlHtml=!timelineItems.length?'<div class="hvp-empty">Sin eventos registrados</div>':timelineItems.map(item=>{
+    if(item._t==='hv'){const h=item._h;return`<div class="hvp-row"><div class="t">${hvIcons[h.tipo]||'⚪'} ${h.titulo} (${bsLabel(h.tipo)})</div>${h.descripcion?`<div class="d">${h.descripcion}</div>`:''}<div class="m"><span>📅 ${fmtDate(h.fecha)}</span>${h.responsable?`<span>👤 ${h.responsable}</span>`:''}</div></div>`;}
+    const l=item._l;const esMasivo=item._t==='masivo';
+    return`<div class="hvp-row"><div class="t">📤 Préstamo${esMasivo?' masivo':''} · ${bsLabel(l.estado)}</div><div class="d">👤 ${l.usuario_nombre||'—'}${l.departamento?` · ${l.departamento}`:''}</div>${l.notas?`<div class="d">${l.notas}</div>`:''}<div class="m"><span>📅 ${fmtDate(l.fecha_prestamo)}</span>${l.fecha_devolucion_esperada?`<span>⏳ Dev. esperada: ${fmtDate(l.fecha_devolucion_esperada)}</span>`:''}</div></div>`;
+  }).join('');
+  const adjHtml=!adjuntos.length?'':`<div class="hvp-sec"><h2>📎 Adjuntos</h2><div class="hvp-adj">${adjuntos.map(a=>`<span>${ADJUNTO_LABELS[a.tipo]||ADJUNTO_LABELS.otro}: ${a.nombre_archivo||(a.url||'').split('/').pop()}</span>`).join('')}</div></div>`;
+  return`<div class="hvp-page">
+    <div class="hvp-head">
+      ${e.foto_url?`<img src="${e.foto_url}" alt="">`:''}
+      <div><h1>${e.nombre}</h1><p>${e.tipo_nombre||e.tipo||''} · ${[e.marca,e.modelo].filter(Boolean).join(' ')} · Serial: ${e.serial||'—'}</p></div>
+    </div>
+    ${metaHtml}
+    ${adjHtml}
+    <div class="hvp-sec"><h2>👤 Responsables</h2>${respHtml}</div>
+    <div class="hvp-sec"><h2>🔧 Mantenimientos</h2>${mantsHtml}</div>
+    <div class="hvp-sec"><h2>📋 Historial de eventos</h2>${tlHtml}</div>
+  </div>`;
+}
+
+async function printHV(){
+  if(!curHVId)return;
+  const e=EQ.find(x=>x.id===curHVId);
+  if(!e)return;
+  toast('Generando HV…','info');
+  const [hvs,mants,resps,adjuntos]=await Promise.all([
+    api('/api/equipos/'+curHVId+'/hoja_vida'),
+    api('/api/equipos/'+curHVId+'/mantenimientos'),
+    api('/api/equipos/'+curHVId+'/historial-responsables'),
+    api('/api/equipos/'+curHVId+'/adjuntos')
+  ]);
+  const loanItems=(LOANS||[]).filter(l=>l.equipo_id===curHVId).map(l=>({_t:'loan',fecha:l.fecha_prestamo||'',_l:l}));
+  const masivoItems=(LOANS_MASIVOS||[]).filter(l=>Array.isArray(l._equipos)&&l._equipos.includes(curHVId)).map(l=>({_t:'masivo',fecha:l.fecha_prestamo||'',_l:l}));
+  const allItems=[...(hvs||[]).map(h=>({_t:'hv',fecha:h.fecha||'',_h:h})),...loanItems,...masivoItems].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  const body=_buildHVPrintHTML(e,allItems,mants||[],resps||[],adjuntos||[]);
+  _openPrintWindow(body,_HV_PRINT_CSS,`HV - ${e.nombre}`);
+}
+
 function openMantFromHV(){
   close('ovHV');
   openMantModal(curHVId);
@@ -4933,13 +4985,13 @@ function _buildLabelPageHTML(eqs){
   return`<div class="pg">${eqs.map(eq=>`<div class="lc"><div class="lft">${logoHtml}</div><div class="lrt"><div class="lb">${getBC(eq.serial||eq.serialno||eq.id)}</div><div class="ls">${eq.serial||eq.serialno||'—'}</div></div></div>`).join('')}</div>`;
 }
 
-function _openPrintWindow(bodyHTML){
+function _openPrintWindow(bodyHTML,css=_LABEL_PRINT_CSS,title='Etiquetas'){
   const iframe=document.createElement('iframe');
   iframe.style.cssText='position:absolute;left:-9999px;top:-9999px;width:0;height:0;border:none';
   document.body.appendChild(iframe);
   const doc=iframe.contentDocument||iframe.contentWindow.document;
   doc.open();
-  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas</title><style>${_LABEL_PRINT_CSS}</style></head><body>${bodyHTML}</body></html>`);
+  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${css}</style></head><body>${bodyHTML}</body></html>`);
   doc.close();
   setTimeout(()=>{
     iframe.contentWindow.focus();
