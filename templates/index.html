@@ -1276,7 +1276,7 @@
       <div class="form-grid c1">
         <div class="fg"><label>Equipo *</label>
           <div style="position:relative">
-            <input type="text" id="lEqSearch" placeholder="Buscar equipo por nombre, marca o tipo…" style="width:100%" oninput="filterEquipos()">
+            <input type="text" id="lEqSearch" placeholder="Buscar equipo por nombre, serial o marca…" style="width:100%" oninput="filterEquipos()" onkeydown="filterEquiposKey(event)">
             <div id="lEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
           </div>
           <input type="hidden" id="lEq">
@@ -1318,7 +1318,7 @@
           <label>Equipos seleccionados *</label>
           <div id="lmChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px"></div>
           <div style="position:relative">
-            <input type="text" id="lmEqSearch" placeholder="O busca por nombre, marca o tipo…" style="width:100%" oninput="filterEquiposMasivo()">
+            <input type="text" id="lmEqSearch" placeholder="O busca por nombre, serial o marca…" style="width:100%" oninput="filterEquiposMasivo()" onkeydown="filterEquiposMasivoKey(event)">
             <div id="lmEqList" style="position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;display:none"></div>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:4px" id="lmEqCount">0 equipos seleccionados</div>
@@ -1504,17 +1504,19 @@
       <div style="flex-shrink:0;margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <div class="card-title">📎 Adjuntos</div>
-          <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0;display:flex;align-items:center;gap:6px">
-            <select id="hvAdjuntoTipo" onclick="event.stopPropagation()" style="font-size:12px;padding:2px 4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <select id="hvAdjuntoTipo" style="font-size:12px;padding:2px 4px">
               <option value="factura">Factura</option>
               <option value="garantia">Garantía</option>
               <option value="foto">Foto</option>
               <option value="informe">Informe</option>
               <option value="otro">Otro</option>
             </select>
-            📎 Subir adjunto
+            <label class="btn btn-ghost btn-sm" for="hvAdjuntoInput" style="cursor:pointer;margin:0">
+              📎 Subir adjunto
+            </label>
             <input type="file" id="hvAdjuntoInput" accept="image/*,application/pdf" style="display:none" onchange="uploadAdjunto(this)">
-          </label>
+          </div>
         </div>
         <div id="hvAdjuntos"></div>
       </div>

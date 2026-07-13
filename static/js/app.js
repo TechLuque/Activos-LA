@@ -3,6 +3,7 @@
 ════════════════════════════════════════════════════ */
 let EQ=[],USR=[],LOANS=[],LOANS_MASIVOS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
+let _loanScanTimer=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
 const CACHE_KEY='activosla_v1';
@@ -3356,6 +3357,8 @@ function clearLoanFilters(){
 /* ── PRÉSTAMOS MASIVOS ────────────────────────────────────────── */
 let _lmSelectedIds=[];
 let _lmScannerInstance=null;
+let _lmLastScanTime=0;
+let _masivoScanTimer=null;
 
 async function toggleLmScanner(){
   if(_lmScannerInstance) await closeLmScanner();
@@ -3401,9 +3404,21 @@ async function closeLmScanner(){
 }
 
 function _onLmScanSuccess(text){
+  // Debounce: ignorar el mismo código si llega en menos de 1.5s
+  const now=Date.now();
+  if(now-_lmLastScanTime<1500)return;
+  _lmLastScanTime=now;
+
   let targetId=null;
   try{const url=new URL(text);const m=url.pathname.match(/\/equipo\/(\d+)/);if(m)targetId=parseInt(m[1]);}
   catch{if(/^\d+$/.test(text.trim()))targetId=parseInt(text.trim());}
+
+  // Fallback: buscar por serial si no es ID numérico
+  if(!targetId){
+    const bySerial=(window.equiposMasivoDisponibles||[]).find(e=>e.serial&&e.serial===text.trim());
+    if(bySerial)targetId=bySerial.id;
+  }
+
   if(!targetId){toast('Código no reconocido','err');return;}
   if(_lmSelectedIds.includes(targetId)){toast('Este equipo ya fue agregado','info');return;}
   const eq=(window.equiposMasivoDisponibles||[]).find(e=>e.id===targetId);
@@ -3419,6 +3434,7 @@ function _onLmScanSuccess(text){
 
 function openLoanMasivoModal(){
   closeLmScanner();
+  clearTimeout(_masivoScanTimer);
   _lmSelectedIds=[];
   const conPrestamo=new Set(
     LOANS.filter(l=>l.estado==='firmado'||l.estado==='activo').map(l=>l.equipo_id)
@@ -3459,32 +3475,43 @@ function _lmRemoveEquipo(id){
 }
 
 function filterEquiposMasivo(){
-  const q=$('lmEqSearch').value.toLowerCase();
+  clearTimeout(_masivoScanTimer);
+  const q=($('lmEqSearch').value||'').trim();
+  const ql=q.toLowerCase();
   const list=$('lmEqList');
-  // Usar la lista pre-calculada al abrir el modal, excluyendo los ya seleccionados
   const base=(window.equiposMasivoDisponibles||[]).filter(e=>!_lmSelectedIds.includes(e.id));
-  const filtered=q?base.filter(e=>
-    (e.nombre||'').toLowerCase().includes(q)||
-    (e.serial||'').toLowerCase().includes(q)||
-    (e.marca||'').toLowerCase().includes(q)||
-    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(q)
-  ):base;
 
   if(!q){list.style.display='none';return;}
+
+  const filtered=base.filter(e=>
+    (e.nombre||'').toLowerCase().includes(ql)||
+    (e.serial||'').toLowerCase().includes(ql)||
+    (e.marca||'').toLowerCase().includes(ql)||
+    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(ql)
+  );
+
+  // Mostrar dropdown inmediatamente (búsqueda manual normal)
   list.style.display='block';
   if(!filtered.length){
     list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
-    return;
+  }else{
+    list.innerHTML=filtered.slice(0,30).map(e=>`
+      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s"
+           onmouseover="this.style.background='var(--surface3)'"
+           onmouseout="this.style.background='transparent'"
+           onclick="_lmAddEquipo(${e.id})">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
+        <div style="font-size:11px;color:var(--text3)">${e.tipo_nombre||e.tipo||''} ${e.serial?'· Serial: '+e.serial:''}</div>
+      </div>
+    `).join('');
   }
-  list.innerHTML=filtered.slice(0,30).map(e=>`
-    <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s"
-         onmouseover="this.style.background='var(--surface3)'"
-         onmouseout="this.style.background='transparent'"
-         onclick="_lmAddEquipo(${e.id})">
-      <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
-      <div style="font-size:11px;color:var(--text3)">${e.tipo_nombre||e.tipo||''} ${e.serial?'· Serial: '+e.serial:''}</div>
-    </div>
-  `).join('');
+
+  // Auto-add tras 150ms de pausa (escáner termina en <100ms, humano sigue escribiendo)
+  _masivoScanTimer=setTimeout(()=>{
+    const exact=base.find(e=>(e.serial&&e.serial.toLowerCase()===ql)||String(e.id)===q);
+    if(exact){_lmAddEquipo(exact.id);toast(`${exact.nombre} agregado ✓`,'ok');return;}
+    if(filtered.length===1){_lmAddEquipo(filtered[0].id);toast(`${filtered[0].nombre} agregado ✓`,'ok');}
+  },150);
 }
 
 function _lmAddEquipo(id){
@@ -3492,6 +3519,27 @@ function _lmAddEquipo(id){
   $('lmEqSearch').value='';
   $('lmEqList').style.display='none';
   _lmRenderChips();
+}
+
+function filterEquiposMasivoKey(e){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  const q=($('lmEqSearch').value||'').trim();
+  if(!q)return;
+  const base=(window.equiposMasivoDisponibles||[]).filter(eq=>!_lmSelectedIds.includes(eq.id));
+  const ql=q.toLowerCase();
+  // Coincidencia exacta por serial o ID (escáner de código de barras)
+  const exact=base.find(eq=>(eq.serial&&eq.serial.toLowerCase()===ql)||String(eq.id)===q);
+  if(exact){_lmAddEquipo(exact.id);toast(`${exact.nombre} agregado ✓`,'ok');return;}
+  // Única coincidencia en búsqueda general
+  const filtered=base.filter(eq=>
+    (eq.nombre||'').toLowerCase().includes(ql)||
+    (eq.serial||'').toLowerCase().includes(ql)||
+    (eq.marca||'').toLowerCase().includes(ql)||
+    (eq.tipo_nombre||eq.tipo||'').toLowerCase().includes(ql)
+  );
+  if(filtered.length===1){_lmAddEquipo(filtered[0].id);toast(`${filtered[0].nombre} agregado ✓`,'ok');}
+  else if(!filtered.length)toast('Equipo no encontrado','err');
 }
 
 document.addEventListener('click',function(e){
@@ -3713,42 +3761,71 @@ function openLoanModal(loan_id=null){
 }
 
 function filterEquipos(){
-  const q=$('lEqSearch').value.toLowerCase();
+  clearTimeout(_loanScanTimer);
+  const q=($('lEqSearch').value||'').trim();
+  const ql=q.toLowerCase();
   const list=$('lEqList');
   const equipos=window.equiposDisponibles||[];
-  
+
+  if(!q){list.style.display='none';return;}
+
   const filtered=equipos.filter(e=>
-    (e.nombre||'').toLowerCase().includes(q)||
-    (e.serial||'').toLowerCase().includes(q)||
-    (e.marca||'').toLowerCase().includes(q)||
-    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(q)
+    (e.nombre||'').toLowerCase().includes(ql)||
+    (e.serial||'').toLowerCase().includes(ql)||
+    (e.marca||'').toLowerCase().includes(ql)||
+    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(ql)
   );
-  
-  if(!q){
-    list.style.display='none';
-    return;
-  }
-  
+
+  // Mostrar dropdown inmediatamente (búsqueda manual normal)
   list.style.display='block';
-  if(filtered.length===0){
+  if(!filtered.length){
     list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
   }else{
-    list.innerHTML=filtered.map(e=>`
-      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" 
-           onmouseover="this.style.background='var(--surface3)'" 
-           onmouseout="this.style.background='transparent'" 
+    list.innerHTML=filtered.slice(0,30).map(e=>`
+      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s"
+           onmouseover="this.style.background='var(--surface3)'"
+           onmouseout="this.style.background='transparent'"
            onclick="selectEquipo(${e.id},'${e.nombre.replace(/'/g,"\\'")}')">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
         <div style="font-size:11px;color:var(--text3)">${e.serial?'Serial: '+e.serial:''}</div>
       </div>
     `).join('');
   }
+
+  // Auto-select tras 150ms de pausa: el escáner escribe todo en <100ms y para;
+  // un humano sigue escribiendo y el timer se resetea en cada tecla
+  _loanScanTimer=setTimeout(()=>{
+    const exact=equipos.find(e=>(e.serial&&e.serial.toLowerCase()===ql)||String(e.id)===q);
+    if(exact){selectEquipo(exact.id,exact.nombre);toast(`${exact.nombre} seleccionado ✓`,'ok');return;}
+    if(filtered.length===1){selectEquipo(filtered[0].id,filtered[0].nombre);toast(`${filtered[0].nombre} seleccionado ✓`,'ok');}
+  },150);
 }
 
 function selectEquipo(id,nombre){
   $('lEq').value=id;
   $('lEqSearch').value=nombre;
   $('lEqList').style.display='none';
+}
+
+function filterEquiposKey(e){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  const q=($('lEqSearch').value||'').trim();
+  if(!q)return;
+  const equipos=window.equiposDisponibles||[];
+  const ql=q.toLowerCase();
+  // Coincidencia exacta por serial o ID (escáner de código de barras)
+  const exact=equipos.find(eq=>(eq.serial&&eq.serial.toLowerCase()===ql)||String(eq.id)===q);
+  if(exact){selectEquipo(exact.id,exact.nombre);toast(`${exact.nombre} seleccionado ✓`,'ok');return;}
+  // Única coincidencia en búsqueda general
+  const filtered=equipos.filter(eq=>
+    (eq.nombre||'').toLowerCase().includes(ql)||
+    (eq.serial||'').toLowerCase().includes(ql)||
+    (eq.marca||'').toLowerCase().includes(ql)||
+    (eq.tipo_nombre||eq.tipo||'').toLowerCase().includes(ql)
+  );
+  if(filtered.length===1){selectEquipo(filtered[0].id,filtered[0].nombre);toast(`${filtered[0].nombre} seleccionado ✓`,'ok');}
+  else if(!filtered.length)toast('Equipo no encontrado','err');
 }
 
 // Cerrar dropdown de equipos al hacer click fuera
