@@ -8,9 +8,12 @@ import base64
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from urllib.parse import quote
+from io import BytesIO
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas as pdf_canvas
 
 from db import (
-    supabase_request, supabase_storage_upload, supabase_storage_delete,
+    supabase_request, supabase_storage_upload, supabase_storage_delete, supabase_storage_download,
     cache_invalidate, get_tipos_map,
     SUPABASE_URL, SUPABASE_KEY, SUPABASE_SECRET_KEY, SUPABASE_STORAGE_BUCKET
 )
@@ -62,6 +65,36 @@ def _server_error(e):
     import traceback
     print(f"[ERROR] {type(e).__name__}: {e}\n{traceback.format_exc()}", flush=True)
     return jsonify({'error': 'Error interno del servidor'}), 500
+
+
+def _overlay_pdf_bytes(plantilla_bytes: bytes, coordenadas: dict, datos: dict) -> bytes:
+    """Superpone texto sobre un PDF base según coordenadas {campo: {x1, bottom, page?, size?}}."""
+    reader = PdfReader(BytesIO(plantilla_bytes))
+    writer = PdfWriter()
+
+    campos_por_pagina: dict = {}
+    for campo, pos in (coordenadas or {}).items():
+        valor = datos.get(campo)
+        if valor in (None, ''):
+            continue
+        campos_por_pagina.setdefault(pos.get('page', 0), []).append((pos, str(valor)))
+
+    for i, page in enumerate(reader.pages):
+        campos = campos_por_pagina.get(i)
+        if campos:
+            overlay_buffer = BytesIO()
+            c = pdf_canvas.Canvas(overlay_buffer, pagesize=(float(page.mediabox.width), float(page.mediabox.height)))
+            for pos, valor in campos:
+                c.setFont('Helvetica', pos.get('size', 10))
+                c.drawString(float(pos['x1']), float(pos['bottom']), valor)
+            c.save()
+            overlay_buffer.seek(0)
+            page.merge_page(PdfReader(overlay_buffer).pages[0])
+        writer.add_page(page)
+
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
 
 
 def _cerrar_asignaciones_masivo(prestamo_masivo_id: int):
@@ -419,6 +452,71 @@ def delete_usuario(id):
             return jsonify({'error': 'Usuario no encontrado'}), 404
         repo.delete_usuario(id)
         return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+# ── Documentos ─────────────────────────────────────────────────────────────────
+
+@app.route('/api/tipos_documento', methods=['GET'])
+@require_api_login
+def get_tipos_documento():
+    try:
+        return jsonify(repo.get_all_tipos_documento())
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/usuarios/<int:id>/documentos', methods=['GET'])
+@require_api_login
+def get_documentos_usuario(id):
+    try:
+        return jsonify(repo.get_documentos_by_usuario(id))
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/usuarios/<int:id>/documentos/generar', methods=['POST'])
+@require_api_login
+def generar_documento_usuario(id):
+    try:
+        usuario = repo.get_usuario(id)
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        d = request.json or {}
+        tipo_documento_id = d.get('tipo_documento_id')
+        datos_adicionales = d.get('datos_adicionales') or {}
+        if not tipo_documento_id:
+            return jsonify({'error': 'tipo_documento_id es requerido'}), 400
+
+        tipo_doc = repo.get_tipo_documento(tipo_documento_id)
+        if not tipo_doc:
+            return jsonify({'error': 'Tipo de documento no encontrado'}), 404
+
+        if tipo_doc['metodo_generacion'] != 'overlay_pdf':
+            return jsonify({'error': f"Método '{tipo_doc['metodo_generacion']}' aún no soportado"}), 400
+
+        plantilla_bytes = supabase_storage_download(tipo_doc['plantilla_path'])
+        if not plantilla_bytes:
+            return jsonify({'error': 'No se pudo descargar la plantilla del documento'}), 500
+
+        datos = {**usuario, **datos_adicionales}
+        pdf_bytes = _overlay_pdf_bytes(plantilla_bytes, tipo_doc.get('coordenadas'), datos)
+
+        nombre_archivo = f"{tipo_documento_id}_{int(datetime.now().timestamp())}.pdf"
+        archivo_url = supabase_storage_upload(pdf_bytes, f"documentos_generados/{id}/{nombre_archivo}")
+        if not archivo_url:
+            return jsonify({'error': 'No se pudo subir el documento generado'}), 500
+
+        registro = repo.create_documento_generado({
+            'usuario_id': id,
+            'tipo_documento_id': tipo_documento_id,
+            'datos_adicionales': datos_adicionales,
+            'archivo_url': archivo_url,
+            'generado_por': session.get('username')
+        })
+        resultado = registro[0] if isinstance(registro, list) and registro else registro
+        return jsonify(resultado), 201
     except Exception as e:
         return _server_error(e)
 

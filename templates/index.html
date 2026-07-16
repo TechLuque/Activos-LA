@@ -37,6 +37,9 @@
       <button class="nav-btn" onclick="nav('calendario')">
         <div class="nav-icon">📅</div> Calendario
       </button>
+      <button class="nav-btn" onclick="nav('documentos')">
+        <div class="nav-icon">📄</div> Documentos
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Inventario</div>
@@ -649,6 +652,32 @@
           <div id="calOverdue"></div>
         </div>
       </div>
+    </section>
+
+    <!-- ════ DOCUMENTOS ════ -->
+    <section class="page" id="page-documentos">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Documentos</h2><p>Genera documentos de RRHH y Finanzas por usuario</p></div>
+      </div>
+      <div class="form-grid c1">
+        <div class="fg"><label>Usuario *</label>
+          <select id="docUsrSelect" onchange="onDocUsrChange()">
+            <option value="">Seleccionar usuario…</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tipo de documento *</label>
+          <select id="docTipoSelect" onchange="renderCamposDocumento()" disabled>
+            <option value="">Seleccionar tipo…</option>
+          </select>
+        </div>
+      </div>
+      <div id="docCamposContainer" class="form-grid c1"></div>
+      <div class="form-actions">
+        <button id="genDocBtn" class="btn btn-primary" onclick="generarDocumento()" disabled>Generar documento</button>
+      </div>
+      <hr class="section-sep">
+      <div class="card-title" style="margin-bottom:10px">📄 Documentos generados</div>
+      <div id="docHistorial"><div style="font-size:12px;color:var(--text3);padding:6px 0">Selecciona un usuario para ver su historial</div></div>
     </section>
 
     <!-- ════ REPORTES ════ -->

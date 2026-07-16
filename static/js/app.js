@@ -3,6 +3,7 @@
 ════════════════════════════════════════════════════ */
 let EQ=[],USR=[],LOANS=[],LOANS_MASIVOS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
+let TIPOS_DOCUMENTO=[], curDocUsrId=null;
 let _loanScanTimer=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -177,7 +178,7 @@ function getActiveFilters(viewType){
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
-  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles',etiquetas:'Etiquetas de Activos'};
+  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',documentos:'Documentos',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles',etiquetas:'Etiquetas de Activos'};
 
 function toggleSidebar(){
   const sb=document.querySelector('.sidebar');
@@ -208,6 +209,7 @@ function nav(page){
   if(page==='simcards')_safe(renderSimcards,'simcards');
   if(page==='asignaciones'){_safe(actualizarFiltrosAsignaciones,'filtrosAsig');_safe(renderAsignaciones,'asignaciones');}
   if(page==='calendario')_safe(renderCal,'calendario');
+  if(page==='documentos')_safe(renderDocumentos,'documentos');
   if(page==='reportes')_safe(renderReportes,'reportes');
   if(page==='admin-tipos')_safe(renderTipos,'tipos');
   if(page==='admin-roles'){_safe(loadRoles,'loadRoles');_safe(renderRoles,'roles');}
@@ -2167,6 +2169,116 @@ async function saveUsr(){
 async function delUsr(id){
   if(!confirm('¿Eliminar este responsable?'))return;
   await api('/api/usuarios/'+id,'DELETE');await _refreshUsr();DASH=computeDash();renderUsr();renderDashboard();toast('Usuario eliminado','info');
+}
+
+/* ════════════════════════════════════════════════════
+   DOCUMENTOS
+════════════════════════════════════════════════════ */
+function renderDocumentos(){
+  const sel=$('docUsrSelect');
+  const current=sel.value;
+  sel.innerHTML='<option value="">Seleccionar usuario…</option>'+
+    [...USR].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>`<option value="${u.id}">${u.nombre}</option>`).join('');
+  sel.value=current;
+}
+
+async function onDocUsrChange(){
+  const id=parseInt($('docUsrSelect').value||'0');
+  curDocUsrId=id||null;
+  $('docCamposContainer').innerHTML='';
+  $('docTipoSelect').innerHTML='<option value="">Seleccionar tipo…</option>';
+  $('docTipoSelect').disabled=!id;
+  $('genDocBtn').disabled=!id;
+
+  if(!id){
+    $('docHistorial').innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Selecciona un usuario para ver su historial</div>';
+    return;
+  }
+
+  const u=USR.find(x=>x.id===id);
+  if(!TIPOS_DOCUMENTO.length) TIPOS_DOCUMENTO=await api('/api/tipos_documento');
+  const tipos=(Array.isArray(TIPOS_DOCUMENTO)?TIPOS_DOCUMENTO:[]).filter(t=>
+    !t.aplica_a || !t.aplica_a.length || !u?.tipo_vinculacion || t.aplica_a.includes(u.tipo_vinculacion)
+  );
+  tipos.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.id;
+    opt.textContent=t.nombre;
+    $('docTipoSelect').appendChild(opt);
+  });
+
+  await refreshDocumentosHistorial();
+}
+
+function renderCamposDocumento(){
+  const cont=$('docCamposContainer');
+  cont.innerHTML='';
+  const tipoId=parseInt($('docTipoSelect').value||'0');
+  const tipo=TIPOS_DOCUMENTO.find(t=>t.id===tipoId);
+  if(!tipo)return;
+  (tipo.campos_requeridos||[]).forEach(c=>{
+    const fg=document.createElement('div');
+    fg.className='fg';
+    const inputType=c.tipo==='textarea'?'textarea':(c.tipo||'text');
+    const inputHtml=inputType==='textarea'
+      ? `<textarea id="docCampo_${c.key}" placeholder="${c.label||c.key}"></textarea>`
+      : `<input id="docCampo_${c.key}" type="${inputType}" placeholder="${c.label||c.key}">`;
+    fg.innerHTML=`<label>${c.label||c.key}</label>${inputHtml}`;
+    cont.appendChild(fg);
+  });
+}
+
+async function generarDocumento(){
+  if(isSubmitting)return;
+  const tipoId=parseInt($('docTipoSelect').value||'0');
+  if(!tipoId){toast('❌ Selecciona un tipo de documento','err');return;}
+  const tipo=TIPOS_DOCUMENTO.find(t=>t.id===tipoId);
+
+  const datos_adicionales={};
+  (tipo?.campos_requeridos||[]).forEach(c=>{
+    const el=$('docCampo_'+c.key);
+    if(el) datos_adicionales[c.key]=el.value.trim();
+  });
+
+  isSubmitting=true;
+  const btn=$('genDocBtn');
+  btn.disabled=true;
+  btn.textContent='Generando...';
+  try{
+    const res=await api(`/api/usuarios/${curDocUsrId}/documentos/generar`,'POST',{tipo_documento_id:tipoId,datos_adicionales});
+    if(res.error){
+      toast('❌ '+res.error,'err');
+    }else{
+      toast('✅ Documento generado','ok');
+      if(res.archivo_url) window.open(res.archivo_url,'_blank');
+      await refreshDocumentosHistorial();
+    }
+  }catch(e){
+    toast('❌ Error: '+e.message,'err');
+  }finally{
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Generar documento';
+  }
+}
+
+async function refreshDocumentosHistorial(){
+  const list=await api('/api/usuarios/'+curDocUsrId+'/documentos');
+  const cont=$('docHistorial');
+  if(!Array.isArray(list)||!list.length){
+    cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin documentos generados</div>';
+    return;
+  }
+  cont.innerHTML=list.map(d=>{
+    const tipo=TIPOS_DOCUMENTO.find(t=>t.id===d.tipo_documento_id);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${tipo?.nombre||'Documento'}</div>
+        <div style="font-size:11px;color:var(--text3)">${fmtDate(d.generado_en)}${d.generado_por?' · '+d.generado_por:''}</div>
+      </div>
+      <a href="${d.archivo_url}" target="_blank" class="btn btn-ghost btn-sm">Ver PDF</a>
+    </div>`;
+  }).join('');
 }
 
 /* ════════════════════════════════════════════════════

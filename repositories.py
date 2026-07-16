@@ -725,3 +725,22 @@ def get_ultima_asignacion_abierta_by_equipo_usuario(equipo_id: int, usuario_id: 
     result = supabase_request('GET', 'asignaciones_equipos',
         f'?equipo_id=eq.{equipo_id}&usuario_id=eq.{usuario_id}&estado=eq.abierta&order=id.desc&limit=1')
     return result[0] if isinstance(result, list) and result else None
+
+# ── Tipos de documento ────────────────────────────────────────────────────────
+
+def get_all_tipos_documento() -> list:
+    result = supabase_request('GET', 'tipos_documento', '?activo=eq.true&order=nombre.asc')
+    return result if isinstance(result, list) else []
+
+def get_tipo_documento(tipo_id: int) -> dict | None:
+    result = supabase_request('GET', 'tipos_documento', f'?id=eq.{tipo_id}')
+    return result[0] if isinstance(result, list) and result else None
+
+# ── Documentos generados ──────────────────────────────────────────────────────
+
+def create_documento_generado(data: dict) -> dict:
+    return supabase_request('POST', 'documentos_generados', '', data)
+
+def get_documentos_by_usuario(usuario_id: int) -> list:
+    result = supabase_request('GET', 'documentos_generados', f'?usuario_id=eq.{usuario_id}&order=generado_en.desc')
+    return result if isinstance(result, list) else []

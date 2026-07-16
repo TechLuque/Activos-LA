@@ -22,12 +22,20 @@ El sistema opera bajo dos roles principales:
 
 | Rol | Responsabilidad en Préstamos |
 | :--- | :--- |
-| **Administrador** (Área de TI / Operaciones) | Crea los préstamos (individuales o masivos), monitorea retrasos en el Dashboard, revisa las hojas de vida y aprueba/recibe las devoluciones. |
+| **Administrador** (Área Tech / Operaciones) | Crea los préstamos (individuales o masivos), monitorea retrasos en el Dashboard, revisa las hojas de vida y aprueba/recibe las devoluciones. |
 | **Colaborador** (Usuario Final / Custodio) | Recibe el enlace, revisa el estado del equipo, firma digitalmente, adjunta las fotos de verificación y asume la responsabilidad patrimonial del activo. |
 
 ---
 
 ## 🚀 3. Flujo Paso a Paso para Administradores
+
+### 3.0. Prerrequisito Obligatorio: Solicitud de Préstamo
+Antes de que un administrador pueda crear y registrar un préstamo en el sistema, el colaborador interesado debe realizar la solicitud formal siguiendo estos pasos:
+
+1. **Enviar un correo de solicitud** a `tech@luqueacademy.com` detallando el equipo que requiere, el motivo y la fecha estimada de devolución.
+2. **Regla de Horario Límite (5:00 PM):**
+   * Esta solicitud debe ser enviada **antes de las 5:00 PM** en días hábiles.
+   * Si la solicitud es enviada **después de las 5:00 PM**, el colaborador deberá solicitar una autorización extra y obligatoria a la COO, **Paola Luque** (correo: `paola@luqueacademy.com`), y adjuntar dicha autorización o copiarla en el correo enviado al Área Tech para que el préstamo pueda ser procesado.
 
 ### 3.1. Crear un Préstamo Individual
 Para registrar un préstamo a un colaborador:
@@ -99,7 +107,7 @@ El sistema cuenta con un motor de notificaciones automatizado para evitar olvido
   - 🔴 *Rojo:* Préstamos vencidos pendientes de devolución.
 * **Notificaciones por Correo Diario:**
   - **Aviso de Vencimiento:** 3 días antes de la fecha límite, el colaborador recibirá un correo recordando la entrega.
-  - **Aviso de Retraso:** Si la fecha vence y no se ha devuelto, se enviarán correos diarios notificando la mora tanto al colaborador como al administrador de TI.
+  - **Aviso de Retraso:** Si la fecha vence y no se ha devuelto, se enviarán correos diarios notificando la mora tanto al colaborador como al administrador del Área Tech.
 
 ---
 
@@ -107,7 +115,7 @@ El sistema cuenta con un motor de notificaciones automatizado para evitar olvido
 
 Cuando el colaborador entrega de vuelta el activo, se debe cerrar la custodia:
 
-1. **Inspección Física:** El administrador de TI o supervisor inspecciona el equipo para validar que no tenga daños externos no reportados.
+1. **Inspección Física:** El encargado de la plataforma de Activos inspecciona el equipo para validar que no tenga daños externos no reportados.
 2. **Ingresar a Firma de Devolución:** El colaborador abre el enlace de devolución de su préstamo (`/firma/<id>?tipo=devolucion`).
 3. **Registro de Entrega:**
    - Dibuja su firma de entrega en el canvas táctil.

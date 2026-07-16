@@ -26,3 +26,11 @@ Microservicios · CQRS · DDD extremo · abstracciones gratuitas · mover archiv
 
 # Flujo de cambios
 Analizar impacto → detectar dependencias → proponer plan → ejecutar cambios pequeños
+
+# Módulo Documentos
+
+- Dos métodos de generación según `tipos_documento.metodo_generacion`:
+  - `overlay_pdf`: PDF original + texto superpuesto en coordenadas fijas (reportlab + pypdf). Usar cuando el documento base no cambia, solo unos campos puntuales.
+  - `plantilla_docx`: plantilla Word con placeholders `{{campo}}` (docxtpl). Usar cuando el cuerpo completo tiene texto variable.
+- No mezclar los dos métodos en un mismo tipo de documento.
+- `campos_requeridos` en `tipos_documento` define el formulario dinámico — no hardcodear campos por tipo de documento en el código.

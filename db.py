@@ -110,6 +110,17 @@ def supabase_storage_upload(file_content, file_path: str):
         return None
 
 
+def supabase_storage_download(file_path: str) -> bytes | None:
+    """Descarga un archivo del bucket de Storage. Acepta path relativo o URL pública completa."""
+    try:
+        url = file_path if file_path.startswith('http') else \
+            f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}/{file_path}"
+        resp = requests.get(url, timeout=10)
+        return resp.content if resp.status_code == 200 else None
+    except Exception:
+        return None
+
+
 def supabase_storage_delete(file_path: str) -> bool:
     """Elimina un archivo del bucket de Storage. Retorna True si fue exitoso."""
     try:
