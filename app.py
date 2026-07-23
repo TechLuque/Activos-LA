@@ -72,7 +72,8 @@ MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
 # Campos de datos_adicionales que, si vienen en un formulario de documento, se guardan
 # también en el perfil del usuario para no tener que volver a pedirlos en otro documento.
 CAMPOS_PERSONA_ACTUALIZABLES = {
-    'cedula', 'cargo', 'salario', 'fecha_ingreso', 'telefono', 'direccion', 'correo_personal', 'ciudad'
+    'cedula', 'cargo', 'salario', 'fecha_ingreso', 'telefono', 'direccion', 'correo_personal', 'ciudad',
+    'valor_honorarios'
 }
 
 def _server_error(e):
