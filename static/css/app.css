@@ -47,7 +47,7 @@
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden;-webkit-font-smoothing:antialiased;font-stretch:normal}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;-webkit-font-smoothing:antialiased;font-stretch:normal}
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:8px;height:8px}
@@ -106,7 +106,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sb-footer{padding:14px 12px;border-top:1px solid var(--border)}
 
 /* ═══════════════ MAIN ═══════════════════ */
-.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
 .topbar{
   background:rgba(13,15,20,.85);backdrop-filter:blur(20px);
@@ -487,8 +487,8 @@ input[type="file"]::file-selector-button{
 @media (max-width:768px){
   :root{--sidebar-w:0px}
   /* body es el único scroll container vertical; overflow-x:hidden + max-width evita scroll horizontal */
-  body{overflow-x:hidden;overflow-y:auto;max-width:100vw}
-  .main{margin-left:0;overflow:visible;min-height:unset;max-width:100vw;width:100%}
+  body{overflow-x:hidden;overflow-y:auto;height:auto;min-height:100vh;max-width:100vw}
+  .main{margin-left:0;overflow:visible;height:auto;min-height:unset;max-width:100vw;width:100%}
   .page-content{overflow:visible;height:auto;flex:none;padding:16px;max-width:100%;width:100%}
   .tbl-wrap{max-height:none;overflow:visible}
   /* Topbar sticky con padding reducido */
@@ -617,7 +617,7 @@ input[type="file"]::file-selector-button{
     position:fixed;z-index:100;width:260px;
   }
   .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0;overflow:visible;min-height:unset}
+  .main{margin-left:0;overflow:visible;height:auto;min-height:unset}
   .page-content{padding:12px;overflow:visible;height:auto;flex:none}
   .tbl-wrap{max-height:none;overflow:visible}
   /* ── Topbar: una sola fila compacta ── */
