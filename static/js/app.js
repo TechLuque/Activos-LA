@@ -2255,6 +2255,7 @@ async function generarDocumento(){
       toast('✅ Documento generado','ok');
       if(res.archivo_url) window.open(res.archivo_url,'_blank');
       await refreshDocumentosHistorial();
+      await _refreshUsr();
     }
   }catch(e){
     toast('❌ Error: '+e.message,'err');
