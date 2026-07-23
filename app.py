@@ -373,6 +373,18 @@ def get_usuarios():
     except Exception as e:
         return _server_error(e)
 
+@app.route('/api/usuarios/<int:id>', methods=['GET'])
+@require_api_login
+def get_usuario_detalle(id):
+    """Detalle completo de un usuario (incluye campos de documentos: cedula, direccion, cargo, etc.)."""
+    try:
+        usuario = repo.get_usuario(id)
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        return jsonify(usuario)
+    except Exception as e:
+        return _server_error(e)
+
 @app.route('/api/usuarios', methods=['POST'])
 @require_api_login
 def create_usuario():

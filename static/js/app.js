@@ -3,7 +3,7 @@
 ════════════════════════════════════════════════════ */
 let EQ=[],USR=[],LOANS=[],LOANS_MASIVOS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
-let TIPOS_DOCUMENTO=[], curDocUsrId=null;
+let TIPOS_DOCUMENTO=[], curDocUsrId=null, curDocUsrFull=null;
 let _loanScanTimer=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -2195,6 +2195,7 @@ async function onDocUsrChange(){
     return;
   }
 
+  curDocUsrFull=await api('/api/usuarios/'+id);
   const u=USR.find(x=>x.id===id);
   if(!TIPOS_DOCUMENTO.length) TIPOS_DOCUMENTO=await api('/api/tipos_documento');
   const tipos=(Array.isArray(TIPOS_DOCUMENTO)?TIPOS_DOCUMENTO:[]).filter(t=>
@@ -2216,7 +2217,7 @@ function renderCamposDocumento(){
   const tipoId=parseInt($('docTipoSelect').value||'0');
   const tipo=TIPOS_DOCUMENTO.find(t=>t.id===tipoId);
   if(!tipo)return;
-  const u=USR.find(x=>x.id===curDocUsrId);
+  const u=curDocUsrFull;
   (tipo.campos_requeridos||[]).forEach(c=>{
     const fg=document.createElement('div');
     fg.className='fg';
@@ -2255,7 +2256,7 @@ async function generarDocumento(){
       toast('✅ Documento generado','ok');
       if(res.archivo_url) window.open(res.archivo_url,'_blank');
       await refreshDocumentosHistorial();
-      await _refreshUsr();
+      curDocUsrFull=await api('/api/usuarios/'+curDocUsrId);
     }
   }catch(e){
     toast('❌ Error: '+e.message,'err');
