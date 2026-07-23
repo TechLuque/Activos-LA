@@ -11,6 +11,9 @@ from urllib.parse import quote
 from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas as pdf_canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from docxtpl import DocxTemplate
 
 from db import (
     supabase_request, supabase_storage_upload, supabase_storage_delete, supabase_storage_download,
@@ -39,6 +42,10 @@ def _file_hash(path: str) -> str:
 _CSS_V = _file_hash(os.path.join(os.path.dirname(__file__), 'static', 'css', 'app.css'))
 _JS_V  = _file_hash(os.path.join(os.path.dirname(__file__), 'static', 'js', 'app.js'))
 
+_FONTS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'fonts')
+pdfmetrics.registerFont(TTFont('Montserrat', os.path.join(_FONTS_DIR, 'Montserrat-Regular.ttf')))
+pdfmetrics.registerFont(TTFont('Montserrat-Bold', os.path.join(_FONTS_DIR, 'Montserrat-Bold.ttf')))
+
 @app.after_request
 def set_response_headers(response):
     if 'text/html' in response.content_type:
@@ -59,6 +66,14 @@ ESTADOS_MANTENIMIENTO = ['pendiente', 'completado', 'cancelado', 'en_progreso']
 ESTADOS_USUARIO = ['activo', 'inactivo']
 WHATSAPP_STATUS = ['activo', 'bloqueado']
 ESTADOS_SIM = ['activo', 'reserva', 'bloqueado', 'desactivado']
+MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+# Campos de datos_adicionales que, si vienen en un formulario de documento, se guardan
+# también en el perfil del usuario para no tener que volver a pedirlos en otro documento.
+CAMPOS_PERSONA_ACTUALIZABLES = {
+    'cedula', 'cargo', 'salario', 'fecha_ingreso', 'telefono', 'direccion', 'correo_personal'
+}
 
 def _server_error(e):
     """Loguea el error real internamente y devuelve respuesta genérica al cliente."""
@@ -68,7 +83,7 @@ def _server_error(e):
 
 
 def _overlay_pdf_bytes(plantilla_bytes: bytes, coordenadas: dict, datos: dict) -> bytes:
-    """Superpone texto sobre un PDF base según coordenadas {campo: {x1, bottom, page?, size?}}."""
+    """Superpone texto sobre un PDF base según coordenadas {campo: {x1, bottom, page?, size?, font?}}."""
     reader = PdfReader(BytesIO(plantilla_bytes))
     writer = PdfWriter()
 
@@ -85,7 +100,7 @@ def _overlay_pdf_bytes(plantilla_bytes: bytes, coordenadas: dict, datos: dict) -
             overlay_buffer = BytesIO()
             c = pdf_canvas.Canvas(overlay_buffer, pagesize=(float(page.mediabox.width), float(page.mediabox.height)))
             for pos, valor in campos:
-                c.setFont('Helvetica', pos.get('size', 10))
+                c.setFont(pos.get('font', 'Helvetica'), pos.get('size', 10))
                 c.drawString(float(pos['x1']), float(pos['bottom']), valor)
             c.save()
             overlay_buffer.seek(0)
@@ -94,6 +109,16 @@ def _overlay_pdf_bytes(plantilla_bytes: bytes, coordenadas: dict, datos: dict) -
 
     output = BytesIO()
     writer.write(output)
+    return output.getvalue()
+
+
+def _plantilla_docx_bytes(plantilla_bytes: bytes, datos: dict) -> bytes:
+    """Renderiza una plantilla Word con placeholders {{campo}} (docxtpl) usando `datos` como contexto."""
+    contexto = {k: ('' if v is None else v) for k, v in datos.items()}
+    doc = DocxTemplate(BytesIO(plantilla_bytes))
+    doc.render(contexto)
+    output = BytesIO()
+    doc.save(output)
     return output.getvalue()
 
 
@@ -493,18 +518,35 @@ def generar_documento_usuario(id):
         if not tipo_doc:
             return jsonify({'error': 'Tipo de documento no encontrado'}), 404
 
-        if tipo_doc['metodo_generacion'] != 'overlay_pdf':
-            return jsonify({'error': f"Método '{tipo_doc['metodo_generacion']}' aún no soportado"}), 400
+        actualizacion_usuario = {
+            k: v for k, v in datos_adicionales.items()
+            if k in CAMPOS_PERSONA_ACTUALIZABLES and v not in (None, '')
+        }
+        if actualizacion_usuario:
+            repo.update_usuario(id, actualizacion_usuario)
+            usuario.update(actualizacion_usuario)
+
+        metodo = tipo_doc['metodo_generacion']
+        if metodo not in ('overlay_pdf', 'plantilla_docx'):
+            return jsonify({'error': f"Método '{metodo}' aún no soportado"}), 400
 
         plantilla_bytes = supabase_storage_download(tipo_doc['plantilla_path'])
         if not plantilla_bytes:
             return jsonify({'error': 'No se pudo descargar la plantilla del documento'}), 500
 
-        datos = {**usuario, **datos_adicionales}
-        pdf_bytes = _overlay_pdf_bytes(plantilla_bytes, tipo_doc.get('coordenadas'), datos)
+        hoy = date.today()
+        datos = {**usuario, **datos_adicionales,
+                 'dia_firma': hoy.day, 'mes_firma': MESES_ES[hoy.month - 1], 'anio_firma': hoy.year}
 
-        nombre_archivo = f"{tipo_documento_id}_{int(datetime.now().timestamp())}.pdf"
-        archivo_url = supabase_storage_upload(pdf_bytes, f"documentos_generados/{id}/{nombre_archivo}")
+        if metodo == 'overlay_pdf':
+            documento_bytes = _overlay_pdf_bytes(plantilla_bytes, tipo_doc.get('coordenadas'), datos)
+            extension = 'pdf'
+        else:
+            documento_bytes = _plantilla_docx_bytes(plantilla_bytes, datos)
+            extension = 'docx'
+
+        nombre_archivo = f"{tipo_documento_id}_{int(datetime.now().timestamp())}.{extension}"
+        archivo_url = supabase_storage_upload(documento_bytes, f"documentos_generados/{id}/{nombre_archivo}")
         if not archivo_url:
             return jsonify({'error': 'No se pudo subir el documento generado'}), 500
 

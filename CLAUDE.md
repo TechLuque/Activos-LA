@@ -34,3 +34,4 @@ Analizar impacto → detectar dependencias → proponer plan → ejecutar cambio
   - `plantilla_docx`: plantilla Word con placeholders `{{campo}}` (docxtpl). Usar cuando el cuerpo completo tiene texto variable.
 - No mezclar los dos métodos en un mismo tipo de documento.
 - `campos_requeridos` en `tipos_documento` define el formulario dinámico — no hardcodear campos por tipo de documento en el código.
+- En `overlay_pdf`, cada entrada de `coordenadas` acepta `font` opcional (`Montserrat`, `Montserrat-Bold`; default `Helvetica`). Fuentes registradas en `static/fonts/`. Para agregar una tipografía nueva: TTF estático (no variable) en `static/fonts/`, registrar con `pdfmetrics.registerFont` en `app.py` junto a las existentes.

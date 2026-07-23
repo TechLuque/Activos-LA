@@ -2216,6 +2216,7 @@ function renderCamposDocumento(){
   const tipoId=parseInt($('docTipoSelect').value||'0');
   const tipo=TIPOS_DOCUMENTO.find(t=>t.id===tipoId);
   if(!tipo)return;
+  const u=USR.find(x=>x.id===curDocUsrId);
   (tipo.campos_requeridos||[]).forEach(c=>{
     const fg=document.createElement('div');
     fg.className='fg';
@@ -2225,6 +2226,8 @@ function renderCamposDocumento(){
       : `<input id="docCampo_${c.key}" type="${inputType}" placeholder="${c.label||c.key}">`;
     fg.innerHTML=`<label>${c.label||c.key}</label>${inputHtml}`;
     cont.appendChild(fg);
+    const valorActual=u?.[c.key];
+    if(valorActual!=null && valorActual!=='') $('docCampo_'+c.key).value=valorActual;
   });
 }
 
@@ -2276,7 +2279,7 @@ async function refreshDocumentosHistorial(){
         <div style="font-size:13px;font-weight:600">${tipo?.nombre||'Documento'}</div>
         <div style="font-size:11px;color:var(--text3)">${fmtDate(d.generado_en)}${d.generado_por?' · '+d.generado_por:''}</div>
       </div>
-      <a href="${d.archivo_url}" target="_blank" class="btn btn-ghost btn-sm">Ver PDF</a>
+      <a href="${d.archivo_url}" target="_blank" class="btn btn-ghost btn-sm">Ver documento</a>
     </div>`;
   }).join('');
 }
