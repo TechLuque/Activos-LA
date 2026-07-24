@@ -46,7 +46,7 @@ function closeImageLightbox(){
 const $=id=>document.getElementById(id);
 
 function toast(msg,type='info'){
-  const icons={ok:'✅',err:'❌',info:'ℹ️'};
+  const icons={ok:'✅',err:'❌',info:'ℹ️',warn:'⚠️'};
   const t=document.createElement('div');
   t.className=`toast ${type}`;
   t.textContent=`${icons[type]||'ℹ️'} ${msg}`;
@@ -2254,6 +2254,7 @@ async function generarDocumento(){
       toast('❌ '+res.error,'err');
     }else{
       toast('✅ Documento generado','ok');
+      if(res.advertencia) toast(res.advertencia,'warn');
       if(res.archivo_url) window.open(res.archivo_url,'_blank');
       await refreshDocumentosHistorial();
       curDocUsrFull=await api('/api/usuarios/'+curDocUsrId);

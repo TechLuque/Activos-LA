@@ -417,6 +417,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .toast.ok{border-left:3px solid var(--green)}
 .toast.err{border-left:3px solid var(--red)}
 .toast.info{border-left:3px solid var(--blue)}
+.toast.warn{border-left:3px solid var(--amber)}
 @keyframes toastIn{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
 
 .chip{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer}

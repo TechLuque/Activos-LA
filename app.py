@@ -535,9 +535,14 @@ def generar_documento_usuario(id):
             k: v for k, v in datos_adicionales.items()
             if k in CAMPOS_PERSONA_ACTUALIZABLES and v not in (None, '')
         }
+        perfil_no_actualizado = False
         if actualizacion_usuario:
-            repo.update_usuario(id, actualizacion_usuario)
-            usuario.update(actualizacion_usuario)
+            resultado_update = repo.update_usuario(id, actualizacion_usuario)
+            if isinstance(resultado_update, dict) and resultado_update.get('error'):
+                perfil_no_actualizado = True
+                print(f"[WARN] No se pudo guardar en el perfil del usuario {id} los campos {list(actualizacion_usuario)}: {resultado_update['error']}", flush=True)
+            else:
+                usuario.update(actualizacion_usuario)
 
         metodo = tipo_doc['metodo_generacion']
         if metodo not in ('overlay_pdf', 'plantilla_docx'):
@@ -571,6 +576,8 @@ def generar_documento_usuario(id):
             'generado_por': session.get('username')
         })
         resultado = registro[0] if isinstance(registro, list) and registro else registro
+        if isinstance(resultado, dict) and perfil_no_actualizado:
+            resultado['advertencia'] = 'El documento se generó, pero no se pudo guardar el valor ingresado en el perfil del usuario (revisa el formato del campo).'
         return jsonify(resultado), 201
     except Exception as e:
         return _server_error(e)
