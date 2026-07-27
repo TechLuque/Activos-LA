@@ -677,6 +677,12 @@
       </div>
       <hr class="section-sep">
       <div class="card-title" style="margin-bottom:10px">📄 Documentos generados</div>
+      <div class="tbl-toolbar">
+        <div class="filter-row">
+          <select id="ftDocTipo" onchange="renderDocHistorial()"><option value="">Todos los tipos</option></select>
+          <button class="btn btn-ghost btn-sm" onclick="clearDocFilters()" title="Limpiar filtros">✕ Limpiar</button>
+        </div>
+      </div>
       <div id="docHistorial"><div style="font-size:12px;color:var(--text3);padding:6px 0">Selecciona un usuario para ver su historial</div></div>
     </section>
 

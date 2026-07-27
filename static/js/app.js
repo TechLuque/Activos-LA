@@ -3,7 +3,7 @@
 ════════════════════════════════════════════════════ */
 let EQ=[],USR=[],LOANS=[],LOANS_MASIVOS=[],MANTS=[],LICENCIAS=[],APLICATIVOS=[],CELULARES=[],SIMCARDS=[],ASIGNACIONES=[],DASH={},TIPOS=[],ROLES=[];
 let editEqId=null, editUsrId=null, editMantId=null, editLoanId=null, editLicenseId=null, curHVId=null;
-let TIPOS_DOCUMENTO=[], curDocUsrId=null, curDocUsrFull=null;
+let TIPOS_DOCUMENTO=[], curDocUsrId=null, curDocUsrFull=null, docHistorialRaw=[];
 let _loanScanTimer=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
@@ -2192,6 +2192,8 @@ async function onDocUsrChange(){
 
   if(!id){
     $('docHistorial').innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Selecciona un usuario para ver su historial</div>';
+    $('ftDocTipo').innerHTML='<option value="">Todos los tipos</option>';
+    docHistorialRaw=[];
     return;
   }
 
@@ -2207,6 +2209,10 @@ async function onDocUsrChange(){
     opt.textContent=t.nombre;
     $('docTipoSelect').appendChild(opt);
   });
+
+  const ftDocTipo=$('ftDocTipo');
+  ftDocTipo.innerHTML='<option value="">Todos los tipos</option>'+
+    tipos.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
 
   await refreshDocumentosHistorial();
 }
@@ -2269,9 +2275,28 @@ async function generarDocumento(){
 }
 
 async function refreshDocumentosHistorial(){
-  const list=await api('/api/usuarios/'+curDocUsrId+'/documentos');
+  docHistorialRaw=await api('/api/usuarios/'+curDocUsrId+'/documentos');
+  renderDocHistorial();
+}
+
+function clearDocFilters(){
+  $('ftDocTipo').value='';
+  renderDocHistorial();
+}
+
+function renderDocHistorial(){
   const cont=$('docHistorial');
-  if(!Array.isArray(list)||!list.length){
+  const tipoId=$('ftDocTipo')?.value||'';
+
+  if(!tipoId){
+    cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Selecciona un tipo de documento para ver el historial</div>';
+    return;
+  }
+
+  const list=(Array.isArray(docHistorialRaw)?docHistorialRaw:[])
+    .filter(d=>d.tipo_documento_id==tipoId);
+
+  if(!list.length){
     cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin documentos generados</div>';
     return;
   }
