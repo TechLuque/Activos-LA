@@ -73,7 +73,7 @@ MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
 # también en el perfil del usuario para no tener que volver a pedirlos en otro documento.
 CAMPOS_PERSONA_ACTUALIZABLES = {
     'cedula', 'cargo', 'salario', 'fecha_ingreso', 'telefono', 'direccion', 'correo_personal', 'ciudad',
-    'valor_honorarios'
+    'valor_honorarios', 'nacionalidad'
 }
 
 def _server_error(e):
@@ -163,6 +163,23 @@ def require_api_login(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Rutas de API que el área "finanzas" puede usar. Todo lo demás bajo /api/
+# queda bloqueado por defecto (allowlist, no blocklist), para que rutas
+# nuevas no queden abiertas por accidente.
+FINANZAS_RUTAS_PERMITIDAS = ('/api/user', '/api/init', '/api/init/secondary', '/api/usuarios', '/api/tipos_documento')
+
+def _finanzas_puede_acceder(path, method):
+    if path == '/api/prestamos/masivos' and method == 'GET':
+        return True
+    return path.startswith(FINANZAS_RUTAS_PERMITIDAS)
+
+@app.before_request
+def restringir_area_finanzas():
+    """El área finanzas solo puede acceder a Documentos y Responsables (usuarios)."""
+    if session.get('area_acceso') == 'finanzas' and request.path.startswith('/api/'):
+        if not _finanzas_puede_acceder(request.path, request.method):
+            return jsonify({'error': 'No autorizado para esta sección'}), 403
+
 @app.route('/login', methods=['GET'])
 def login_page():
     """Página de login"""
@@ -198,14 +215,16 @@ def api_login():
         session['user_id'] = user.get('id')
         session['username'] = user.get('nombre')
         session['email'] = user.get('email')
-        
+        session['area_acceso'] = user.get('area_acceso') or 'admin'
+
         return jsonify({
             'ok': True,
             'message': 'Autenticado correctamente',
             'user': {
                 'id': user.get('id'),
                 'nombre': user.get('nombre'),
-                'email': user.get('email')
+                'email': user.get('email'),
+                'area_acceso': session['area_acceso']
             }
         }), 200
         
@@ -225,7 +244,8 @@ def get_current_user():
     return jsonify({
         'id': session.get('user_id'),
         'nombre': session.get('username'),
-        'email': session.get('email')
+        'email': session.get('email'),
+        'area_acceso': session.get('area_acceso', 'admin')
     }), 200
 
 @app.route('/firma/<int:id>')
@@ -331,6 +351,15 @@ def dashboard():
 def get_init_data():
     """Datos core: equipos, usuarios, préstamos, tipos, roles (5 queries, 2 olas de 3)."""
     try:
+        if session.get('area_acceso') == 'finanzas':
+            # Finanzas solo ve Documentos/Responsables: no traer inventario ni préstamos.
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                f_usuarios = executor.submit(repo.get_all_usuarios)
+                f_roles = executor.submit(repo.get_all_roles)
+                return jsonify({
+                    'equipos': [], 'prestamos': [], 'tipos': [],
+                    'usuarios': f_usuarios.result(), 'roles': f_roles.result()
+                })
         tasks = {
             'equipos':   repo.get_all_equipos,
             'usuarios':  repo.get_all_usuarios,
@@ -350,6 +379,11 @@ def get_init_data():
 def get_secondary_data():
     """Datos secundarios: secciones que no bloquean el dashboard inicial (6 queries, 1 ola)."""
     try:
+        if session.get('area_acceso') == 'finanzas':
+            return jsonify({
+                'mantenimientos': [], 'licencias': [], 'aplicativos': [],
+                'celulares': [], 'simcards': [], 'asignaciones': []
+            })
         tasks = {
             'mantenimientos': repo.get_all_mantenimientos,
             'licencias':      repo.get_all_licencias,
@@ -1489,6 +1523,8 @@ def delete_prestamo(id):
 @require_api_login
 def get_prestamos_masivos():
     try:
+        if session.get('area_acceso') == 'finanzas':
+            return jsonify([])
         return jsonify(repo.get_all_prestamos_masivos())
     except Exception as e:
         return _server_error(e)

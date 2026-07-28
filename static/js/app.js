@@ -219,16 +219,31 @@ function nav(page){
 /* ════════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════════ */
+function _aplicarRestriccionFinanzas(){
+  const permitidas=['documentos','usuarios'];
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    const p=b.getAttribute('onclick')?.match(/nav\('([\w-]+)'\)/)?.[1];
+    if(p&&!permitidas.includes(p))b.style.display='none';
+  });
+  document.querySelectorAll('.nav-section').forEach(sec=>{
+    const visible=[...sec.querySelectorAll('.nav-btn')].some(b=>b.style.display!=='none');
+    sec.style.display=visible?'':'none';
+  });
+}
+
 async function init(){
   const [user]=await Promise.all([api('/api/user').catch(()=>null),loadAll()]);
+  const esFinanzas=user&&user.area_acceso==='finanzas';
   if(user&&!user.error){
     $('uName').textContent=user.nombre||'Administrador';
     $('userEmail').textContent=user.email||'email@example.com';
     $('pgDate').textContent=`Hola, ${user.nombre||'Administrador'} · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
   }
+  if(esFinanzas)_aplicarRestriccionFinanzas();
   renderDashboard();
   const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
-  if(activePage&&activePage!=='dashboard') nav(activePage);
+  if(esFinanzas) nav('documentos');
+  else if(activePage&&activePage!=='dashboard') nav(activePage);
   const eqMatch=window.location.pathname.match(/\/equipo\/(\d+)/);
   if(eqMatch){
     const targetId=parseInt(eqMatch[1]);
