@@ -248,6 +248,31 @@ def get_current_user():
         'area_acceso': session.get('area_acceso', 'admin')
     }), 200
 
+@app.route('/api/user/password', methods=['POST'])
+@require_api_login
+def change_own_password():
+    """Permite al usuario autenticado (incluido el administrador) cambiar su propia contraseña."""
+    try:
+        d = request.json or {}
+        current_password = (d.get('current_password') or '').strip()
+        new_password = (d.get('new_password') or '').strip()
+
+        if not current_password or not new_password:
+            return jsonify({'error': 'Contraseña actual y nueva contraseña son requeridas'}), 400
+        if len(new_password) < 6:
+            return jsonify({'error': 'La nueva contraseña debe tener al menos 6 caracteres'}), 400
+
+        usuario = repo.get_usuario(session['user_id'])
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        if not check_password_hash(usuario.get('password', ''), current_password):
+            return jsonify({'error': 'La contraseña actual es incorrecta'}), 400
+
+        repo.update_usuario(session['user_id'], {'password': generate_password_hash(new_password)})
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
 @app.route('/firma/<int:id>')
 def firma_page(id):
     """Página de firma digital - PÚBLICA (sin login requerido)"""

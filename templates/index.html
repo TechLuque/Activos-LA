@@ -120,6 +120,7 @@
         <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3)">
           <div id="userEmail" style="margin-bottom:4px">email@example.com</div>
         </div>
+        <button onclick="openChangePasswordModal()" style="display:block;width:100%;text-align:left;padding:12px 16px;border:none;background:none;color:var(--text);cursor:pointer;font-size:14px;font-weight:500;border-radius:0">🔑 Cambiar Contraseña</button>
         <button onclick="location.href='/logout'" style="display:block;width:100%;text-align:left;padding:12px 16px;border:none;background:none;color:var(--red);cursor:pointer;font-size:14px;font-weight:500;border-radius:0">🚪 Cerrar Sesión</button>
       </div>
     </div>
@@ -1029,6 +1030,27 @@
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="close('ovUsr')">Cancelar</button>
         <button id="saveUsrBtn" class="btn btn-primary" onclick="saveUsr()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAMBIAR CONTRASEÑA -->
+<div class="overlay" id="ovChangePass">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Cambiar contraseña</h3><p>Actualiza tu contraseña de acceso</p></div>
+      <button class="m-close" onclick="close('ovChangePass')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg s2"><label>Contraseña actual *</label><input id="cpCurrent" type="password" placeholder="Contraseña actual" autocomplete="off"></div>
+        <div class="fg s2"><label>Nueva contraseña * <span style="font-size:0.85em">(min. 6 caracteres)</span></label><input id="cpNew" type="password" placeholder="Nueva contraseña" autocomplete="off"></div>
+        <div class="fg s2"><label>Confirmar nueva contraseña *</label><input id="cpConfirm" type="password" placeholder="Repite la nueva contraseña" autocomplete="off"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovChangePass')">Cancelar</button>
+        <button id="saveChangePassBtn" class="btn btn-primary" onclick="saveChangePassword()">Guardar</button>
       </div>
     </div>
   </div>

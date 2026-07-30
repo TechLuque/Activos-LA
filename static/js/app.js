@@ -4497,6 +4497,45 @@ function toggleUserMenu(){
   });
 }
 
+function openChangePasswordModal(){
+  $('userMenu').style.display='none';
+  $('cpCurrent').value='';
+  $('cpNew').value='';
+  $('cpConfirm').value='';
+  open('ovChangePass');
+}
+
+async function saveChangePassword(){
+  if(isSubmitting) return;
+
+  const current_password=$('cpCurrent')?.value.trim()||'';
+  const new_password=$('cpNew')?.value.trim()||'';
+  const confirm_password=$('cpConfirm')?.value.trim()||'';
+
+  if(!current_password){ toast('❌ Falta: Contraseña actual','err'); return; }
+  if(!new_password||new_password.length<6){ toast('❌ La nueva contraseña debe tener al menos 6 caracteres','err'); return; }
+  if(new_password!==confirm_password){ toast('❌ Las contraseñas no coinciden','err'); return; }
+
+  isSubmitting=true;
+  const btn=$('saveChangePassBtn');
+  btn.disabled=true;
+  btn.textContent='Guardando...';
+
+  try{
+    const res=await api('/api/user/password','POST',{current_password,new_password});
+    if(res.error){
+      toast('❌ '+res.error,'err');
+    }else{
+      close('ovChangePass');
+      toast('✅ Contraseña actualizada','ok');
+    }
+  } finally {
+    isSubmitting=false;
+    btn.disabled=false;
+    btn.textContent='Guardar';
+  }
+}
+
 /* ════════════════════════════════════════════════════
    ASIGNACIONES DE EQUIPOS
 ════════════════════════════════════════════════════ */
