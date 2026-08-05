@@ -20,13 +20,28 @@ const api=async(url,m='GET',b=null)=>{
   try{
     const r=await fetch(url,{method:m,credentials:'include',headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):null});
     const data=await r.json();
-    if(!r.ok) return {error:data.error||'API Error'};
+    // Se conserva el resto del cuerpo del error (dependencias, sugerencia…)
+    if(!r.ok){
+      const extra=(data&&typeof data==='object'&&!Array.isArray(data))?data:{};
+      return {...extra,error:(extra.error)||'API Error'};
+    }
     if(m!=='GET') _invalidateCache();
     return data;
   }catch(e){
     return {error:e.message};
   }
 };
+
+/* DELETE que solo refresca y avisa de éxito si el servidor confirmó el borrado.
+   Antes se mostraba "eliminado" aunque la base rechazara la operación. */
+async function apiDelete(url,{confirmar,exito,onOk}={}){
+  if(confirmar&&!confirm(confirmar))return false;
+  const res=await api(url,'DELETE');
+  if(res.error){toast(res.error,'err');return false;}
+  if(onOk)await onOk();
+  if(exito)toast(exito,'ok');
+  return true;
+}
 
 const open=id=>document.getElementById(id).classList.add('open');
 const close=id=>{
@@ -622,93 +637,6 @@ function _renderDashboard(){
 }
 
 /* ════════════════════════════════════════════════════
-   BÚSQUEDA GLOBAL
-════════════════════════════════════════════════════ */
-async function gSearchFn(q){
-  if(!q || q.length<2){
-    $('gSearch').placeholder='Buscar equipos, usuarios…';
-    close('ovSearchResults');
-    return;
-  }
-  
-  try{
-    const res=await api(`/api/busqueda-global?q=${encodeURIComponent(q)}&limit=15`);
-    if(res.error){
-      close('ovSearchResults');
-      return;
-    }
-    
-    const {equipos=[],usuarios=[],prestamos=[],mantenimientos=[]}=res;
-    const total=equipos.length+usuarios.length+prestamos.length;
-    
-    if(total===0){
-      toast('No se encontraron resultados','info');
-      return;
-    }
-    
-    // Mostrar modal con resultados
-    let html='';
-    
-    if(equipos.length>0){
-      html+=`<div style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:10px">💻 Equipos (${equipos.length})</div>
-        <div style="display:flex;flex-direction:column;gap:8px">`;
-      equipos.forEach(e=>{
-        html+=`<div style="padding:12px;background:var(--surface2);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent" onclick="nav('equipos'); close('ovSearchResults')" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-            <div style="flex:1">
-              <div style="font-weight:600;color:var(--text)">${e.nombre}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">Serial: <strong>${e.serial||'—'}</strong> · Marca: <strong>${e.marca||'—'}</strong></div>
-            </div>
-            <span class="bs ${bsClass(e.estado)}">${bsLabel(e.estado)}</span>
-          </div>
-        </div>`;
-      });
-      html+='</div></div>';
-    }
-    
-    if(usuarios.length>0){
-      html+=`<div style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:10px">👥 Responsables (${usuarios.length})</div>
-        <div style="display:flex;flex-direction:column;gap:8px">`;
-      usuarios.forEach(u=>{
-        html+=`<div style="padding:12px;background:var(--surface2);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent" onclick="nav('usuarios'); close('ovSearchResults')" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
-          <div style="font-weight:600;color:var(--text)">${u.nombre}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${u.email} · ${u.departamento||'Sin departamento'}</div>
-        </div>`;
-      });
-      html+='</div></div>';
-    }
-    
-    if(prestamos.length>0){
-      html+=`<div style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:10px">🔁 Préstamos (${prestamos.length})</div>
-        <div style="display:flex;flex-direction:column;gap:8px">`;
-      prestamos.forEach(p=>{
-        html+=`<div style="padding:12px;background:var(--surface2);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent" onclick="nav('prestamos'); close('ovSearchResults')" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-            <div style="flex:1">
-              <div style="font-weight:600;color:var(--text)">${p.equipo}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">Responsable: <strong>${p.responsable}</strong></div>
-            </div>
-            <span class="bs ${bsClass(p.estado)}">${bsLabel(p.estado)}</span>
-          </div>
-        </div>`;
-      });
-      html+='</div></div>';
-    }
-    
-    $('searchQueryDisplay').textContent=`Búsqueda: "${q}" • ${total} resultado(s)`;
-    $('searchResultsEquipos').innerHTML=html;
-    $('searchResultsUsuarios').innerHTML='';
-    $('searchResultsPrestamos').innerHTML='';
-    open('ovSearchResults');
-  }catch(e){
-    toast('Error en búsqueda: '+e.message,'err');
-  }
-}
-
-/* ════════════════════════════════════════════════════
    HISTORIAL DE RESPONSABLES
 ════════════════════════════════════════════════════ */
 async function showHistorialResponsables(eqId){
@@ -899,17 +827,41 @@ function openEqModal(reset=true){
   // Actualizar tipos
   updateTiposInModal();
   
-  // Cargar usuarios activos en el select
-  const selResp=$('eResponsable');
-  if(selResp.options.length<=1){
-    USR.filter(u=>u.estado==='activo').forEach(u=>{
-      const opt=document.createElement('option');
-      opt.value=u.id;
-      opt.textContent=u.nombre;
-      selResp.appendChild(opt);
-    });
-  }
+  // Al reabrir sin reset se conserva el responsable ya seleccionado
+  llenarSelectResponsable(reset?null:(parseInt($('eResponsable').value)||null));
   open('ovEq');
+}
+
+/* Reconstruye el select de responsable en cada apertura.
+   Incluye siempre al responsable actual aunque esté inactivo: si no existiera
+   su <option>, el select quedaría vacío y al guardar se enviaría usuario_id=null,
+   borrando el responsable asignado. */
+function llenarSelectResponsable(usuarioActualId=null){
+  const sel=$('eResponsable');
+  if(!sel) return;
+  const primera=sel.querySelector('option[value=""]');
+  sel.innerHTML='';
+  sel.appendChild(primera||new Option('Sin responsable',''));
+
+  const actual=usuarioActualId?USR.find(u=>u.id===usuarioActualId):null;
+  const visibles=USR.filter(u=>u.estado==='activo');
+  if(actual&&actual.estado!=='activo')visibles.push(actual);
+
+  visibles.forEach(u=>{
+    const opt=document.createElement('option');
+    opt.value=u.id;
+    opt.textContent=u.estado==='activo'?u.nombre:`${u.nombre} (inactivo)`;
+    sel.appendChild(opt);
+  });
+
+  // El responsable ya no existe en la base: se conserva para no perderlo al guardar
+  if(usuarioActualId&&!actual){
+    const opt=document.createElement('option');
+    opt.value=usuarioActualId;
+    opt.textContent=`Responsable #${usuarioActualId} (no encontrado)`;
+    sel.appendChild(opt);
+  }
+  sel.value=usuarioActualId||'';
 }
 function editEq(id){
   const e=EQ.find(x=>x.id===id);if(!e)return;
@@ -925,18 +877,8 @@ function editEq(id){
   updateTiposInModal();
   setTimeout(()=>{$('eTipo').value=e.tipo_nombre||e.tipo;},50);
   
-  // Cargar usuarios activos en el select si no están ya cargados
-  const selResp=$('eResponsable');
-  if(selResp.options.length<=1){
-    USR.filter(u=>u.estado==='activo').forEach(u=>{
-      const opt=document.createElement('option');
-      opt.value=u.id;
-      opt.textContent=u.nombre;
-      selResp.appendChild(opt);
-    });
-  }
-  $('eResponsable').value=e.usuario_id||'';
-  
+  llenarSelectResponsable(e.usuario_id||null);
+
   // Cargar licencias asignadas al equipo
   loadEqLicenses(id);
   
@@ -1146,8 +1088,11 @@ async function saveEq(){
   }
 }
 async function delEq(id){
-  if(!confirm('¿Eliminar este equipo? Esta acción no se puede deshacer.'))return;
-  await api('/api/equipos/'+id,'DELETE');await _refreshEq();DASH=computeDash();renderEq();renderDashboard();toast('Equipo eliminado','info');
+  await apiDelete('/api/equipos/'+id,{
+    confirmar:'¿Eliminar este equipo? Esta acción no se puede deshacer.',
+    exito:'Equipo eliminado',
+    onOk:async()=>{await _refreshEq();DASH=computeDash();renderEq();renderDashboard();}
+  });
 }
 
 /* ════════════════════════════════════════════════════
@@ -1655,8 +1600,11 @@ async function saveMant(){
   }
 }
 async function delMant(id){
-  if(!confirm('¿Eliminar este mantenimiento?'))return;
-  await api('/api/mantenimientos/'+id,'DELETE');await _refreshMants();DASH=computeDash();renderMant();renderDashboard();toast('Mantenimiento eliminado','info');
+  await apiDelete('/api/mantenimientos/'+id,{
+    confirmar:'¿Eliminar este mantenimiento?',
+    exito:'Mantenimiento eliminado',
+    onOk:async()=>{await _refreshMants();DASH=computeDash();renderMant();renderDashboard();}
+  });
 }
 
 /* ════════════════════════════════════════════════════
@@ -1918,12 +1866,18 @@ function openMantFromHV(){
   window._mantSaveHook=async()=>{await refreshHV();open('ovHV')};
 }
 async function delMantFromHV(id){
-  if(!confirm('¿Eliminar este mantenimiento?'))return;
-  await api('/api/mantenimientos/'+id,'DELETE');await _refreshMants();DASH=computeDash();await refreshHV();renderDashboard();toast('Mantenimiento eliminado','info');
+  await apiDelete('/api/mantenimientos/'+id,{
+    confirmar:'¿Eliminar este mantenimiento?',
+    exito:'Mantenimiento eliminado',
+    onOk:async()=>{await _refreshMants();DASH=computeDash();await refreshHV();renderDashboard();}
+  });
 }
 async function delHV(id){
-  if(!confirm('¿Eliminar este evento?'))return;
-  await api('/api/hoja_vida/'+id,'DELETE');await refreshHV();toast('Evento eliminado','info');
+  await apiDelete('/api/hoja_vida/'+id,{
+    confirmar:'¿Eliminar este evento?',
+    exito:'Evento eliminado',
+    onOk:refreshHV
+  });
 }
 let _editHVId=null;
 function open_ovAddHV(){
@@ -2182,8 +2136,28 @@ async function saveUsr(){
 }
 
 async function delUsr(id){
+  const u=USR.find(x=>x.id===id);
   if(!confirm('¿Eliminar este responsable?'))return;
-  await api('/api/usuarios/'+id,'DELETE');await _refreshUsr();DASH=computeDash();renderUsr();renderDashboard();toast('Usuario eliminado','info');
+
+  const res=await api('/api/usuarios/'+id,'DELETE');
+  if(res.error){
+    // Tiene historial: Postgres rechaza el borrado. Se ofrece desactivar.
+    if(res.sugerencia==='desactivar'&&u&&u.estado==='activo'&&confirm(res.error+'\n\n¿Desactivarlo ahora?')){
+      await desactivarUsr(id);
+      return;
+    }
+    toast(res.error,'err');
+    return;
+  }
+  await _refreshUsr();DASH=computeDash();renderUsr();renderDashboard();
+  toast('Responsable eliminado','ok');
+}
+
+async function desactivarUsr(id){
+  const res=await api('/api/usuarios/'+id,'PUT',{estado:'inactivo'});
+  if(res.error){toast(res.error,'err');return;}
+  await _refreshUsr();DASH=computeDash();renderUsr();renderDashboard();
+  toast('Responsable desactivado — su historial se conserva','ok');
 }
 
 /* ════════════════════════════════════════════════════
@@ -2503,8 +2477,11 @@ async function saveLicense(){
 }
 
 async function delLicense(id){
-  if(!confirm('¿Eliminar esta licencia?'))return;
-  await api('/api/licencias/'+id,'DELETE');await _refreshLics();renderLicenses();renderDashboard();toast('Licencia eliminada','info');
+  await apiDelete('/api/licencias/'+id,{
+    confirmar:'¿Eliminar esta licencia?',
+    exito:'Licencia eliminada',
+    onOk:async()=>{await _refreshLics();renderLicenses();renderDashboard();}
+  });
 }
 
 /* ════════════════════════════════════════════════════
@@ -2730,8 +2707,11 @@ async function saveAplicativo(){
 }
 
 async function delAplicativo(id){
-  if(!confirm('¿Eliminar este aplicativo?'))return;
-  await api('/api/aplicativos/'+id,'DELETE');await _refreshApps();renderAplicativos();renderDashboard();toast('Aplicativo eliminado','info');
+  await apiDelete('/api/aplicativos/'+id,{
+    confirmar:'¿Eliminar este aplicativo?',
+    exito:'Aplicativo eliminado',
+    onOk:async()=>{await _refreshApps();renderAplicativos();renderDashboard();}
+  });
 }
 
 function addPagoModal(){
@@ -2960,8 +2940,11 @@ async function saveCelular(){
 }
 
 async function delCelular(id){
-  if(!confirm('¿Eliminar este celular?'))return;
-  await api('/api/celulares/'+id,'DELETE');await _refreshCels();renderCelulares();renderDashboard();toast('Celular eliminado','info');
+  await apiDelete('/api/celulares/'+id,{
+    confirmar:'¿Eliminar este celular?',
+    exito:'Celular eliminado',
+    onOk:async()=>{await _refreshCels();renderCelulares();renderDashboard();}
+  });
 }
 
 async function showSimsDelCelular(celular_id){
@@ -3298,8 +3281,11 @@ async function saveSimcard(){
 }
 
 async function delSimcard(id){
-  if(!confirm('¿Eliminar esta SIM Card?'))return;
-  await api('/api/simcards/'+id,'DELETE');await Promise.all([_refreshSims(),_refreshCels()]);renderSimcards();renderDashboard();toast('SIM Card eliminada','info');
+  await apiDelete('/api/simcards/'+id,{
+    confirmar:'¿Eliminar esta SIM Card?',
+    exito:'SIM Card eliminada',
+    onOk:async()=>{await Promise.all([_refreshSims(),_refreshCels()]);renderSimcards();renderDashboard();}
+  });
 }
 
 function addBloqueoModal(){
@@ -4238,8 +4224,11 @@ async function returnLoan(id){
   showReturnLinkModal(id);
 }
 async function delLoan(id){
-  if(!confirm('¿Eliminar este préstamo?'))return;
-  await api('/api/prestamos/'+id,'DELETE');await _refreshLoans();DASH=computeDash();renderLoan();renderDashboard();toast('Préstamo eliminado','info');
+  await apiDelete('/api/prestamos/'+id,{
+    confirmar:'¿Eliminar este préstamo?',
+    exito:'Préstamo eliminado',
+    onOk:async()=>{await _refreshLoans();DASH=computeDash();renderLoan();renderDashboard();}
+  });
 }
 
 /* ════════════════════════════════════════════════════
@@ -4364,9 +4353,6 @@ function renderReportes(){
     </div>`;
 }
 
-/* ════════════════════════════════════════════════════
-   GLOBAL SEARCH
-════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════
    MODAL CLOSE ON BACKDROP
 ════════════════════════════════════════════════════ */

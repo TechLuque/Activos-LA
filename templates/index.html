@@ -105,10 +105,6 @@
       <h1 id="pgTitle">Panel de control</h1>
       <p id="pgDate"></p>
     </div>
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input id="gSearch" type="text" placeholder="Buscar equipos, usuarios…" oninput="" disabled style="opacity:0.5;cursor:not-allowed">
-    </div>
     <button class="scan-btn" onclick="openScanner()" title="Escanear equipo">📷</button>
     <div class="user-pill" onclick="toggleUserMenu()" style="cursor:pointer;position:relative">
       <div class="user-av">A</div>
@@ -1649,21 +1645,6 @@
     </div>
     <div class="modal-body">
       <div id="histResponsablesContent" style="display:flex;flex-direction:column;gap:12px"></div>
-    </div>
-  </div>
-</div>
-
-<!-- BÚSQUEDA GLOBAL RESULTADOS -->
-<div class="overlay" id="ovSearchResults" style="z-index:250">
-  <div class="modal modal-lg">
-    <div class="modal-head">
-      <div><h3>Resultados de búsqueda</h3><p id="searchQueryDisplay">Búsqueda global</p></div>
-      <button class="m-close" onclick="close('ovSearchResults')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="searchResultsEquipos" style="margin-bottom:20px"></div>
-      <div id="searchResultsUsuarios" style="margin-bottom:20px"></div>
-      <div id="searchResultsPrestamos" style="margin-bottom:20px"></div>
     </div>
   </div>
 </div>

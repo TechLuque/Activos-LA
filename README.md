@@ -136,13 +136,14 @@ MIT
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/api/dashboard` | Estadísticas generales |
+| GET | `/api/init` · `/api/init/secondary` | Carga inicial (el dashboard se calcula en el cliente) |
 | GET/POST | `/api/equipos` | Listar / crear equipos |
 | GET/PUT/DELETE | `/api/equipos/:id` | Ver / editar / eliminar equipo |
 | GET/POST | `/api/equipos/:id/hoja_vida` | Hoja de vida del equipo |
 | GET/POST | `/api/equipos/:id/mantenimientos` | Mantenimientos del equipo |
-| GET/POST | `/api/usuarios` | Listar / crear usuarios |
-| PUT/DELETE | `/api/usuarios/:id` | Editar / eliminar usuario |
+| GET/POST | `/api/usuarios` | Listar / crear responsables |
+| PUT | `/api/usuarios/:id` | Editar responsable (update parcial) |
+| DELETE | `/api/usuarios/:id` | Eliminar responsable — 409 si tiene historial |
 | GET/POST | `/api/prestamos` | Listar / crear préstamos |
 | PUT | `/api/prestamos/:id/devolver` | Marcar devolución |
 | DELETE | `/api/prestamos/:id` | Eliminar préstamo |

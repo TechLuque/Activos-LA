@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 from flask_compress import Compress
 import os
-import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
 import base64
@@ -9,11 +8,10 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from urllib.parse import quote
 from io import BytesIO
-from pypdf import PdfReader, PdfWriter
-from reportlab.pdfgen import canvas as pdf_canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from docxtpl import DocxTemplate
+
+# pypdf / reportlab / docxtpl se importan de forma perezosa: solo los usa la
+# generación de documentos (1 endpoint de 116) y cargarlos en el arranque
+# penaliza cada cold start del serverless.
 
 from db import (
     supabase_request, supabase_storage_upload, supabase_storage_delete, supabase_storage_download,
@@ -32,19 +30,31 @@ app.secret_key = os.getenv('SECRET_KEY', 'tu-clave-secreta-super-segura-24-de-ma
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 Compress(app)
 
-def _file_hash(path: str) -> str:
+def _asset_version(path: str) -> str:
+    """Versión de cache-busting a partir del mtime. Evita leer y hashear 290 KB
+    de assets en cada cold start."""
     try:
-        with open(path, 'rb') as f:
-            return hashlib.md5(f.read()).hexdigest()[:8]
-    except Exception:
+        return format(int(os.path.getmtime(path)), 'x')
+    except OSError:
         return '0'
 
-_CSS_V = _file_hash(os.path.join(os.path.dirname(__file__), 'static', 'css', 'app.css'))
-_JS_V  = _file_hash(os.path.join(os.path.dirname(__file__), 'static', 'js', 'app.js'))
+_CSS_V = _asset_version(os.path.join(os.path.dirname(__file__), 'static', 'css', 'app.css'))
+_JS_V  = _asset_version(os.path.join(os.path.dirname(__file__), 'static', 'js', 'app.js'))
 
 _FONTS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'fonts')
-pdfmetrics.registerFont(TTFont('Montserrat', os.path.join(_FONTS_DIR, 'Montserrat-Regular.ttf')))
-pdfmetrics.registerFont(TTFont('Montserrat-Bold', os.path.join(_FONTS_DIR, 'Montserrat-Bold.ttf')))
+_fuentes_registradas = False
+
+
+def _registrar_fuentes():
+    """Registra las TTF de Montserrat una sola vez, al generar el primer documento."""
+    global _fuentes_registradas
+    if _fuentes_registradas:
+        return
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    pdfmetrics.registerFont(TTFont('Montserrat', os.path.join(_FONTS_DIR, 'Montserrat-Regular.ttf')))
+    pdfmetrics.registerFont(TTFont('Montserrat-Bold', os.path.join(_FONTS_DIR, 'Montserrat-Bold.ttf')))
+    _fuentes_registradas = True
 
 @app.after_request
 def set_response_headers(response):
@@ -83,8 +93,25 @@ def _server_error(e):
     return jsonify({'error': 'Error interno del servidor'}), 500
 
 
+def _respuesta_borrado(result, entidad: str):
+    """Traduce el resultado de un DELETE del repositorio a una respuesta HTTP.
+
+    Sin esto un borrado rechazado por Postgres (clave foránea) se devolvía como
+    200 OK y la interfaz mostraba "eliminado" sobre un registro que seguía ahí.
+    """
+    if isinstance(result, dict) and result.get('error'):
+        if str(result.get('code')) == '23503':
+            return jsonify({'error': f'No se puede eliminar {entidad}: tiene registros asociados.'}), 409
+        return jsonify({'error': f"No se pudo eliminar {entidad}: {result['error']}"}), 409
+    return jsonify({'ok': True})
+
+
 def _overlay_pdf_bytes(plantilla_bytes: bytes, coordenadas: dict, datos: dict) -> bytes:
     """Superpone texto sobre un PDF base según coordenadas {campo: {x1, bottom, page?, size?, font?}}."""
+    from pypdf import PdfReader, PdfWriter
+    from reportlab.pdfgen import canvas as pdf_canvas
+    _registrar_fuentes()
+
     reader = PdfReader(BytesIO(plantilla_bytes))
     writer = PdfWriter()
 
@@ -115,6 +142,7 @@ def _overlay_pdf_bytes(plantilla_bytes: bytes, coordenadas: dict, datos: dict) -
 
 def _plantilla_docx_bytes(plantilla_bytes: bytes, datos: dict) -> bytes:
     """Renderiza una plantilla Word con placeholders {{campo}} (docxtpl) usando `datos` como contexto."""
+    from docxtpl import DocxTemplate
     contexto = {k: ('' if v is None else v) for k, v in datos.items()}
     doc = DocxTemplate(BytesIO(plantilla_bytes))
     doc.render(contexto)
@@ -128,18 +156,16 @@ def _cerrar_asignaciones_masivo(prestamo_masivo_id: int):
     items = repo.get_prestamo_masivo_items(prestamo_masivo_id)
     if not isinstance(items, list):
         return
-    for item in items:
-        equipo_id = item.get('equipo_id')
-        if not equipo_id:
-            continue
-        asignaciones = repo.get_asignaciones_activas_by_equipo(equipo_id)
-        for asig in asignaciones:
-            repo.update_asignacion(asig['id'], {
-                'estado': 'cerrada',
-                'fecha_devolucion': date.today().isoformat(),
-                'notas_salida': 'Cerrada automáticamente al devolver el préstamo masivo'
-            })
-        repo.update_equipo(equipo_id, {'usuario_id': None})
+    equipo_ids = [item['equipo_id'] for item in items if item.get('equipo_id')]
+    if not equipo_ids:
+        return
+    # 2 queries en total en vez de 3 por equipo
+    repo.cerrar_asignaciones_abiertas_de_equipos(equipo_ids, {
+        'estado': 'cerrada',
+        'fecha_devolucion': date.today().isoformat(),
+        'notas_salida': 'Cerrada automáticamente al devolver el préstamo masivo'
+    })
+    repo.liberar_responsable_de_equipos(equipo_ids)
 
 # ═══════════════════════════════════════════════════════════════
 # AUTENTICACIÓN
@@ -290,87 +316,6 @@ def equipo_page(id):
     """Deep-link a un equipo específico — JS navega automáticamente al cargarse."""
     return render_template('index.html', css_v=_CSS_V, js_v=_JS_V)
 
-@app.route('/api/dashboard')
-@require_api_login
-def dashboard():
-    try:
-        today = date.today().isoformat()
-        in7 = (date.today() + timedelta(days=7)).isoformat()
-
-        equipos_list = repo.get_all_equipos()
-        usuarios_list = repo.get_all_usuarios()
-        prestamos_list = repo.get_prestamos_raw()
-        mants_list = repo.get_mantenimientos_raw()
-        tipos_map = get_tipos_map()
-
-        # Mapas para lookups O(1)
-        equipos_map = {eq['id']: eq for eq in equipos_list}
-        usuarios_map = {u['id']: u for u in usuarios_list}
-
-        # Conteos de equipos
-        total_equipos = len(equipos_list)
-        estados = {}
-        tipos_count = {}
-        valor_total = 0
-        for eq in equipos_list:
-            estado = eq.get('estado', 'desconocido')
-            estados[estado] = estados.get(estado, 0) + 1
-            tipo = eq.get('tipo_nombre') or tipos_map.get(eq.get('tipo_id'), eq.get('tipo', 'Sin tipo'))
-            tipos_count[tipo] = tipos_count.get(tipo, 0) + 1
-            valor_total += int(eq.get('valor', 0) or 0)
-
-        tipos_equipos = [
-            {'tipo_nombre': k, 'tipo': k, 'count': v}
-            for k, v in sorted(tipos_count.items(), key=lambda x: x[1], reverse=True)[:7]
-        ]
-
-        # Conteos de usuarios
-        total_usuarios = sum(1 for u in usuarios_list if u.get('estado') == 'activo')
-
-        # Préstamos — una sola pasada para todos los cálculos
-        prestamos_activos = 0
-        prestamos_vencidos = []
-        proximos_vencer = []
-        for p in prestamos_list:
-            eq = equipos_map.get(p.get('equipo_id'), {})
-            p['equipo_nombre'] = eq.get('nombre', 'Equipo desconocido')
-            usr = usuarios_map.get(p.get('usuario_id'), {})
-            p['usuario_nombre'] = usr.get('nombre', 'Usuario desconocido')
-
-            if p.get('estado') != 'devuelto':
-                prestamos_activos += 1
-                fecha_dev = p.get('fecha_devolucion_esperada')
-                if fecha_dev:
-                    if fecha_dev < today:
-                        prestamos_vencidos.append(p)
-                    elif fecha_dev <= in7:
-                        proximos_vencer.append(p)
-
-        # Mantenimientos — una sola pasada
-        mant_en_proceso = 0
-        preventivos_vencidos = 0
-        for m in mants_list:
-            if m.get('estado') != 'completado':
-                mant_en_proceso += 1
-            if m.get('tipo') == 'preventivo' and m.get('proxima_revision') and m['proxima_revision'] < today:
-                preventivos_vencidos += 1
-
-        return jsonify({
-            'total_equipos': total_equipos,
-            'total_usuarios': total_usuarios,
-            'prestamos_activos': prestamos_activos,
-            'mant_en_proceso': mant_en_proceso,
-            'estados': estados,
-            'tipos_equipos': tipos_equipos,
-            'preventivos_vencidos': preventivos_vencidos,
-            'valor_total': valor_total,
-            'proximos_vencer': proximos_vencer,
-            'prestamos_vencidos': prestamos_vencidos,
-        })
-    except Exception as e:
-        return _server_error(e)
-
-
 @app.route('/api/init', methods=['GET'])
 @require_api_login
 def get_init_data():
@@ -438,7 +383,7 @@ def get_usuarios():
 def get_usuario_detalle(id):
     """Detalle completo de un usuario (incluye campos de documentos: cedula, direccion, cargo, etc.)."""
     try:
-        usuario = repo.get_usuario(id)
+        usuario = repo.get_usuario_sin_password(id)
         if not usuario:
             return jsonify({'error': 'Usuario no encontrado'}), 404
         return jsonify(usuario)
@@ -518,14 +463,12 @@ def update_usuario(id):
         if rol_id and not repo.get_rol(rol_id):
             return jsonify({'error': f'Rol con ID {rol_id} no existe'}), 400
 
-        update_data = {
-            'nombre': d.get('nombre', ''),
-            'email': d.get('email', ''),
-            'notification_email': d.get('notification_email', '') or None,
-            'departamento': d.get('departamento', ''),
-            'telefono': d.get('telefono', ''),
-            'estado': d.get('estado', 'activo')
-        }
+        # Update parcial: solo se escriben los campos que vienen en la petición.
+        # Un campo ausente conserva su valor — nunca se sobrescribe con ''.
+        update_data = {campo: d[campo] for campo in
+                       ('nombre', 'email', 'departamento', 'telefono', 'estado') if campo in d}
+        if 'notification_email' in d:
+            update_data['notification_email'] = d.get('notification_email') or None
 
         if d.get('password', '').strip():
             password = d.get('password', '').strip()
@@ -536,18 +479,48 @@ def update_usuario(id):
         if rol_id:
             update_data['rol_id'] = rol_id
 
+        if not update_data:
+            return jsonify({'error': 'Sin campos para actualizar'}), 400
+
         result = repo.update_usuario(id, update_data)
-        return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"No se pudo actualizar: {result['error']}"}), 400
+
+        usuario = result[0] if isinstance(result, list) and result else {}
+        usuario.pop('password', None)
+        return jsonify(usuario)
     except Exception as e:
         return _server_error(e)
 
 @app.route('/api/usuarios/<int:id>', methods=['DELETE'])
 @require_api_login
 def delete_usuario(id):
+    """Elimina un responsable solo si no tiene historial.
+
+    Las tablas que apuntan a usuarios.id no tienen ON DELETE, así que Postgres
+    rechaza el borrado en cuanto el responsable ha tenido un activo, un préstamo
+    o un documento. Se comprueba antes para poder explicar el motivo en vez de
+    devolver un error genérico.
+    """
     try:
         if not repo.get_usuario(id):
             return jsonify({'error': 'Usuario no encontrado'}), 404
-        repo.delete_usuario(id)
+
+        dependencias = repo.count_usuario_dependencias(id)
+        if dependencias:
+            etiquetas = dict(repo.USUARIO_DEPENDENCIAS)
+            detalle = ', '.join(f"{n} {etiquetas.get(tabla, tabla)}"
+                                for tabla, n in dependencias.items())
+            return jsonify({
+                'error': f'No se puede eliminar: el responsable tiene {detalle}. '
+                         'Desactívalo para conservar el historial.',
+                'dependencias': dependencias,
+                'sugerencia': 'desactivar'
+            }), 409
+
+        result = repo.delete_usuario(id)
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"No se pudo eliminar: {result['error']}"}), 409
         return jsonify({'ok': True})
     except Exception as e:
         return _server_error(e)
@@ -645,6 +618,7 @@ def generar_documento_usuario(id):
 # Ver endpoints /api/tipos-equipos para CRUD
 
 @app.route('/api/equipos', methods=['GET'])
+@require_api_login
 def get_equipos():
     try:
         return jsonify(repo.get_all_equipos())
@@ -652,6 +626,7 @@ def get_equipos():
         return _server_error(e)
 
 @app.route('/api/tipos-equipos', methods=['GET'])
+@require_api_login
 def get_tipos_equipos():
     try:
         return jsonify(repo.get_all_tipos_equipos()), 200
@@ -695,8 +670,8 @@ def update_tipo_equipo(id):
         result = repo.update_tipo_equipo(id, nombre, descripcion, serial_prefix)
         if isinstance(result, dict) and result.get('error'):
             return jsonify(result), 400
-        updated = repo.get_tipo_equipo(id)
         cache_invalidate('tipos_equipos')
+        updated = result[0] if isinstance(result, list) and result else None
         return jsonify(updated or {'id': id, 'nombre': nombre, 'descripcion': descripcion}), 200
     except Exception as e:
         return _server_error(e)
@@ -707,13 +682,14 @@ def delete_tipo_equipo(id):
     try:
         if not repo.get_tipo_equipo(id):
             return jsonify({'error': 'Tipo de equipo no encontrado'}), 404
-        repo.delete_tipo_equipo(id)
+        result = repo.delete_tipo_equipo(id)
         cache_invalidate('tipos_equipos')
-        return jsonify({'ok': True}), 200
+        return _respuesta_borrado(result, 'el tipo de equipo')
     except Exception as e:
         return _server_error(e)
 
 @app.route('/api/equipos/<int:id>', methods=['GET'])
+@require_api_login
 def get_equipo(id):
     try:
         equipo = repo.get_equipo(id)
@@ -795,29 +771,25 @@ def update_equipo(id):
             else:
                 return jsonify({'error': f'Tipo de equipo "{tipo_nombre}" no existe'}), 400
 
-        fecha_adquisicion = d.get('fecha_adquisicion', '')
-        fecha_ingreso = d.get('fecha_ingreso', '')
+        # Update parcial: un campo que no venga en la petición conserva su valor.
+        # Evita que un formulario incompleto borre datos ya guardados.
+        update_data = {campo: d[campo] for campo in
+                       ('nombre', 'marca', 'modelo', 'serial', 'estado', 'disponibilidad',
+                        'valor', 'descripcion', 'num_factura', 'nombre_proveedor',
+                        'nombre_empresa', 'usuario_id') if campo in d}
+        if tipo_nombre:
+            update_data['tipo_id'] = tipo_id
+        for campo in ('fecha_adquisicion', 'fecha_ingreso'):
+            if campo in d:
+                update_data[campo] = d[campo] or None
 
-        update_data = {
-            'nombre': d.get('nombre', ''),
-            'tipo_id': tipo_id,
-            'marca': d.get('marca', ''),
-            'modelo': d.get('modelo', ''),
-            'serial': d.get('serial', ''),
-            'estado': d.get('estado', 'bueno'),
-            'disponibilidad': d.get('disponibilidad', 'Disponible'),
-            'usuario_id': d.get('usuario_id', None),
-            'fecha_adquisicion': fecha_adquisicion if fecha_adquisicion else None,
-            'valor': d.get('valor', 0),
-            'descripcion': d.get('descripcion', ''),
-            'num_factura': d.get('num_factura', ''),
-            'nombre_proveedor': d.get('nombre_proveedor', ''),
-            'nombre_empresa': d.get('nombre_empresa', ''),
-            'fecha_ingreso': fecha_ingreso if fecha_ingreso else None
-        }
+        if not update_data:
+            return jsonify({'error': 'Sin campos para actualizar'}), 400
 
         result = repo.update_equipo(id, update_data)
-        return jsonify(result if isinstance(result, dict) else (result[0] if result else {}))
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': f"No se pudo actualizar: {result['error']}"}), 400
+        return jsonify(result[0] if isinstance(result, list) and result else {})
     except Exception as e:
         return _server_error(e)
 
@@ -827,13 +799,13 @@ def delete_equipo(id):
     try:
         if not repo.get_equipo(id):
             return jsonify({'error': 'Equipo no encontrado'}), 404
-        repo.delete_equipo(id)
-        return jsonify({'ok': True})
+        return _respuesta_borrado(repo.delete_equipo(id), 'el equipo')
     except Exception as e:
         return _server_error(e)
 
 # ========== ROLES DE EMPRESA ==========
 @app.route('/api/roles', methods=['GET'])
+@require_api_login
 def get_roles():
     try:
         return jsonify(repo.get_all_roles()), 200
@@ -909,7 +881,7 @@ def update_rol(id):
         if isinstance(result, dict) and result.get('error'):
             return jsonify(result), 400
 
-        updated = repo.get_rol(id)
+        updated = result[0] if isinstance(result, list) and result else None
         return jsonify(updated or {'id': id, 'nombre': nombre, 'descripcion': descripcion, 'departamento': departamento}), 200
     except Exception as e:
         return _server_error(e)
@@ -920,13 +892,13 @@ def delete_rol(id):
     try:
         if not repo.get_rol(id):
             return jsonify({'error': 'Rol no encontrado'}), 404
-        repo.delete_rol(id)
-        return jsonify({'ok': True}), 200
+        return _respuesta_borrado(repo.delete_rol(id), 'el cargo')
     except Exception as e:
         return _server_error(e)
 
 # ========== MANTENIMIENTOS ==========
 @app.route('/api/mantenimientos', methods=['GET'])
+@require_api_login
 def get_all_mantenimientos():
     try:
         return jsonify(repo.get_all_mantenimientos())
@@ -934,6 +906,7 @@ def get_all_mantenimientos():
         return _server_error(e)
 
 @app.route('/api/equipos/<int:id>/mantenimientos', methods=['GET'])
+@require_api_login
 def get_mants_equipo(id):
     try:
         return jsonify(repo.get_mantenimientos_by_equipo(id))
@@ -1038,6 +1011,7 @@ def delete_mantenimiento(id):
 
 # ========== HOJA DE VIDA ==========
 @app.route('/api/equipos/<int:id>/hoja_vida', methods=['GET'])
+@require_api_login
 def get_hoja_vida(id):
     try:
         return jsonify(repo.get_hoja_vida_by_equipo(id))
@@ -1045,6 +1019,7 @@ def get_hoja_vida(id):
         return _server_error(e)
 
 @app.route('/api/equipos/<int:id>/hoja_vida', methods=['POST'])
+@require_api_login
 def add_hoja_vida(id):
     try:
         d = request.json
@@ -1078,6 +1053,7 @@ def update_hoja_vida(id):
 
 
 @app.route('/api/hoja_vida/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_hoja_vida(id):
     try:
         repo.delete_hoja_vida(id)
@@ -1477,6 +1453,7 @@ def save_signature_complete(id):
 
 
 @app.route('/api/prestamos/<int:id>/devolver', methods=['PUT'])
+@require_api_login
 def devolver_prestamo(id):
     """Marcar prestamo como devuelto (después de que firma la devolución)"""
     try:
@@ -1536,6 +1513,7 @@ def update_prestamo(id):
 
 # ========== PRÉSTAMOS - DELETE ==========
 @app.route('/api/prestamos/<int:id>', methods=['DELETE'])
+@require_api_login
 def delete_prestamo(id):
     try:
         repo.delete_prestamo(id)
@@ -1606,8 +1584,8 @@ def create_prestamo_masivo():
             err_detail = result.get('error', str(result)) if isinstance(result, dict) else str(result)
             return jsonify({'error': f'No se pudo crear el préstamo masivo: {err_detail}'}), 500
 
-        for eq_id in equipo_ids:
-            repo.create_prestamo_masivo_item({'prestamo_masivo_id': new_id, 'equipo_id': eq_id})
+        repo.create_prestamo_masivo_items(
+            [{'prestamo_masivo_id': new_id, 'equipo_id': eq_id} for eq_id in equipo_ids])
 
         return jsonify({'id': new_id, 'ok': True}), 201
     except Exception as e:
@@ -1931,6 +1909,7 @@ def delete_equipos_licencias(asignacion_id):
 
 # ========== CALENDARIO ==========
 @app.route('/api/calendario')
+@require_api_login
 def get_calendario():
     try:
         events = []
@@ -2049,86 +2028,6 @@ def health():
             'message': 'Health check failed',
             'error': str(e)
         }), 500
-
-# ========== BÚSQUEDA GLOBAL AVANZADA ==========
-@app.route('/api/busqueda-global', methods=['GET'])
-@require_api_login
-def busqueda_global():
-    """Búsqueda global en equipos, usuarios y préstamos"""
-    try:
-        query = request.args.get('q', '').lower().strip()
-        filtro_tipo = request.args.get('tipo', 'todos')  # todos, equipos, usuarios, prestamos
-        limite = int(request.args.get('limit', 20))
-        
-        if not query or len(query) < 2:
-            return jsonify({'error': 'Búsqueda muy corta (mínimo 2 caracteres)'}), 400
-        
-        resultados = {
-            'equipos': [],
-            'usuarios': [],
-            'prestamos': [],
-            'mantenimientos': []
-        }
-        
-        # Búsqueda en equipos
-        if filtro_tipo in ['todos', 'equipos']:
-            equipos = repo.get_all_equipos()
-            if equipos:
-                for eq in equipos:
-                    if isinstance(eq, dict) and (
-                        query in (eq.get('nombre', '') or '').lower() or
-                        query in (eq.get('serial', '') or '').lower() or
-                        query in (eq.get('marca', '') or '').lower()):
-                        resultados['equipos'].append({
-                            'id': eq.get('id'),
-                            'tipo': 'equipo',
-                            'nombre': eq.get('nombre'),
-                            'serial': eq.get('serial'),
-                            'marca': eq.get('marca'),
-                            'estado': eq.get('estado')
-                        })
-        
-        # Búsqueda en usuarios
-        if filtro_tipo in ['todos', 'usuarios']:
-            usuarios = repo.get_all_usuarios()
-            if usuarios:
-                for usr in usuarios:
-                    if isinstance(usr, dict) and (
-                        query in (usr.get('nombre', '') or '').lower() or
-                        query in (usr.get('email', '') or '').lower()):
-                        resultados['usuarios'].append({
-                            'id': usr.get('id'),
-                            'tipo': 'usuario',
-                            'nombre': usr.get('nombre'),
-                            'email': usr.get('email'),
-                            'departamento': usr.get('departamento')
-                        })
-        
-        # Búsqueda en préstamos
-        if filtro_tipo in ['todos', 'prestamos']:
-            prestamos = repo.get_prestamos_raw()
-            if prestamos:
-                for p in prestamos:
-                    if isinstance(p, dict):
-                        equipo_nombre = p.get('equipo_nombre', '') or ''
-                        usuario_nombre = p.get('usuario_nombre', '') or ''
-                        if (query in equipo_nombre.lower() or 
-                            query in usuario_nombre.lower()):
-                            resultados['prestamos'].append({
-                                'id': p.get('id'),
-                                'tipo': 'prestamo',
-                                'equipo': equipo_nombre,
-                                'responsable': usuario_nombre,
-                                'estado': p.get('estado')
-                            })
-        
-        # Limitar resultados
-        for key in resultados:
-            resultados[key] = resultados[key][:limite]
-        
-        return jsonify(resultados), 200
-    except Exception as e:
-        return _server_error(e)
 
 # ========== HISTORIAL DE RESPONSABLES ==========
 @app.route('/api/equipos/<int:id>/historial-responsables', methods=['GET'])
@@ -2685,10 +2584,8 @@ def create_simcard():
             new_id = result[0].get('id')
             if d.get('celular_id'):
                 repo.create_historial_sim_celular({'celular_id': d['celular_id'], 'simcard_id': new_id})
-            cleanup_simcard_duplicates()
             return jsonify({'id': new_id, 'ok': True}), 201
         else:
-            cleanup_simcard_duplicates()
             return jsonify({'ok': True}), 201
     except Exception as e:
         return _server_error(e)
@@ -2766,11 +2663,10 @@ def update_simcard(id):
         if isinstance(result, dict) and result.get('error'):
             return jsonify({'error': f"Error: {result.get('error')}"}), 500
 
-        if repo.get_simcard(id):
-            cleanup_simcard_duplicates()
+        # El PATCH ya devuelve la fila actualizada: no hace falta releerla.
+        if isinstance(result, list) and result:
             return jsonify({'ok': True, 'id': id}), 200
-        else:
-            return jsonify({'error': 'Error al actualizar SIM card'}), 500
+        return jsonify({'error': 'Error al actualizar SIM card'}), 500
     except Exception as e:
         return _server_error(e)
 
@@ -2955,11 +2851,12 @@ def delete_bloqueo_simcard_route(bloqueo_id):
 def get_historial_sims_celular(celular_id):
     """Obtener historial completo de SIM cards para un celular"""
     try:
-        # Obtener historial con detalles de las SIM cards
+        # Historial + las SIM cards referenciadas en 2 queries (antes: 1 por fila)
         historial = repo.get_historial_sims_celular(celular_id)
+        sims_map = repo.get_simcards_by_ids([h.get('simcard_id') for h in historial])
         historial_enriquecido = []
         for h in historial:
-            sim = repo.get_simcard(h.get('simcard_id'))
+            sim = sims_map.get(h.get('simcard_id'))
             historial_enriquecido.append({
                 'id': h.get('id'),
                 'celular_id': h.get('celular_id'),

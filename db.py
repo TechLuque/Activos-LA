@@ -61,32 +61,62 @@ def get_tipos_map() -> dict:
 
 # ── Cliente Supabase ──────────────────────────────────────────────────────────
 
+def _parse_error(resp) -> dict:
+    """Normaliza un error de PostgREST a {'error', 'code', 'status'}.
+
+    `code` es el SQLSTATE de Postgres (p.ej. 23503 = foreign key violation),
+    necesario para distinguir "no se puede borrar por dependencias" de un fallo real.
+    """
+    payload = {'error': (resp.text or '').strip() or f'HTTP {resp.status_code}', 'status': resp.status_code}
+    try:
+        body = resp.json()
+    except Exception:
+        return payload
+    if isinstance(body, dict):
+        payload['error'] = body.get('message') or body.get('msg') or payload['error']
+        for key in ('code', 'details', 'hint'):
+            if body.get(key):
+                payload[key] = body[key]
+    return payload
+
+
 def supabase_request(method: str, table: str, query: str = '', data=None):
-    """Ejecuta una request a la Supabase REST API usando session persistente."""
+    """Ejecuta una request a la Supabase REST API usando session persistente.
+
+    Éxito → cuerpo JSON (list/dict) o {'ok': True} si la respuesta no tiene cuerpo
+    (204/205, que es lo que PostgREST devuelve en PATCH y DELETE).
+    Error  → {'error': str, 'status': int, 'code': str|None}.
+    """
     url = f"{SUPABASE_API_URL}/{table}{query}"
     kwargs: dict = {'timeout': 10}
-    if method == 'POST':
+    if method in ('POST', 'PATCH'):
+        # PATCH devuelve la fila actualizada: evita un GET extra para refrescar
+        # y permite detectar un update que no afectó a ninguna fila.
         kwargs['headers'] = {'Prefer': 'return=representation'}
     if data is not None:
         kwargs['json'] = data
-    for attempt in range(2):
+    # Solo reintentamos GET: repetir un POST/PATCH/DELETE cuya respuesta se perdió
+    # puede duplicar o repetir la escritura.
+    attempts = 2 if method == 'GET' else 1
+    for attempt in range(attempts):
         try:
             resp = _session.request(method, url, **kwargs)
-            if resp.status_code in [200, 201]:
+            if 200 <= resp.status_code < 300:
+                if resp.status_code in (204, 205) or not resp.content:
+                    return {'ok': True}
                 try:
                     return resp.json()
                 except Exception:
                     return {'ok': True}
-            # Solo reintentar en errores de servidor transitorios (5xx), no en 4xx
-            if attempt == 0 and resp.status_code >= 500:
+            if attempt + 1 < attempts and resp.status_code >= 500:
                 time.sleep(0.1)
                 continue
-            return {'error': resp.text, 'status': resp.status_code}
+            return _parse_error(resp)
         except Exception as e:
-            if attempt == 0:
+            if attempt + 1 < attempts:
                 time.sleep(0.1)
                 continue
-            return {'error': str(e)}
+            return {'error': str(e), 'status': 0}
 
 
 def supabase_storage_upload(file_content, file_path: str):

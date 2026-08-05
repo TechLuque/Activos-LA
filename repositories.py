@@ -73,8 +73,12 @@ def delete_equipo(equipo_id: int):
 
 # ── Usuarios ──────────────────────────────────────────────────────────────────
 
+# Columnas de `usuarios` que pueden salir al cliente (nunca `password`).
+USUARIO_CAMPOS_PUBLICOS = 'id,nombre,email,notification_email,departamento,telefono,estado,rol_id'
+
+
 def get_all_usuarios() -> list:
-    result = supabase_request('GET', 'usuarios', '?select=id,nombre,email,notification_email,departamento,telefono,estado,rol_id&order=nombre.asc')
+    result = supabase_request('GET', 'usuarios', f'?select={USUARIO_CAMPOS_PUBLICOS}&order=nombre.asc')
     if isinstance(result, list):
         return result
     # Fallback: notification_email o rol_id pueden no existir en la tabla
@@ -94,8 +98,45 @@ def get_all_usuarios() -> list:
 
 
 def get_usuario(usuario_id: int) -> dict | None:
+    """Fila completa, incluye `password`. Solo para uso interno (login, validaciones).
+    Para devolver al cliente usar get_usuario_sin_password()."""
     result = supabase_request('GET', 'usuarios', f'?id=eq.{usuario_id}')
     return result[0] if isinstance(result, list) and result else None
+
+
+def get_usuario_sin_password(usuario_id: int) -> dict | None:
+    """Igual que get_usuario() pero sin el hash de contraseña — apto para respuestas HTTP."""
+    usuario = get_usuario(usuario_id)
+    if usuario:
+        usuario.pop('password', None)
+    return usuario
+
+
+# Tablas que referencian usuarios.id sin ON DELETE: bloquean el borrado en Postgres.
+USUARIO_DEPENDENCIAS = (
+    ('equipos', 'activo(s) asignado(s)'),
+    ('prestamos', 'préstamo(s)'),
+    ('prestamos_masivos', 'préstamo(s) masivo(s)'),
+    ('asignaciones_equipos', 'asignación/asignaciones'),
+    ('documentos_generados', 'documento(s) generado(s)'),
+)
+
+
+def count_usuario_dependencias(usuario_id: int) -> dict:
+    """Cuenta las filas que referencian a un usuario, por tabla. Solo devuelve las que tienen >0.
+
+    Las consultas van en paralelo. Una tabla inexistente cuenta como 0.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _count(tabla: str) -> int:
+        result = supabase_request('GET', tabla, f'?usuario_id=eq.{usuario_id}&select=id')
+        return len(result) if isinstance(result, list) else 0
+
+    tablas = [t for t, _ in USUARIO_DEPENDENCIAS]
+    with ThreadPoolExecutor(max_workers=len(tablas)) as ex:
+        counts = list(ex.map(_count, tablas))
+    return {tabla: n for tabla, n in zip(tablas, counts) if n > 0}
 
 
 def get_usuario_by_email(email: str) -> dict | None:
@@ -264,6 +305,13 @@ def create_prestamo_masivo_item(data: dict) -> dict:
     return supabase_request('POST', 'prestamos_masivos_items', '', data)
 
 
+def create_prestamo_masivo_items(items: list) -> dict:
+    """Inserta todos los items en una sola query (PostgREST acepta un array)."""
+    if not items:
+        return {'ok': True}
+    return supabase_request('POST', 'prestamos_masivos_items', '', items)
+
+
 def update_prestamo_masivo(prestamo_masivo_id: int, data: dict) -> dict:
     return supabase_request('PATCH', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}', data)
 
@@ -359,7 +407,8 @@ def get_asignacion(asig_id: int) -> dict | None:
     eq_id, usr_id = asig.get('equipo_id'), asig.get('usuario_id')
     with ThreadPoolExecutor(max_workers=2) as ex:
         f_eq = ex.submit(supabase_request, 'GET', 'equipos', f'?id=eq.{eq_id}')
-        f_usr = ex.submit(supabase_request, 'GET', 'usuarios', f'?id=eq.{usr_id}')
+        f_usr = ex.submit(supabase_request, 'GET', 'usuarios',
+                          f'?id=eq.{usr_id}&select={USUARIO_CAMPOS_PUBLICOS}')
         eq, usr = f_eq.result(), f_usr.result()
     asig['equipo'] = eq[0] if isinstance(eq, list) and eq else {}
     asig['usuario'] = usr[0] if isinstance(usr, list) and usr else {}
@@ -393,8 +442,9 @@ def update_rol(rol_id: int, data: dict) -> dict:
 
 
 def delete_rol(rol_id: int):
-    supabase_request('DELETE', 'roles_empresa', f'?id=eq.{rol_id}')
+    result = supabase_request('DELETE', 'roles_empresa', f'?id=eq.{rol_id}')
     cache_invalidate('roles_empresa')
+    return result
 
 
 # ── Tipos de equipos (extras) ─────────────────────────────────────────────────
@@ -625,6 +675,15 @@ def get_simcard(simcard_id: int) -> dict | None:
     return result[0] if isinstance(result, list) and result else None
 
 
+def get_simcards_by_ids(simcard_ids) -> dict:
+    """Devuelve {id: simcard} para un conjunto de IDs, en una sola query."""
+    ids = {i for i in simcard_ids if i}
+    if not ids:
+        return {}
+    result = supabase_request('GET', 'simcards', f'?id=in.({",".join(str(i) for i in ids)})')
+    return {s['id']: s for s in result} if isinstance(result, list) else {}
+
+
 def get_simcard_by_numero(numero: str) -> dict | None:
     result = supabase_request('GET', 'simcards', f'?numero=eq.{numero}')
     return result[0] if isinstance(result, list) and result else None
@@ -713,6 +772,23 @@ def delete_asignacion(asig_id: int):
 def get_asignaciones_activas_by_equipo(equipo_id: int) -> list:
     result = supabase_request('GET', 'asignaciones_equipos', f'?equipo_id=eq.{equipo_id}&estado=eq.abierta')
     return result if isinstance(result, list) else []
+
+
+def cerrar_asignaciones_abiertas_de_equipos(equipo_ids: list, data: dict) -> dict:
+    """Cierra en una sola query todas las asignaciones abiertas de un conjunto de equipos."""
+    if not equipo_ids:
+        return {'ok': True}
+    ids = ','.join(str(i) for i in equipo_ids)
+    return supabase_request('PATCH', 'asignaciones_equipos',
+                            f'?equipo_id=in.({ids})&estado=eq.abierta', data)
+
+
+def liberar_responsable_de_equipos(equipo_ids: list) -> dict:
+    """Limpia usuario_id de varios equipos en una sola query."""
+    if not equipo_ids:
+        return {'ok': True}
+    ids = ','.join(str(i) for i in equipo_ids)
+    return supabase_request('PATCH', 'equipos', f'?id=in.({ids})', {'usuario_id': None})
 
 
 def get_asignacion_raw(asig_id: int) -> dict | None:
