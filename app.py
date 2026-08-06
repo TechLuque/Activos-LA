@@ -204,6 +204,19 @@ def _listado_equipos_pdf_bytes(equipos: list, usuarios: dict, filtros: list) -> 
                             textColor=colors.white)
     st_num = ParagraphStyle('num', parent=st_celda, alignment=TA_RIGHT)
 
+    # Mismos colores semánticos que el badge de estado en la app.
+    _colores_estado = {
+        'bueno': colors.HexColor('#15803d'),
+        'regular': colors.HexColor('#0f766e'),
+        'dañado': colors.HexColor('#b91c1c'),
+        'en_reparacion': colors.HexColor('#b45309'),
+    }
+    _estilos_estado = {
+        clave: ParagraphStyle(f'estado_{clave}', parent=st_celda, textColor=color,
+                              fontName='Helvetica-Bold')
+        for clave, color in _colores_estado.items()
+    }
+
     salida = BytesIO()
     doc = SimpleDocTemplate(
         salida, pagesize=landscape(letter),
@@ -228,11 +241,17 @@ def _listado_equipos_pdf_bytes(equipos: list, usuarios: dict, filtros: list) -> 
     filas = [[Paragraph(nombre, st_cab) for nombre, _ in _LISTADO_COLUMNAS]]
     total_valor = 0.0
     for eq in equipos:
-        filas.append([
-            Paragraph(str(extraer(eq, usuarios)).replace('\n', '<br/>'),
-                      st_num if etiqueta == 'Valor' else st_celda)
-            for etiqueta, extraer in _LISTADO_COLUMNAS
-        ])
+        fila = []
+        for etiqueta, extraer in _LISTADO_COLUMNAS:
+            texto = str(extraer(eq, usuarios)).replace('\n', '<br/>')
+            if etiqueta == 'Estado':
+                estilo = _estilos_estado.get(eq.get('estado'), st_celda)
+            elif etiqueta == 'Valor':
+                estilo = st_num
+            else:
+                estilo = st_celda
+            fila.append(Paragraph(texto, estilo))
+        filas.append(fila)
         try:
             total_valor += float(eq.get('valor') or 0)
         except (TypeError, ValueError):
