@@ -725,20 +725,12 @@ async function cambiarResponsable(eqId){
 /* ════════════════════════════════════════════════════
    EQUIPOS
 ════════════════════════════════════════════════════ */
-function renderEq(){
-  updateTiposFilter();
-  
-  // Actualizar filtro de dueño
-  const ftDueno = $('ftDueno');
-  if(ftDueno && ftDueno.children.length <= 1){
-    USR.forEach(u => {
-      const opt = document.createElement('option');
-      opt.value = u.id;
-      opt.textContent = u.nombre;
-      ftDueno.appendChild(opt);
-    });
-  }
-  
+/* Pipeline de filtrado de equipos: búsqueda multi-campo, selects, filtros
+   avanzados anidables y orden por serial. Sin paginar.
+   Lo comparten la tabla y la exportación a PDF para que ambas vean
+   exactamente el mismo conjunto: si divergieran, el PDF no coincidiría con
+   lo que el usuario tiene en pantalla. */
+function getFilteredEq(){
   const q=($('srchEq')?.value||'');
   const tipo=$('ftTipo')?.value||'';
   const est=$('ftEst')?.value||'';
@@ -753,17 +745,91 @@ function renderEq(){
     (!est||e.estado===est)&&
     (!disp||e.disponibilidad===disp)&&
     (!dueno||e.usuario_id==dueno));
-  
-  // Aplicar filtros avanzados anidables
+
   rows=applyAdvancedFilters('eq',rows);
-  
-  // Ordenar por serial si se seleccionó
+
   if(ordenSerial==='asc'){
     rows.sort((a,b)=>(a.serial||'').localeCompare(b.serial||''));
   }else if(ordenSerial==='desc'){
     rows.sort((a,b)=>(b.serial||'').localeCompare(a.serial||''));
   }
+  return rows;
+}
+
+/* Describe los filtros activos en texto legible, para imprimirlos en la
+   cabecera del PDF y que el listado sea autoexplicativo. */
+function describeEqFilters(){
+  const partes=[];
+  const q=($('srchEq')?.value||'').trim();
+  if(q)partes.push(`Búsqueda: "${q}"`);
+  const sel=(id,etiqueta)=>{
+    const el=$(id);
+    if(!el||!el.value)return;
+    partes.push(`${etiqueta}: ${el.options[el.selectedIndex].textContent.trim()}`);
+  };
+  sel('ftTipo','Tipo');
+  sel('ftEst','Estado');
+  sel('ftEqDisp','Disponibilidad');
+  sel('ftDueno','Responsable');
+  sel('ftSerial','Orden');
+  (activeFilters['eq']||[]).forEach(f=>partes.push(f.label||`${f.field} ${f.operator} ${f.value}`));
+  return partes;
+}
+
+/* Exporta a PDF el listado de equipos tal y como está filtrado en pantalla.
+   Se envían los IDs (no las filas): el servidor relee los datos de la base,
+   así el documento nunca sale de una caché local desactualizada. */
+async function exportarEquiposPDF(){
+  const rows=getFilteredEq();
+  if(!rows.length){toast('No hay equipos que exportar con los filtros actuales','err');return;}
+
+  const btn=$('btnExportEq');
+  if(btn){btn.disabled=true;btn.textContent='Generando…';}
+  try{
+    const r=await fetch('/api/equipos/exportar-pdf',{
+      method:'POST',
+      credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ids:rows.map(e=>e.id),filtros:describeEqFilters()})
+    });
+    if(!r.ok){
+      const msg=await r.json().catch(()=>({}));
+      toast(msg.error||'No se pudo generar el PDF','err');
+      return;
+    }
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`equipos_${TODAY}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast(`PDF generado con ${rows.length} equipo(s)`,'ok');
+  }catch(e){
+    toast('Error al generar el PDF: '+e.message,'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='⬇ Exportar PDF';}
+  }
+}
+
+function renderEq(){
+  updateTiposFilter();
   
+  // Actualizar filtro de dueño
+  const ftDueno = $('ftDueno');
+  if(ftDueno && ftDueno.children.length <= 1){
+    USR.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = u.nombre;
+      ftDueno.appendChild(opt);
+    });
+  }
+  
+  const rows=getFilteredEq();
+
   $('eqCount').textContent=`${rows.length} de ${EQ.length} equipo(s)`;
   
   // Paginación

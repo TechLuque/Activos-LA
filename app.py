@@ -151,6 +151,121 @@ def _plantilla_docx_bytes(plantilla_bytes: bytes, datos: dict) -> bytes:
     return output.getvalue()
 
 
+_LISTADO_COLUMNAS = [
+    ('Equipo',        lambda e, u: '\n'.join(filter(None, [e.get('nombre') or '—',
+                                                           ' '.join(filter(None, [e.get('marca'), e.get('modelo')]))]))),
+    ('Tipo',          lambda e, u: e.get('tipo_nombre') or '—'),
+    ('Serial',        lambda e, u: e.get('serial') or '—'),
+    ('Factura',       lambda e, u: e.get('num_factura') or '—'),
+    ('Proveedor',     lambda e, u: e.get('nombre_proveedor') or '—'),
+    ('Empresa',       lambda e, u: e.get('nombre_empresa') or '—'),
+    ('F. ingreso',    lambda e, u: e.get('fecha_ingreso') or '—'),
+    ('Responsable',   lambda e, u: u.get(e.get('usuario_id'), '—')),
+    ('Estado',        lambda e, u: (e.get('estado') or '—').replace('_', ' ').capitalize()),
+    ('Disponibilidad', lambda e, u: e.get('disponibilidad') or 'Disponible'),
+    ('Valor',         lambda e, u: _fmt_moneda(e.get('valor'))),
+]
+
+# Anchos relativos por columna; se escalan al ancho útil de la página.
+_LISTADO_PESOS = [2.4, 1.2, 1.3, 1.0, 1.4, 1.2, 1.0, 1.6, 1.0, 1.2, 1.2]
+
+
+def _fmt_moneda(valor) -> str:
+    try:
+        return f"${float(valor or 0):,.0f}"
+    except (TypeError, ValueError):
+        return '—'
+
+
+def _listado_equipos_pdf_bytes(equipos: list, usuarios: dict, filtros: list) -> bytes:
+    """Construye el PDF del listado de equipos en horizontal.
+
+    reportlab se importa aquí y no arriba: solo lo usan la generación de
+    documentos y esta exportación, y cargarlo penaliza cada arranque en frío.
+    """
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_RIGHT
+    from reportlab.lib.pagesizes import letter, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+    estilos = getSampleStyleSheet()
+    st_celda = ParagraphStyle('celda', parent=estilos['Normal'], fontSize=7, leading=8.5)
+    st_cab = ParagraphStyle('cab', parent=st_celda, fontName='Helvetica-Bold',
+                            textColor=colors.white)
+    st_num = ParagraphStyle('num', parent=st_celda, alignment=TA_RIGHT)
+
+    salida = BytesIO()
+    doc = SimpleDocTemplate(
+        salida, pagesize=landscape(letter),
+        leftMargin=10 * mm, rightMargin=10 * mm, topMargin=12 * mm, bottomMargin=12 * mm,
+        title='Listado de equipos', author='ActivosLA'
+    )
+
+    generado = datetime.now().strftime('%d/%m/%Y %H:%M')
+    elementos = [
+        Paragraph('Listado de equipos', ParagraphStyle(
+            'titulo', parent=estilos['Title'], fontSize=15, spaceAfter=2)),
+        Paragraph(f'{len(equipos)} equipo(s) · Generado el {generado}', ParagraphStyle(
+            'sub', parent=estilos['Normal'], fontSize=8, textColor=colors.HexColor('#666666'))),
+    ]
+    if filtros:
+        elementos.append(Paragraph(
+            'Filtros aplicados: ' + ' · '.join(str(f) for f in filtros),
+            ParagraphStyle('filtros', parent=estilos['Normal'], fontSize=8,
+                           textColor=colors.HexColor('#444444'), spaceBefore=3)))
+    elementos.append(Spacer(1, 6 * mm))
+
+    filas = [[Paragraph(nombre, st_cab) for nombre, _ in _LISTADO_COLUMNAS]]
+    total_valor = 0.0
+    for eq in equipos:
+        filas.append([
+            Paragraph(str(extraer(eq, usuarios)).replace('\n', '<br/>'),
+                      st_num if etiqueta == 'Valor' else st_celda)
+            for etiqueta, extraer in _LISTADO_COLUMNAS
+        ])
+        try:
+            total_valor += float(eq.get('valor') or 0)
+        except (TypeError, ValueError):
+            pass
+
+    fila_total = [''] * len(_LISTADO_COLUMNAS)
+    fila_total[-2] = Paragraph('TOTAL', st_cab)
+    fila_total[-1] = Paragraph(_fmt_moneda(total_valor),
+                               ParagraphStyle('tot', parent=st_num, fontName='Helvetica-Bold',
+                                              textColor=colors.white))
+    filas.append(fila_total)
+
+    ancho_util = doc.width
+    suma = sum(_LISTADO_PESOS)
+    anchos = [ancho_util * p / suma for p in _LISTADO_PESOS]
+
+    tabla = Table(filas, colWidths=anchos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f2937')),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#1f2937')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d1d5db')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f3f4f6')]),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elementos.append(tabla)
+
+    def _pie(canvas, documento):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 7)
+        canvas.setFillColor(colors.HexColor('#888888'))
+        canvas.drawRightString(documento.pagesize[0] - 10 * mm, 7 * mm, f'Página {canvas.getPageNumber()}')
+        canvas.restoreState()
+
+    doc.build(elementos, onFirstPage=_pie, onLaterPages=_pie)
+    return salida.getvalue()
+
+
 def _cerrar_asignaciones_masivo(prestamo_masivo_id: int):
     """Cierra asignaciones abiertas y limpia usuario_id de los equipos de un masivo devuelto."""
     items = repo.get_prestamo_masivo_items(prestamo_masivo_id)
@@ -627,6 +742,47 @@ def generar_documento_usuario(id):
 def get_equipos():
     try:
         return jsonify(repo.get_all_equipos())
+    except Exception as e:
+        return _server_error(e)
+
+
+# Tope de filas por exportación: acota memoria y tiempo de la lambda.
+MAX_EQUIPOS_EXPORTACION = 2000
+
+
+@app.route('/api/equipos/exportar-pdf', methods=['POST'])
+@require_api_login
+def exportar_equipos_pdf():
+    """Genera el PDF del listado de equipos filtrado en el cliente.
+
+    Recibe los IDs ya filtrados y relee las filas de la base: el PDF no se
+    construye con lo que el navegador tenga cacheado.
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        ids = payload.get('ids')
+        if not isinstance(ids, list) or not ids:
+            return jsonify({'error': 'No se recibió ningún equipo para exportar'}), 400
+        if len(ids) > MAX_EQUIPOS_EXPORTACION:
+            return jsonify({'error': f'Demasiados equipos ({len(ids)}). Filtra hasta '
+                                     f'{MAX_EQUIPOS_EXPORTACION} como máximo.'}), 413
+
+        equipos = repo.get_equipos_by_ids(ids)
+        if not equipos:
+            return jsonify({'error': 'No se encontraron los equipos solicitados'}), 404
+
+        usuarios = {u['id']: u.get('nombre') or '—' for u in repo.get_all_usuarios()}
+
+        filtros = payload.get('filtros') or []
+        if not isinstance(filtros, list):
+            filtros = []
+
+        pdf = _listado_equipos_pdf_bytes(equipos, usuarios, filtros[:12])
+        nombre = f"equipos_{date.today().isoformat()}.pdf"
+        return app.response_class(pdf, mimetype='application/pdf', headers={
+            'Content-Disposition': f'attachment; filename="{nombre}"',
+            'Content-Length': str(len(pdf)),
+        })
     except Exception as e:
         return _server_error(e)
 

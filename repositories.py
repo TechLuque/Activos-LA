@@ -59,6 +59,34 @@ def get_equipo(equipo_id: int) -> dict | None:
     return result[0] if isinstance(result, list) and result else None
 
 
+# Columnas que necesita el listado exportable — evita traer la fila completa.
+EQUIPO_CAMPOS_LISTADO = ('id,nombre,marca,modelo,serial,estado,disponibilidad,valor,'
+                         'usuario_id,num_factura,nombre_proveedor,nombre_empresa,fecha_ingreso')
+
+
+def get_equipos_by_ids(equipo_ids: list) -> list:
+    """Equipos por lote para exportación, con el nombre del tipo resuelto.
+
+    Los IDs se piden en una sola query; se descartan los no numéricos para que
+    no acaben interpolados en la URL de PostgREST.
+    """
+    ids = [int(i) for i in equipo_ids if str(i).lstrip('-').isdigit()]
+    if not ids:
+        return []
+    query = (f'?id=in.({",".join(str(i) for i in ids)})'
+             f'&select={EQUIPO_CAMPOS_LISTADO},tipos_equipos!tipo_id(nombre)')
+    result = supabase_request('GET', 'equipos', query)
+    if not isinstance(result, list):
+        return []
+    for eq in result:
+        t = eq.pop('tipos_equipos', None) or {}
+        eq['tipo_nombre'] = t.get('nombre') or 'Sin tipo'
+    # Respetar el orden en que el cliente los envió (refleja el orden en pantalla)
+    posicion = {eid: n for n, eid in enumerate(ids)}
+    result.sort(key=lambda e: posicion.get(e.get('id'), len(ids)))
+    return result
+
+
 def create_equipo(data: dict) -> dict:
     return supabase_request('POST', 'equipos', '', data)
 
