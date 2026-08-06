@@ -347,12 +347,16 @@ def get_init_data():
 @app.route('/api/init/secondary', methods=['GET'])
 @require_api_login
 def get_secondary_data():
-    """Datos secundarios: secciones que no bloquean el dashboard inicial (6 queries, 1 ola)."""
+    """Datos secundarios: secciones que no bloquean el dashboard inicial (1 ola).
+
+    Incluye `masivos` para que el arranque no necesite una cuarta petición: en
+    serverless cada petición concurrente puede caer en una instancia fría distinta.
+    """
     try:
         if session.get('area_acceso') == 'finanzas':
             return jsonify({
                 'mantenimientos': [], 'licencias': [], 'aplicativos': [],
-                'celulares': [], 'simcards': [], 'asignaciones': []
+                'celulares': [], 'simcards': [], 'asignaciones': [], 'masivos': []
             })
         tasks = {
             'mantenimientos': repo.get_all_mantenimientos,
@@ -361,8 +365,9 @@ def get_secondary_data():
             'celulares':      repo.get_all_celulares,
             'simcards':       repo.get_all_simcards,
             'asignaciones':   repo.get_all_asignaciones,
+            'masivos':        repo.get_all_prestamos_masivos,
         }
-        with ThreadPoolExecutor(max_workers=6) as executor:
+        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
             futures = {k: executor.submit(fn) for k, fn in tasks.items()}
             return jsonify({k: f.result() for k, f in futures.items()})
     except Exception as e:

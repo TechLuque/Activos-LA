@@ -7,7 +7,7 @@ let TIPOS_DOCUMENTO=[], curDocUsrId=null, curDocUsrFull=null, docHistorialRaw=[]
 let _loanScanTimer=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
-const CACHE_KEY='activosla_v1';
+const CACHE_KEY='activosla_v2';
 const CACHE_TTL=60000;
 function _saveCache(d,sec,mr){try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),d,sec,mr}));}catch(e){}}
 function _loadCache(){try{const r=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');return r&&Date.now()-r.ts<CACHE_TTL?r:null;}catch(e){return null;}}
@@ -15,6 +15,30 @@ function _invalidateCache(){try{localStorage.removeItem(CACHE_KEY);}catch(e){}}
 
 const _dbt={};
 function db(key,fn){clearTimeout(_dbt[key]);_dbt[key]=setTimeout(fn,200);}
+
+/* Carga perezosa de librerías externas. Antes se descargaban html5-qrcode (~250 KB)
+   y JsBarcode en cada visita aunque el usuario nunca abriera el escáner ni las
+   etiquetas. Cada URL se inyecta una sola vez; las llamadas siguientes reutilizan
+   la misma promesa. */
+const LIBS={
+  qrcode:{url:'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',global:'Html5Qrcode'},
+  barcode:{url:'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js',global:'JsBarcode'}
+};
+const _libs={};
+function loadLib(name){
+  const lib=LIBS[name];
+  if(window[lib.global])return Promise.resolve(true);
+  if(!_libs[name]){
+    _libs[name]=new Promise(resolve=>{
+      const s=document.createElement('script');
+      s.src=lib.url;
+      s.onload=()=>resolve(true);
+      s.onerror=()=>{_libs[name]=null;resolve(false);};
+      document.head.appendChild(s);
+    });
+  }
+  return _libs[name];
+}
 
 const api=async(url,m='GET',b=null)=>{
   try{
@@ -346,13 +370,14 @@ async function loadAll(){
       _applyData(cached.d,cached.sec,cached.mr||[]);
       DASH=computeDash();updateTiposFilter();updateNavBadges();
       // Refrescar datos en background sin bloquear la UI
-      Promise.all([api('/api/init'),api('/api/init/secondary'),api('/api/prestamos/masivos')])
-        .then(([d,sec,mr])=>{if(!d.error){_saveCache(d,sec,mr);_applyData(d,sec,mr);DASH=computeDash();updateNavBadges();}})
+      Promise.all([api('/api/init'),api('/api/init/secondary')])
+        .then(([d,sec])=>{if(!d.error){_saveCache(d,sec,sec.masivos||[]);_applyData(d,sec,sec.masivos||[]);DASH=computeDash();updateNavBadges();}})
         .catch(()=>{});
       return;
     }
-    const [d,sec,mr]=await Promise.all([api('/api/init'),api('/api/init/secondary'),api('/api/prestamos/masivos')]);
+    const [d,sec]=await Promise.all([api('/api/init'),api('/api/init/secondary')]);
     if(d.error){toast('Error loading data: '+d.error,'err');return;}
+    const mr=sec.masivos||[];
     _saveCache(d,sec,mr);
     _applyData(d,sec,mr);
     DASH=computeDash();
@@ -3516,7 +3541,7 @@ async function openLmScanner(){
   if(label)label.textContent='Detener scanner';
   if(icon)icon.textContent='⏹';
   if(status)status.textContent='Iniciando cámara…';
-  if(typeof Html5Qrcode==='undefined'){if(status)status.textContent='Librería no disponible';return;}
+  if(!await loadLib('qrcode')){if(status)status.textContent='Librería no disponible';return;}
   await new Promise(r=>setTimeout(r,200));
   _lmScannerInstance=new Html5Qrcode('lmScannerRegion');
   const config={fps:25,qrbox:{width:260,height:80},experimentalFeatures:{useBarCodeDetectorIfSupported:true}};
@@ -5073,7 +5098,7 @@ let _html5Scanner=null;
 async function openScanner(){
   open('ovScanner');
   $('scanStatus').textContent='Iniciando cámara…';
-  if(typeof Html5Qrcode==='undefined'){
+  if(!await loadLib('qrcode')){
     $('scanStatus').textContent='Librería de escáner no disponible';
     return;
   }
@@ -5206,11 +5231,15 @@ function renderEtiquetas(){
       <button class="btn btn-ghost btn-sm" onclick="_labelsNav(1)" ${_labelsPage>=totalPages-1?'disabled':''}>Siguiente →</button>`;
   }
 
-  if(typeof JsBarcode==='undefined')return;
-  pageEqs.forEach(eq=>{
-    const el=$(`lqr-${eq.id}`);
-    if(!el)return;
-    try{JsBarcode(el,String(eq.serial||eq.serialno||eq.id),{format:'CODE128',width:1.2,height:18,displayValue:false,margin:1});}catch{}
+  // Los códigos se pintan cuando la librería termina de cargar; el HTML de las
+  // tarjetas ya está en pantalla, así que la lista no espera por la descarga.
+  loadLib('barcode').then(ok=>{
+    if(!ok)return;
+    pageEqs.forEach(eq=>{
+      const el=$(`lqr-${eq.id}`);
+      if(!el)return;
+      try{JsBarcode(el,String(eq.serial||eq.serialno||eq.id),{format:'CODE128',width:1.2,height:18,displayValue:false,margin:1});}catch{}
+    });
   });
 }
 
@@ -5218,14 +5247,6 @@ function _labelsNav(dir){
   _labelsPage+=dir;
   renderEtiquetas();
   window.scrollTo(0,0);
-}
-
-function printEtiquetas(){
-  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
-  const start=_labelsPage*LABELS_PER_PAGE;
-  const eqs=EQ.slice(start,start+LABELS_PER_PAGE);
-  if(!eqs.length){toast('Sin etiquetas en esta página','err');return;}
-  _printLabelPage(eqs);
 }
 
 const _LABEL_PRINT_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff}.pg{width:216mm;height:279mm;padding:5mm;display:grid;grid-template-columns:repeat(6,30mm);gap:1.5mm;align-content:start;page-break-after:always}.pg:last-child{page-break-after:avoid}.lc{border:1px solid #ccc;border-radius:2px;padding:1mm;height:13mm;display:flex;flex-direction:row;align-items:center;gap:1mm;overflow:hidden}.lft{flex-shrink:0;width:20%;display:flex;align-items:center;justify-content:center}.ll{max-width:100%;max-height:14px;object-fit:contain;display:block}.le{width:10px;height:10px;border:1px dashed #bbb;border-radius:2px}.lrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.lb svg{width:100%!important;height:auto!important;display:block}.ls{font-size:8px;font-family:monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}@page{size:letter;margin:0}`;
@@ -5260,16 +5281,16 @@ function _openPrintWindow(bodyHTML,css=_LABEL_PRINT_CSS,title='Etiquetas'){
   },400);
 }
 
-function printEtiquetas(){
-  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
+async function printEtiquetas(){
+  if(!await loadLib('barcode')){toast('Librería barcode no disponible','err');return;}
   const start=_labelsPage*LABELS_PER_PAGE;
   const eqs=EQ.slice(start,start+LABELS_PER_PAGE);
   if(!eqs.length){toast('Sin etiquetas en esta página','err');return;}
   _openPrintWindow(_buildLabelPageHTML(eqs));
 }
 
-function printAllEtiquetas(){
-  if(typeof JsBarcode==='undefined'){toast('Librería barcode no disponible','err');return;}
+async function printAllEtiquetas(){
+  if(!await loadLib('barcode')){toast('Librería barcode no disponible','err');return;}
   const PER=108;
   toast('Generando etiquetas…','info');
   const body=Array.from({length:Math.ceil(EQ.length/PER)},(_,pi)=>

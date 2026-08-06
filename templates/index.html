@@ -6,11 +6,13 @@
 <title>ActivosLA — Gestión de Activos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" defer></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js" defer></script>
+<!-- Fuentes sin bloquear el render: se aplican al terminar de cargar -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<!-- html5-qrcode y JsBarcode se cargan bajo demanda desde app.js (loadLib):
+     solo los usan el escáner y las etiquetas, no la carga inicial. -->
 <link rel="stylesheet" href="/static/css/app.css?v={{ css_v }}">
+<link rel="preload" href="/static/js/app.js?v={{ js_v }}" as="script">
 </head>
 <body>
 
