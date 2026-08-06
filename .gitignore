@@ -10,6 +10,11 @@ __pycache__/
 *$py.class
 *.so
 
+# Node: el proyecto no usa bundler ni dependencias JS (las librerías del
+# navegador se cargan por CDN bajo demanda). Si algo vuelve a crear estas
+# rutas, no deben versionarse ni desplegarse.
+node_modules/
+
 # Environment variables
 .env
 .env.local
