@@ -170,6 +170,10 @@ function searchMultiField(data,query,fieldsArray){
 // Sistema de filtros por vista
 const activeFilters={};
 
+// Selección de equipos para exportar: persiste entre páginas y cambios de filtro,
+// igual que la búsqueda incremental del préstamo masivo.
+const eqSelectedIds=new Set();
+
 function applyAdvancedFilters(viewType,data){
   const filters=activeFilters[viewType]||[];
   if(!filters.length)return data;
@@ -779,8 +783,13 @@ function describeEqFilters(){
 /* Exporta a PDF el listado de equipos tal y como está filtrado en pantalla.
    Se envían los IDs (no las filas): el servidor relee los datos de la base,
    así el documento nunca sale de una caché local desactualizada. */
+/* Si hay equipos tildados exporta esa selección (sin importar el filtro
+   activo en pantalla); si no hay ninguno, exporta todo lo que cumple los
+   filtros actuales, igual que antes de tener checkboxes. */
 async function exportarEquiposPDF(){
-  const rows=getFilteredEq();
+  const rows=eqSelectedIds.size
+    ? EQ.filter(e=>eqSelectedIds.has(e.id))
+    : getFilteredEq();
   if(!rows.length){toast('No hay equipos que exportar con los filtros actuales','err');return;}
 
   const btn=$('btnExportEq');
@@ -790,7 +799,10 @@ async function exportarEquiposPDF(){
       method:'POST',
       credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ids:rows.map(e=>e.id),filtros:describeEqFilters()})
+      body:JSON.stringify({
+        ids:rows.map(e=>e.id),
+        filtros:eqSelectedIds.size?['Selección manual']:describeEqFilters()
+      })
     });
     if(!r.ok){
       const msg=await r.json().catch(()=>({}));
@@ -812,6 +824,45 @@ async function exportarEquiposPDF(){
   }finally{
     if(btn){btn.disabled=false;btn.textContent='⬇ Exportar PDF';}
   }
+}
+
+/* Tilda/destilda una fila individual y refresca el checkbox "todos" y el contador. */
+function toggleEqRow(id,checkbox){
+  if(checkbox.checked) eqSelectedIds.add(id);
+  else eqSelectedIds.delete(id);
+  updateEqSelectionUI();
+}
+
+/* Tilda o destilda de una sola vez TODOS los equipos que cumplen los filtros
+   actuales (no solo los de la página visible), para no tener que ir página
+   por página cuando se quiere exportar un filtro completo. */
+function toggleEqSelectAll(checkbox){
+  const rows=getFilteredEq();
+  if(checkbox.checked) rows.forEach(r=>eqSelectedIds.add(r.id));
+  else rows.forEach(r=>eqSelectedIds.delete(r.id));
+  renderEq();
+}
+
+function clearEqSelection(){
+  eqSelectedIds.clear();
+  renderEq();
+}
+
+/* Sincroniza el checkbox "todos" (incluido su estado indeterminado) y el
+   contador de seleccionados con el conjunto de filas filtradas actual. */
+function updateEqSelectionUI(){
+  const rows=getFilteredEq();
+  const selectAll=$('eqSelectAll');
+  if(selectAll){
+    const selCount=rows.filter(r=>eqSelectedIds.has(r.id)).length;
+    selectAll.checked=rows.length>0&&selCount===rows.length;
+    selectAll.indeterminate=selCount>0&&selCount<rows.length;
+  }
+  const badge=$('eqSelCount');
+  const clearBtn=$('btnClearEqSel');
+  if(badge) badge.style.display=eqSelectedIds.size?'':'none';
+  if(badge) badge.textContent=`${eqSelectedIds.size} seleccionado(s)`;
+  if(clearBtn) clearBtn.style.display=eqSelectedIds.size?'':'none';
 }
 
 function renderEq(){
@@ -837,11 +888,12 @@ function renderEq(){
   
   const tb=$('eqTbody');
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;
+    tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">💻</div><h3>Sin resultados</h3></div></td></tr>`;
     // Limpiar pagination
     const wrapper=tb.parentElement.parentElement;
     const oldPagination=wrapper.querySelector('[data-pagination="eq"]');
     if(oldPagination) oldPagination.remove();
+    updateEqSelectionUI();
     return;
   }
   
@@ -853,6 +905,7 @@ function renderEq(){
     const dispClass = {Disponible:'bs-activo',Asignado:'bs-solicitado','En mantenimiento':'bs-en_proceso',Retirado:'bs-inactivo'}[dispLabel]||'bs-activo';
     return `
     <tr ${isRetirado ? 'style="opacity:0.55;background:rgba(0,0,0,0.3)"' : ''}>
+      <td data-label=""><input type="checkbox" ${eqSelectedIds.has(e.id)?'checked':''} onchange="toggleEqRow(${e.id},this)"></td>
       <td data-label="Equipo"><div class="av-cell">
         <div class="tipo-av">${TIPO_ICON[tipoNombre]||'📦'}</div>
         <div><div class="name">${e.nombre}</div><div class="sub">${[e.marca,e.modelo].filter(Boolean).join(' ')}</div></div>
@@ -893,6 +946,7 @@ function renderEq(){
     const paginationContainer=wrapper.querySelector('[data-pagination="eq"]');
     if(paginationContainer) paginationContainer.remove();
   }
+  updateEqSelectionUI();
 }
 
 function getNextSerialNumber(prefix){

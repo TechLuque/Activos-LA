@@ -226,7 +226,8 @@
             <option value="">Todos los responsables</option>
           </select>
           <button class="btn btn-ghost btn-sm" onclick="clearEqFilters()" title="Limpiar filtros">✕ Limpiar</button>
-          <button class="btn btn-ghost btn-sm" id="btnExportEq" onclick="exportarEquiposPDF()" title="Exportar a PDF los equipos que cumplen los filtros actuales">⬇ Exportar PDF</button>
+          <button class="btn btn-ghost btn-sm" id="btnClearEqSel" onclick="clearEqSelection()" title="Quitar la selección actual" style="display:none">✕ Quitar selección</button>
+          <button class="btn btn-ghost btn-sm" id="btnExportEq" onclick="exportarEquiposPDF()" title="Exporta a PDF los equipos seleccionados, o todos los que cumplen los filtros si no hay ninguno tildado">⬇ Exportar PDF</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
@@ -240,9 +241,11 @@
           <span style="font-size:12px;color:var(--text3)">por página</span>
         </div>
         <span class="count-badge" id="eqCount"></span>
+        <span class="count-badge" id="eqSelCount" style="display:none"></span>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
+          <th style="width:32px"><input type="checkbox" id="eqSelectAll" onchange="toggleEqSelectAll(this)" title="Seleccionar todos los equipos que cumplen los filtros actuales"></th>
           <th>Equipo</th><th>Tipo</th><th>Serial</th><th>Factura</th><th>Proveedor</th><th>Empresa</th><th>Fecha Ingreso</th><th>Responsable</th><th>Estado</th><th>Disponibilidad</th><th>Valor</th><th>Acciones</th>
         </tr></thead><tbody id="eqTbody"></tbody></table>
       </div>
