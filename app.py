@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 from flask_compress import Compress
+import hashlib
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
@@ -31,10 +32,17 @@ app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 Compress(app)
 
 def _asset_version(path: str) -> str:
-    """Versión de cache-busting a partir del mtime. Evita leer y hashear 290 KB
-    de assets en cada cold start."""
+    """Versión de cache-busting a partir del contenido del archivo.
+
+    El mtime no sirve en Vercel: el build no garantiza que cambie entre
+    despliegues, así que un asset marcado 'immutable' podía quedar servido
+    desde el CDN para siempre aunque el archivo cambiara. Se calcula una
+    sola vez por cold start, así que hashear ~290 KB no penaliza cada
+    request.
+    """
     try:
-        return format(int(os.path.getmtime(path)), 'x')
+        with open(path, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()[:10]
     except OSError:
         return '0'
 
