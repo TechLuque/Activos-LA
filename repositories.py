@@ -308,7 +308,7 @@ def get_all_prestamos_masivos() -> list:
 
 
 def get_prestamo_masivo_by_id(prestamo_masivo_id: int) -> dict | None:
-    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url')
+    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url')
     return result[0] if isinstance(result, list) and result else None
 
 

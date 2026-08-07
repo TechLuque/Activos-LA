@@ -293,6 +293,136 @@ def _listado_equipos_pdf_bytes(equipos: list, usuarios: dict, filtros: list) -> 
     return salida.getvalue()
 
 
+_ESTADO_MASIVO_LABELS = {
+    'activo': 'Activo (pendiente de firma)',
+    'firmado': 'Firmado',
+    'devuelto': 'Devuelto',
+}
+
+
+def _prestamo_masivo_pdf_bytes(masivo: dict, usuario: dict, equipos: list) -> bytes:
+    """Construye el comprobante en PDF de un préstamo masivo: datos, equipos y firma.
+
+    reportlab se importa aquí y no arriba por el mismo motivo que el listado
+    de equipos: solo lo usa esta exportación y penaliza el arranque en frío.
+    """
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+
+    estilos = getSampleStyleSheet()
+    st_normal = ParagraphStyle('normal', parent=estilos['Normal'], fontSize=9, leading=12)
+    st_label = ParagraphStyle('label', parent=st_normal, fontName='Helvetica-Bold',
+                              textColor=colors.HexColor('#444444'))
+    st_celda = ParagraphStyle('celda', parent=estilos['Normal'], fontSize=8, leading=10)
+    st_cab = ParagraphStyle('cab', parent=st_celda, fontName='Helvetica-Bold', textColor=colors.white)
+
+    salida = BytesIO()
+    doc = SimpleDocTemplate(
+        salida, pagesize=letter,
+        leftMargin=15 * mm, rightMargin=15 * mm, topMargin=15 * mm, bottomMargin=15 * mm,
+        title=f'Préstamo masivo #{masivo.get("id")}', author='ActivosLA'
+    )
+
+    generado = datetime.now().strftime('%d/%m/%Y %H:%M')
+    elementos = [
+        Paragraph('Comprobante de préstamo de equipos', ParagraphStyle(
+            'titulo', parent=estilos['Title'], fontSize=16, spaceAfter=2)),
+        Paragraph(f'Préstamo masivo #{masivo.get("id")} · Generado el {generado}', ParagraphStyle(
+            'sub', parent=estilos['Normal'], fontSize=8, textColor=colors.HexColor('#666666'))),
+        Spacer(1, 6 * mm),
+    ]
+
+    datos = [
+        ('Responsable', usuario.get('nombre') or '—'),
+        ('Departamento', usuario.get('departamento') or '—'),
+        ('Fecha de préstamo', fmtDate_py(masivo.get('fecha_prestamo'))),
+        ('Devolución esperada', fmtDate_py(masivo.get('fecha_devolucion_esperada'))),
+        ('Devolución real', fmtDate_py(masivo.get('fecha_devolucion_real'))),
+        ('Estado', _ESTADO_MASIVO_LABELS.get(masivo.get('estado'), masivo.get('estado') or '—')),
+    ]
+    filas_datos = [[Paragraph(f'{etq}:', st_label), Paragraph(str(val), st_normal)] for etq, val in datos]
+    tabla_datos = Table(filas_datos, colWidths=[45 * mm, None])
+    tabla_datos.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    elementos.append(tabla_datos)
+    elementos.append(Spacer(1, 8 * mm))
+
+    elementos.append(Paragraph(f'Equipos incluidos ({len(equipos)})', ParagraphStyle(
+        'seccion', parent=estilos['Heading3'], fontSize=11, spaceAfter=4)))
+
+    filas = [[Paragraph(t, st_cab) for t in ('#', 'Equipo', 'Tipo', 'Marca', 'Serial')]]
+    for i, eq in enumerate(equipos, start=1):
+        filas.append([
+            Paragraph(str(i), st_celda),
+            Paragraph(eq.get('nombre') or '—', st_celda),
+            Paragraph(eq.get('tipo_nombre') or '—', st_celda),
+            Paragraph(eq.get('marca') or '—', st_celda),
+            Paragraph(eq.get('serial') or '—', st_celda),
+        ])
+    tabla = Table(filas, colWidths=[10 * mm, None, 35 * mm, 30 * mm, 35 * mm], repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f2937')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d1d5db')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f3f4f6')]),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elementos.append(tabla)
+    elementos.append(Spacer(1, 10 * mm))
+
+    elementos.append(Paragraph('Firma del responsable', ParagraphStyle(
+        'seccion', parent=estilos['Heading3'], fontSize=11, spaceAfter=4)))
+
+    firma_url = masivo.get('firma_url')
+    firma_bytes = supabase_storage_download(firma_url) if firma_url else None
+    if firma_bytes:
+        try:
+            img = Image(BytesIO(firma_bytes), width=70 * mm, height=35 * mm, kind='proportional')
+            elementos.append(img)
+        except Exception:
+            firma_bytes = None
+    if not firma_bytes:
+        elementos.append(Spacer(1, 20 * mm))
+        elementos.append(Table([['']], colWidths=[70 * mm], rowHeights=[0.3 * mm],
+                                style=TableStyle([('LINEABOVE', (0, 0), (-1, 0), 0.75, colors.black)])))
+        elementos.append(Paragraph('Firma pendiente', ParagraphStyle(
+            'pend', parent=st_normal, fontSize=8, textColor=colors.HexColor('#888888'), spaceBefore=2)))
+
+    fecha_firma = masivo.get('fecha_firma')
+    if fecha_firma:
+        elementos.append(Paragraph(f'Firmado el {fmtDate_py(fecha_firma)}', ParagraphStyle(
+            'firmado', parent=st_normal, fontSize=8, textColor=colors.HexColor('#666666'), spaceBefore=4)))
+
+    def _pie(canvas, documento):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 7)
+        canvas.setFillColor(colors.HexColor('#888888'))
+        canvas.drawRightString(documento.pagesize[0] - 15 * mm, 8 * mm, f'Página {canvas.getPageNumber()}')
+        canvas.restoreState()
+
+    doc.build(elementos, onFirstPage=_pie, onLaterPages=_pie)
+    return salida.getvalue()
+
+
+def fmtDate_py(valor) -> str:
+    """Formatea una fecha ISO (con o sin hora) a dd/mm/aaaa para el PDF."""
+    if not valor:
+        return '—'
+    try:
+        return datetime.fromisoformat(str(valor).replace('Z', '+00:00')).strftime('%d/%m/%Y')
+    except ValueError:
+        return str(valor)[:10]
+
+
 def _cerrar_asignaciones_masivo(prestamo_masivo_id: int):
     """Cierra asignaciones abiertas y limpia usuario_id de los equipos de un masivo devuelto."""
     items = repo.get_prestamo_masivo_items(prestamo_masivo_id)
@@ -1818,6 +1948,34 @@ def delete_prestamo_masivo(id):
     try:
         repo.delete_prestamo_masivo(id)
         return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/exportar-pdf', methods=['GET'])
+@require_api_login
+def exportar_prestamo_masivo_pdf(id):
+    """Genera el comprobante en PDF de un préstamo masivo: datos, equipos y firma.
+
+    Relee todo de la base (no de lo que el navegador tenga cacheado) para que
+    el documento entregado siempre refleje el estado real del préstamo.
+    """
+    try:
+        masivo = repo.get_prestamo_masivo_by_id(id)
+        if masivo is None:
+            return jsonify({'error': 'Préstamo masivo no encontrado'}), 404
+
+        usuario = repo.get_usuario_sin_password(masivo.get('usuario_id')) or {}
+        items = repo.get_prestamo_masivo_items(id)
+        equipo_ids = [item['equipo_id'] for item in items if item.get('equipo_id')]
+        equipos = repo.get_equipos_by_ids(equipo_ids) if equipo_ids else []
+
+        pdf = _prestamo_masivo_pdf_bytes(masivo, usuario, equipos)
+        nombre = f"prestamo_masivo_{id}_{date.today().isoformat()}.pdf"
+        return app.response_class(pdf, mimetype='application/pdf', headers={
+            'Content-Disposition': f'attachment; filename="{nombre}"',
+            'Content-Length': str(len(pdf)),
+        })
     except Exception as e:
         return _server_error(e)
 

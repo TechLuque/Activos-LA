@@ -3912,6 +3912,35 @@ function viewLoanMasivoItems(id){
   document.getElementById('ovLoanMasivoItems').classList.add('open');
 }
 
+async function exportarPrestamoMasivoPDF(id){
+  const masivoId=id||_currentMasivoId;
+  if(!masivoId) return;
+  const btn=$('lmItemsPdfBtn');
+  if(btn){btn.disabled=true;btn.textContent='Generando…';}
+  try{
+    const r=await fetch(`/api/prestamos/masivos/${masivoId}/exportar-pdf`,{credentials:'include'});
+    if(!r.ok){
+      const msg=await r.json().catch(()=>({}));
+      toast(msg.error||'No se pudo generar el PDF','err');
+      return;
+    }
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`prestamo_masivo_${masivoId}_${TODAY}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('PDF generado','ok');
+  }catch(e){
+    toast('Error al generar el PDF: '+e.message,'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='📄 Descargar PDF';}
+  }
+}
+
 function viewLoanMasivoDocuments(id){
   const masivo=LOANS_MASIVOS.find(m=>m.id===id);
   if(!masivo){toast('Préstamo masivo no encontrado','err');return;}
