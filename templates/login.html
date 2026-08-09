@@ -10,191 +10,258 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #0f172a;
-            --surface: #1a2235;
-            --surface2: #243548;
-            --border: #384860;
-            --text: #e2e8f0;
+            --bg: #0b1220;
+            --surface: #171f33;
+            --surface2: #212c45;
+            --border: #34415c;
+            --text: #eef2f8;
             --text2: #cbd5e1;
-            --text3: #94a3b8;
+            --text3: #8b98ae;
             --blue: #3b82f6;
+            --blue-soft: #dbeafe;
             --green: #10b981;
             --red: #ef4444;
+            --amber: #f59e0b;
         }
-        
+
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg) 0%, #1a2844 100%);
+            background:
+                radial-gradient(720px 480px at 50% -10%, rgba(59, 130, 246, 0.16), transparent 65%),
+                linear-gradient(160deg, var(--bg) 0%, #101a30 55%, #0b1220 100%);
             color: var(--text);
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
         }
-        
+
         .login-container {
             width: 100%;
             max-width: 420px;
+            position: relative;
         }
-        
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            left: 50%;
+            width: 340px;
+            height: 340px;
+            transform: translateX(-50%);
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 70%);
+            filter: blur(10px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
         .login-box {
-            background: var(--surface);
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(180deg, var(--surface) 0%, #141b2c 100%);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border-radius: 16px;
+            padding: 44px 40px;
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.45),
+                0 1px 0 rgba(255, 255, 255, 0.04) inset;
         }
-        
-        .logo {
-            text-align: center;
-            margin-bottom: 8px;
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 28px;
         }
-        
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(14, 165, 233, 0.12));
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-mark svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .logo-text {
-            font-size: 32px;
+            font-size: 22px;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--blue), #0ea5e9);
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #93c5fd, var(--blue));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .title {
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 28px;
         }
-        
+
         .title h1 {
-            font-size: 24px;
+            font-size: 25px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
             margin-bottom: 8px;
         }
-        
+
         .title p {
             color: var(--text3);
             font-size: 14px;
+            letter-spacing: -0.005em;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 8px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text2);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
         }
-        
+
         input[type="text"],
         input[type="password"] {
             width: 100%;
             padding: 12px 16px;
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             color: var(--text);
             font-size: 14px;
             font-family: inherit;
-            transition: all 0.2s;
+            transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
         }
-        
+
+        input[type="text"]:hover,
+        input[type="password"]:hover {
+            border-color: #43536f;
+        }
+
         input[type="text"]:focus,
         input[type="password"]:focus {
             outline: none;
             border-color: var(--blue);
-            background: rgba(59, 130, 246, 0.05);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: rgba(59, 130, 246, 0.06);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16);
         }
-        
+
         input[type="text"]::placeholder,
         input[type="password"]::placeholder {
             color: var(--text3);
         }
-        
+
         .form-actions {
             display: flex;
             gap: 12px;
-            margin-top: 28px;
+            margin-top: 30px;
         }
-        
+
         button {
             flex: 1;
-            padding: 12px 24px;
+            padding: 13px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
+            letter-spacing: -0.005em;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
             font-family: inherit;
         }
-        
+
         .btn-primary {
             background: var(--blue);
             color: white;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
         }
-        
+
         .btn-primary:hover {
             background: #2563eb;
+            box-shadow: 0 10px 28px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
         }
-        
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        }
+
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
         }
-        
+
         .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 16px;
+            border-radius: 10px;
             margin-bottom: 20px;
             font-size: 13px;
-            display: none;
         }
-        
+
         .alert.error {
             background: rgba(239, 68, 68, 0.1);
             color: #fca5a5;
             border: 1px solid rgba(239, 68, 68, 0.2);
-            display: block;
+            display: flex;
         }
-        
+
         .alert.success {
             background: rgba(16, 185, 129, 0.1);
             color: #86efac;
             border: 1px solid rgba(16, 185, 129, 0.2);
-            display: block;
+            display: flex;
         }
-        
+
         .loading {
             display: none;
-            text-align: center;
+            align-items: center;
+            justify-content: center;
         }
-        
+
         .spinner {
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--border);
-            border-top-color: var(--blue);
+            width: 15px;
+            height: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-top-color: #fff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin-right: 8px;
         }
-        
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
+
         .info {
             background: rgba(59, 130, 246, 0.1);
             border: 1px solid rgba(59, 130, 246, 0.2);
             color: #93c5fd;
             padding: 12px 16px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 12px;
             margin-bottom: 20px;
         }
@@ -203,10 +270,18 @@
 <body>
     <div class="login-container">
         <div class="login-box">
-            <div class="logo">
+            <div class="brand">
+                <div class="brand-mark">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#93c5fd" stroke-width="1.6"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#3b82f6" stroke-width="1.6"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#3b82f6" stroke-width="1.6"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#93c5fd" stroke-width="1.6"/>
+                    </svg>
+                </div>
                 <div class="logo-text">ActivosLA</div>
             </div>
-            
+
             <div class="title">
                 <h1>Ingresa a tu cuenta</h1>
                 <p>Sistema de gestión de activos</p>

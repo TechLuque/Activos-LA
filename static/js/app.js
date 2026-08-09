@@ -7,6 +7,18 @@ let TIPOS_DOCUMENTO=[], curDocUsrId=null, curDocUsrFull=null, docHistorialRaw=[]
 let _loanScanTimer=null;
 const TODAY=new Date().toISOString().split('T')[0];
 
+const THEME_KEY='activosla_theme';
+function applyThemeIcon(){
+  const btn=document.getElementById('themeToggleBtn');
+  if(btn)btn.textContent=document.documentElement.getAttribute('data-theme')==='light'?'☀️':'🌙';
+}
+function toggleTheme(){
+  const next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem(THEME_KEY,next);}catch(e){}
+  applyThemeIcon();
+}
+
 const CACHE_KEY='activosla_v2';
 const CACHE_TTL=60000;
 function _saveCache(d,sec,mr){try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),d,sec,mr}));}catch(e){}}
@@ -223,6 +235,12 @@ function getActiveFilters(viewType){
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
   usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',documentos:'Documentos',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles',etiquetas:'Etiquetas de Activos'};
 
+function toggleFiltersPanel(headEl){
+  const panel=headEl.closest('.tbl-toolbar');
+  const collapsed=panel.classList.toggle('collapsed');
+  headEl.setAttribute('aria-expanded',String(!collapsed));
+}
+
 function toggleSidebar(){
   const sb=document.querySelector('.sidebar');
   const ov=$('sidebarOverlay');
@@ -275,6 +293,7 @@ function _aplicarRestriccionFinanzas(){
 }
 
 async function init(){
+  applyThemeIcon();
   const [user]=await Promise.all([api('/api/user').catch(()=>null),loadAll()]);
   const esFinanzas=user&&user.area_acceso==='finanzas';
   if(user&&!user.error){
@@ -4714,40 +4733,37 @@ async function loadAsignaciones(){
 
 function renderAsignaciones(){
   const search=$('srchAsig')?.value||'';
-  const variable=$('ftAsigVariable')?.value||'';
   const responsableFilter=parseInt($('ftAsigResponsableValue')?.value)||0;
   const equipoFilter=parseInt($('ftAsigEquipoValue')?.value)||0;
   const firmaFilter=$('ftAsigFirmaValue')?.value||'';
   const estadoFilter=$('ftAsigEstadoValue')?.value||'';
   const politicaFilter=$('ftAsigPoliticaValue')?.value||'';
   const fechaFilter=$('ftAsigFechaValue')?.value||'';
-  
+
   // Búsqueda multi-campo en: equipo.nombre, equipo.serial, usuario.nombre, usuario.departamento
   let filtered=searchMultiField(ASIGNACIONES,search,SEARCH_FIELDS.asignaciones);
-  
-  // Filtros específicos
+
+  // Filtros específicos (combinados con AND, igual que en el resto de páginas)
   filtered=filtered.filter(a=>{
-    let matchesSpecificFilter=true;
-    
-    if(variable==='responsable'&&responsableFilter){
-      matchesSpecificFilter=a.usuario_id===responsableFilter;
-    }else if(variable==='equipo'&&equipoFilter){
-      matchesSpecificFilter=a.equipo_id===equipoFilter;
-    }else if(variable==='firma'&&firmaFilter){
+    if(responsableFilter&&a.usuario_id!==responsableFilter)return false;
+    if(equipoFilter&&a.equipo_id!==equipoFilter)return false;
+    if(firmaFilter){
       const tieneEnt=!!a.firma_entrada_url;
-      matchesSpecificFilter=(firmaFilter==='pendiente'&&!tieneEnt)||(firmaFilter==='firmado'&&tieneEnt);
-    }else if(variable==='estado'&&estadoFilter){
-      matchesSpecificFilter=a.estado===estadoFilter;
-    }else if(variable==='politica'&&politicaFilter){
-      matchesSpecificFilter=(politicaFilter==='si'&&a.politica_aceptada)||(politicaFilter==='no'&&!a.politica_aceptada);
-    }else if(variable==='fecha'&&fechaFilter){
-      const asigDate=a.fecha_asignacion?new Date(a.fecha_asignacion).toISOString().split('T')[0]:'';
-      matchesSpecificFilter=asigDate===fechaFilter;
+      if(firmaFilter==='pendiente'&&tieneEnt)return false;
+      if(firmaFilter==='firmado'&&!tieneEnt)return false;
     }
-    
-    return matchesSpecificFilter;
+    if(estadoFilter&&a.estado!==estadoFilter)return false;
+    if(politicaFilter){
+      if(politicaFilter==='si'&&!a.politica_aceptada)return false;
+      if(politicaFilter==='no'&&a.politica_aceptada)return false;
+    }
+    if(fechaFilter){
+      const asigDate=a.fecha_asignacion?new Date(a.fecha_asignacion).toISOString().split('T')[0]:'';
+      if(asigDate!==fechaFilter)return false;
+    }
+    return true;
   });
-  
+
   // Aplicar filtros avanzados anidables
   filtered=applyAdvancedFilters('asignaciones',filtered);
   
@@ -4854,52 +4870,14 @@ function actualizarFiltrosAsignaciones(){
   }
 }
 
-function updateAsigFilterUI(){
-  const variable=$('ftAsigVariable').value;
-  const container=$('asigFilterValueContainer');
-  const btnClear=$('btClearAsigFilter');
-  
-  // Ocultar todos los inputs
-  $('ftAsigResponsableValue').style.display='none';
-  $('ftAsigEquipoValue').style.display='none';
-  $('ftAsigFirmaValue').style.display='none';
-  $('ftAsigEstadoValue').style.display='none';
-  $('ftAsigPoliticaValue').style.display='none';
-  $('ftAsigFechaValue').style.display='none';
-  
-  if(!variable){
-    container.style.display='none';
-    btnClear.style.display='none';
-  }else{
-    container.style.display='flex';
-    btnClear.style.display='block';
-    
-    // Mostrar solo el input correspondiente
-    if(variable==='responsable'){
-      $('ftAsigResponsableValue').style.display='block';
-    }else if(variable==='equipo'){
-      $('ftAsigEquipoValue').style.display='block';
-    }else if(variable==='firma'){
-      $('ftAsigFirmaValue').style.display='block';
-    }else if(variable==='estado'){
-      $('ftAsigEstadoValue').style.display='block';
-    }else if(variable==='politica'){
-      $('ftAsigPoliticaValue').style.display='block';
-    }else if(variable==='fecha'){
-      $('ftAsigFechaValue').style.display='block';
-    }
-  }
-}
-
 function clearAsigFilters(){
-  $('ftAsigVariable').value='';
+  $('srchAsig').value='';
   $('ftAsigResponsableValue').value='';
   $('ftAsigEquipoValue').value='';
   $('ftAsigFirmaValue').value='';
   $('ftAsigEstadoValue').value='';
   $('ftAsigPoliticaValue').value='';
   $('ftAsigFechaValue').value='';
-  updateAsigFilterUI();
   currentPage['asignaciones']=1;
   renderAsignaciones();
 }

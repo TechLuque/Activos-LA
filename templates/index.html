@@ -13,6 +13,7 @@
      solo los usan el escáner y las etiquetas, no la carga inicial. -->
 <link rel="stylesheet" href="/static/css/app.css?v={{ css_v }}">
 <link rel="preload" href="/static/js/app.js?v={{ js_v }}" as="script">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('activosla_theme')||'dark');}catch(e){}</script>
 </head>
 <body>
 
@@ -108,6 +109,7 @@
       <p id="pgDate"></p>
     </div>
     <button class="scan-btn" onclick="openScanner()" title="Escanear equipo">📷</button>
+    <button class="scan-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     <div class="user-pill" onclick="toggleUserMenu()" style="cursor:pointer;position:relative">
       <div class="user-av">A</div>
       <div>
@@ -124,7 +126,7 @@
     </div>
   </header>
 
-  <div id="globalLoader" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,12,18,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div id="globalLoader" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);opacity:.85;backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:14px">
     <div style="width:44px;height:44px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite"></div>
     <div style="font-size:13px;color:var(--text3);font-weight:500">Cargando datos…</div>
   </div>
@@ -202,46 +204,67 @@
         <button class="btn btn-primary" onclick="openEqModal()">+ Nuevo equipo</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchEq" type="text" placeholder="Buscar nombre, serial, marca…" oninput="db('eq',()=>{currentPage['eq']=1;renderEq()})">
-          <select id="ftTipo" onchange="currentPage['eq']=1;renderEq()"><option value="">Todos los tipos</option></select>
-          <select id="ftEst" onchange="currentPage['eq']=1;renderEq()">
-            <option value="">Todos los estados</option>
-            <option value="bueno">Bueno</option><option value="regular">Regular</option>
-            <option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option>
-          </select>
-          <select id="ftEqDisp" onchange="currentPage['eq']=1;renderEq()">
-            <option value="">Todas las disponibilidades</option>
-            <option value="Disponible">Disponible</option>
-            <option value="Asignado">Asignado</option>
-            <option value="En mantenimiento">En mantenimiento</option>
-            <option value="Retirado">Retirado</option>
-          </select>
-          <select id="ftSerial" onchange="currentPage['eq']=1;renderEq()">
-            <option value="">Ordenar por serial</option>
-            <option value="asc">Serial A-Z</option>
-            <option value="desc">Serial Z-A</option>
-          </select>
-          <select id="ftDueno" onchange="currentPage['eq']=1;renderEq()">
-            <option value="">Todos los responsables</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchEq" type="text" placeholder="Nombre, serial, marca…" oninput="db('eq',()=>{currentPage['eq']=1;renderEq()})">
+          </div>
+          <div class="filter-field"><label>📦 Tipo</label>
+            <select id="ftTipo" onchange="currentPage['eq']=1;renderEq()"><option value="">Todos los tipos</option></select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftEst" onchange="currentPage['eq']=1;renderEq()">
+              <option value="">Todos los estados</option>
+              <option value="bueno">Bueno</option><option value="regular">Regular</option>
+              <option value="dañado">Dañado</option><option value="en_reparacion">En reparación</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>📍 Disponibilidad</label>
+            <select id="ftEqDisp" onchange="currentPage['eq']=1;renderEq()">
+              <option value="">Todas las disponibilidades</option>
+              <option value="Disponible">Disponible</option>
+              <option value="Asignado">Asignado</option>
+              <option value="En mantenimiento">En mantenimiento</option>
+              <option value="Retirado">Retirado</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>↕️ Ordenar</label>
+            <select id="ftSerial" onchange="currentPage['eq']=1;renderEq()">
+              <option value="">Ordenar por serial</option>
+              <option value="asc">Serial A-Z</option>
+              <option value="desc">Serial Z-A</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>👤 Responsable</label>
+            <select id="ftDueno" onchange="currentPage['eq']=1;renderEq()">
+              <option value="">Todos los responsables</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearEqFilters()" title="Limpiar filtros">✕ Limpiar</button>
           <button class="btn btn-ghost btn-sm" id="btnClearEqSel" onclick="clearEqSelection()" title="Quitar la selección actual" style="display:none">✕ Quitar selección</button>
           <button class="btn btn-ghost btn-sm" id="btnExportEq" onclick="exportarEquiposPDF()" title="Exporta a PDF los equipos seleccionados, o todos los que cumplen los filtros si no hay ninguno tildado">⬇ Exportar PDF</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageEq" onchange="updateItemsPerPage('eq');renderEq()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="eqCount"></span>
+          <span class="count-badge" id="eqSelCount" style="display:none"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageEq" onchange="updateItemsPerPage('eq');renderEq()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="eqCount"></span>
-        <span class="count-badge" id="eqSelCount" style="display:none"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -258,35 +281,52 @@
         <button class="btn btn-primary" onclick="openMantModal()">+ Nuevo mantenimiento</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchMant" type="text" placeholder="Buscar equipo, técnico, descripción…" oninput="db('mant',()=>{currentPage['mant']=1;renderMant()})">
-          <select id="ftMantEquipo" onchange="currentPage['mant']=1;renderMant()">
-            <option value="">Todos los equipos</option>
-          </select>
-          <select id="ftMantTipo" onchange="currentPage['mant']=1;renderMant()">
-            <option value="">Todos los tipos</option>
-            <option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option>
-          </select>
-          <select id="ftMantEst" onchange="currentPage['mant']=1;renderMant()">
-            <option value="">Todos los estados</option>
-            <option value="completado">Completado</option>
-            <option value="en_proceso">En proceso</option>
-            <option value="pendiente">Pendiente</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchMant" type="text" placeholder="Buscar equipo, técnico, descripción…" oninput="db('mant',()=>{currentPage['mant']=1;renderMant()})">
+          </div>
+          <div class="filter-field"><label>💻 Equipo</label>
+            <select id="ftMantEquipo" onchange="currentPage['mant']=1;renderMant()">
+              <option value="">Todos los equipos</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>📦 Tipo</label>
+            <select id="ftMantTipo" onchange="currentPage['mant']=1;renderMant()">
+              <option value="">Todos los tipos</option>
+              <option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftMantEst" onchange="currentPage['mant']=1;renderMant()">
+              <option value="">Todos los estados</option>
+              <option value="completado">Completado</option>
+              <option value="en_proceso">En proceso</option>
+              <option value="pendiente">Pendiente</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearMantFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageMant" onchange="updateItemsPerPage('mant');renderMant()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="mantCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageMant" onchange="updateItemsPerPage('mant');renderMant()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="mantCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -302,39 +342,56 @@
         <button class="btn btn-primary" onclick="openLicenseModal()">+ Nueva licencia</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="db('lic',()=>{currentPage['license']=1;renderLicenses()})">
-          <select id="ftLicenseTipo" onchange="currentPage['license']=1;renderLicenses()">
-            <option value="">Todos los tipos</option>
-            <option value="Software">Software</option>
-            <option value="Hardware">Hardware</option>
-            <option value="Comercial">Comercial</option>
-            <option value="Otro">Otro</option>
-          </select>
-          <select id="ftLicenseProveedor" onchange="currentPage['license']=1;renderLicenses()">
-            <option value="">Todos los proveedores</option>
-          </select>
-          <select id="ftLicenseEst" onchange="currentPage['license']=1;renderLicenses()">
-            <option value="">Todos los estados</option>
-            <option value="activa">Activa</option>
-            <option value="por_vencer">Por vencer</option>
-            <option value="vencida">Vencida</option>
-            <option value="inactiva">Inactiva</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchLicense" type="text" placeholder="Buscar nombre, proveedor…" oninput="db('lic',()=>{currentPage['license']=1;renderLicenses()})">
+          </div>
+          <div class="filter-field"><label>📦 Tipo</label>
+            <select id="ftLicenseTipo" onchange="currentPage['license']=1;renderLicenses()">
+              <option value="">Todos los tipos</option>
+              <option value="Software">Software</option>
+              <option value="Hardware">Hardware</option>
+              <option value="Comercial">Comercial</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🏬 Proveedor</label>
+            <select id="ftLicenseProveedor" onchange="currentPage['license']=1;renderLicenses()">
+              <option value="">Todos los proveedores</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftLicenseEst" onchange="currentPage['license']=1;renderLicenses()">
+              <option value="">Todos los estados</option>
+              <option value="activa">Activa</option>
+              <option value="por_vencer">Por vencer</option>
+              <option value="vencida">Vencida</option>
+              <option value="inactiva">Inactiva</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearLicenseFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageLicense" onchange="updateItemsPerPage('license');renderLicenses()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15" selected>15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="licenseCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageLicense" onchange="updateItemsPerPage('license');renderLicenses()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="15" selected>15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="licenseCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -350,36 +407,51 @@
         <button class="btn btn-primary" onclick="openAplicativoModal()">+ Nuevo Aplicativo</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="db('app',()=>{currentPage['aplicativo']=1;renderAplicativos()})">
-          <select id="ftAplicativoPeriodicidad" onchange="currentPage['aplicativo']=1;renderAplicativos()">
-            <option value="">Todas las periodicidades</option>
-            <option value="Mensual">Mensual</option>
-            <option value="Trimestral">Trimestral</option>
-            <option value="Semestral">Semestral</option>
-            <option value="Anual">Anual</option>
-          </select>
-          <select id="ftAplicativoEst" onchange="currentPage['aplicativo']=1;renderAplicativos()">
-            <option value="">Todos los estados</option>
-            <option value="activo">Activo</option>
-            <option value="por_vencer">Por vencer</option>
-            <option value="vencido">Vencido</option>
-            <option value="inactivo">Inactivo</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchAplicativo" type="text" placeholder="Buscar nombre…" oninput="db('app',()=>{currentPage['aplicativo']=1;renderAplicativos()})">
+          </div>
+          <div class="filter-field"><label>🔁 Periodicidad</label>
+            <select id="ftAplicativoPeriodicidad" onchange="currentPage['aplicativo']=1;renderAplicativos()">
+              <option value="">Todas las periodicidades</option>
+              <option value="Mensual">Mensual</option>
+              <option value="Trimestral">Trimestral</option>
+              <option value="Semestral">Semestral</option>
+              <option value="Anual">Anual</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftAplicativoEst" onchange="currentPage['aplicativo']=1;renderAplicativos()">
+              <option value="">Todos los estados</option>
+              <option value="activo">Activo</option>
+              <option value="por_vencer">Por vencer</option>
+              <option value="vencido">Vencido</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearAplicativoFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageAplicativo" onchange="updateItemsPerPage('aplicativo');renderAplicativos()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15" selected>15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="aplicativoCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageAplicativo" onchange="updateItemsPerPage('aplicativo');renderAplicativos()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="15" selected>15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="aplicativoCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -395,32 +467,47 @@
         <button class="btn btn-primary" onclick="openCelularModal()">+ Nuevo Celular</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="db('cel',()=>{currentPage['celular']=1;renderCelulares()})">
-          <select id="ftCelularMarca" onchange="currentPage['celular']=1;renderCelulares()">
-            <option value="">Todas las marcas</option>
-          </select>
-          <select id="ftCelularEst" onchange="currentPage['celular']=1;renderCelulares()">
-            <option value="">Todos los estados</option>
-            <option value="activo">Activo</option>
-            <option value="en_reparacion">En reparación</option>
-            <option value="inactivo">Inactivo</option>
-            <option value="retirado">Retirado</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchCelular" type="text" placeholder="Buscar nombre, marca, IMEI…" oninput="db('cel',()=>{currentPage['celular']=1;renderCelulares()})">
+          </div>
+          <div class="filter-field"><label>🏷️ Marca</label>
+            <select id="ftCelularMarca" onchange="currentPage['celular']=1;renderCelulares()">
+              <option value="">Todas las marcas</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftCelularEst" onchange="currentPage['celular']=1;renderCelulares()">
+              <option value="">Todos los estados</option>
+              <option value="activo">Activo</option>
+              <option value="en_reparacion">En reparación</option>
+              <option value="inactivo">Inactivo</option>
+              <option value="retirado">Retirado</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearCelularFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageCelular" onchange="updateItemsPerPage('celular');renderCelulares()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="celularCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageCelular" onchange="updateItemsPerPage('celular');renderCelulares()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="celularCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -436,38 +523,55 @@
         <button class="btn btn-primary" onclick="openSimcardModal()">+ Nueva SIM Card</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="db('sim',()=>{currentPage['simcard']=1;renderSimcards()})">
-          <input id="srchSimcardIMEI" type="text" placeholder="Buscar IMEI del celular…" oninput="db('simImei',()=>{currentPage['simcard']=1;renderSimcards()})">
-          <select id="ftSimcardOperador" onchange="currentPage['simcard']=1;renderSimcards()">
-            <option value="">Todos los operadores</option>
-            <option value="Movistar">Movistar</option>
-            <option value="Claro">Claro</option>
-            <option value="Tigo">Tigo</option>
-            <option value="WOM">WOM</option>
-            <option value="Exito">Exito</option>
-          </select>
-          <select id="ftSimcardEst" onchange="currentPage['simcard']=1;renderSimcards()">
-            <option value="">Todos los estados</option>
-            <option value="activo">Activo</option>
-            <option value="reserva">Reserva</option>
-            <option value="bloqueado">Bloqueado</option>
-            <option value="desactivado">Desactivado</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchSimcard" type="text" placeholder="Buscar número, operador…" oninput="db('sim',()=>{currentPage['simcard']=1;renderSimcards()})">
+          </div>
+          <div class="filter-field"><label>📱 IMEI</label>
+            <input id="srchSimcardIMEI" type="text" placeholder="Buscar IMEI del celular…" oninput="db('simImei',()=>{currentPage['simcard']=1;renderSimcards()})">
+          </div>
+          <div class="filter-field"><label>📶 Operador</label>
+            <select id="ftSimcardOperador" onchange="currentPage['simcard']=1;renderSimcards()">
+              <option value="">Todos los operadores</option>
+              <option value="Movistar">Movistar</option>
+              <option value="Claro">Claro</option>
+              <option value="Tigo">Tigo</option>
+              <option value="WOM">WOM</option>
+              <option value="Exito">Exito</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftSimcardEst" onchange="currentPage['simcard']=1;renderSimcards()">
+              <option value="">Todos los estados</option>
+              <option value="activo">Activo</option>
+              <option value="reserva">Reserva</option>
+              <option value="bloqueado">Bloqueado</option>
+              <option value="desactivado">Desactivado</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearSimcardFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageSimcard" onchange="updateItemsPerPage('simcard');renderSimcards()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="simcardCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageSimcard" onchange="updateItemsPerPage('simcard');renderSimcards()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="simcardCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -483,28 +587,43 @@
         <button class="btn btn-primary" onclick="openUsrModal()">+ Nuevo responsable</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="db('usu',()=>{currentPage['usu']=1;renderUsr()})">
-          <select id="ftUsrDpto" onchange="currentPage['usu']=1;renderUsr()">
-            <option value="">Todos los departamentos</option>
-          </select>
-          <select id="ftUsrEst" onchange="currentPage['usu']=1;renderUsr()">
-            <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchUsr" type="text" placeholder="Buscar nombre, email…" oninput="db('usu',()=>{currentPage['usu']=1;renderUsr()})">
+          </div>
+          <div class="filter-field"><label>🏢 Departamento</label>
+            <select id="ftUsrDpto" onchange="currentPage['usu']=1;renderUsr()">
+              <option value="">Todos los departamentos</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftUsrEst" onchange="currentPage['usu']=1;renderUsr()">
+              <option value="">Todos</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearUsrFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageUsr" onchange="updateItemsPerPage('usu');renderUsr()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15" selected>15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="usrCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageUsr" onchange="updateItemsPerPage('usu');renderUsr()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="15" selected>15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="usrCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -520,62 +639,67 @@
         <button class="btn btn-primary" onclick="openAsignacionModal()">+ Nueva asignación</button>
       </div>
       <div class="tbl-toolbar">
-        <!-- Búsqueda Principal -->
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial, departamento…" oninput="db('asig',()=>{currentPage['asignaciones']=1;renderAsignaciones()})" style="flex:1;max-width:350px">
-          
-          <!-- Selector de Variable para Filtro -->
-          <select id="ftAsigVariable" onchange="updateAsigFilterUI()" style="min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="">+ Filtrar por…</option>
-            <option value="responsable">Responsable</option>
-            <option value="equipo">Equipo</option>
-            <option value="firma">Estado Firma</option>
-            <option value="estado">Estado Asignación</option>
-            <option value="politica">Política Aceptada</option>
-            <option value="fecha">Fecha de Asignación</option>
-          </select>
-          
-          <!-- Inputs dinámicos para valores -->
-          <div id="asigFilterValueContainer" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;flex:1;min-height:32px">
-            <select id="ftAsigResponsableValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-              <option value="">Seleccionar…</option>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchAsig" type="text" placeholder="Buscar equipo, persona, serial, departamento…" oninput="db('asig',()=>{currentPage['asignaciones']=1;renderAsignaciones()})">
+          </div>
+          <div class="filter-field"><label>👤 Responsable</label>
+            <select id="ftAsigResponsableValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
+              <option value="">Todos los responsables</option>
             </select>
-            <select id="ftAsigEquipoValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-              <option value="">Seleccionar…</option>
+          </div>
+          <div class="filter-field"><label>💻 Equipo</label>
+            <select id="ftAsigEquipoValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
+              <option value="">Todos los equipos</option>
             </select>
-            <select id="ftAsigFirmaValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-              <option value="">Todos</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="firmado">Firmado</option>
-            </select>
-            <select id="ftAsigEstadoValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-              <option value="">Todos</option>
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftAsigEstadoValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
+              <option value="">Todos los estados</option>
               <option value="abierta">Abierta</option>
               <option value="cerrada">Cerrada</option>
             </select>
-            <select id="ftAsigPoliticaValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-              <option value="">Todos</option>
+          </div>
+          <div class="filter-field"><label>✍️ Firma</label>
+            <select id="ftAsigFirmaValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
+              <option value="">Toda firma</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="firmado">Firmado</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>📋 Política</label>
+            <select id="ftAsigPoliticaValue" onchange="currentPage['asignaciones']=1;renderAsignaciones()">
+              <option value="">Toda política</option>
               <option value="si">Aceptó</option>
               <option value="no">No aceptó</option>
             </select>
-            <input id="ftAsigFechaValue" type="date" onchange="currentPage['asignaciones']=1;renderAsignaciones()" style="display:none;min-width:140px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <button class="btn btn-ghost btn-sm" onclick="clearAsigFilters()" title="Limpiar filtro" style="display:none;align-self:center;flex-shrink:0" id="btClearAsigFilter">✕</button>
+          </div>
+          <div class="filter-field"><label>📅 Fecha</label>
+            <input id="ftAsigFechaValue" type="date" onchange="currentPage['asignaciones']=1;renderAsignaciones()" title="Fecha de asignación">
           </div>
         </div>
-        
-        <!-- Mostrar/ocultar opciones -->
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageAsig" onchange="updateItemsPerPage('asignaciones');renderAsignaciones()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
+        <div class="filters-actions">
+          <button class="btn btn-ghost btn-sm" onclick="clearAsigFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageAsig" onchange="updateItemsPerPage('asignaciones');renderAsignaciones()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="asigCount"></span>
         </div>
-        <span class="count-badge" id="asigCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -595,37 +719,54 @@
         </div>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable, departamento…" oninput="db('loan',()=>{currentPage['loan']=1;renderLoan()})">
-          <select id="ftLoanEst" onchange="currentPage['loan']=1;renderLoan()">
-            <option value="">Todos los estados</option>
-            <option value="solicitado">Solicitado</option>
-            <option value="firmado">Firmado</option>
-            <option value="activo">Activo</option>
-            <option value="devuelto">Devuelto</option>
-          </select>
-          <select id="ftLoanDpto" onchange="currentPage['loan']=1;renderLoan()">
-            <option value="">Todos los departamentos</option>
-          </select>
-          <select id="ftLoanVencido" onchange="currentPage['loan']=1;renderLoan()">
-            <option value="">Sin filtro de vencimiento</option>
-            <option value="vencido">Vencidos</option>
-            <option value="proximo">Por vencer (7 días)</option>
-          </select>
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchLoan" type="text" placeholder="Buscar equipo, responsable, departamento…" oninput="db('loan',()=>{currentPage['loan']=1;renderLoan()})">
+          </div>
+          <div class="filter-field"><label>🔘 Estado</label>
+            <select id="ftLoanEst" onchange="currentPage['loan']=1;renderLoan()">
+              <option value="">Todos los estados</option>
+              <option value="solicitado">Solicitado</option>
+              <option value="firmado">Firmado</option>
+              <option value="activo">Activo</option>
+              <option value="devuelto">Devuelto</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>🏢 Departamento</label>
+            <select id="ftLoanDpto" onchange="currentPage['loan']=1;renderLoan()">
+              <option value="">Todos los departamentos</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>⏰ Vencimiento</label>
+            <select id="ftLoanVencido" onchange="currentPage['loan']=1;renderLoan()">
+              <option value="">Sin filtro de vencimiento</option>
+              <option value="vencido">Vencidos</option>
+              <option value="proximo">Por vencer (7 días)</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" id="btClearLoanFilter" onclick="clearLoanFilters()" title="Limpiar filtros">✕ Limpiar</button>
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageLoan" onchange="updateItemsPerPage('loan');renderLoan()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15" selected>15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="loanCount"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageLoan" onchange="updateItemsPerPage('loan');renderLoan()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="15" selected>15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
-        </div>
-        <span class="count-badge" id="loanCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -681,10 +822,21 @@
       <hr class="section-sep">
       <div class="card-title" style="margin-bottom:10px">📄 Documentos generados</div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <select id="ftDocTipo" onchange="renderDocHistorial()"><option value="">Todos los tipos</option></select>
+          <div class="filter-field"><label>📄 Tipo (documento)</label>
+            <select id="ftDocTipo" onchange="renderDocHistorial()"><option value="">Todos los tipos</option></select>
+          </div>
+        </div>
+        <div class="filters-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearDocFilters()" title="Limpiar filtros">✕ Limpiar</button>
         </div>
+        </div></div>
       </div>
       <div id="docHistorial"><div style="font-size:12px;color:var(--text3);padding:6px 0">Selecciona un usuario para ver su historial</div></div>
     </section>
@@ -704,21 +856,32 @@
         <button class="btn btn-primary" onclick="openTipoModal()">+ Nuevo tipo</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchTipo" type="text" placeholder="Buscar tipo…" oninput="currentPage['tipos']=1;renderTipos()">
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchTipo" type="text" placeholder="Buscar tipo…" oninput="currentPage['tipos']=1;renderTipos()">
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageTipos" onchange="updateItemsPerPage('tipos');renderTipos()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
+        <div class="filters-actions">
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageTipos" onchange="updateItemsPerPage('tipos');renderTipos()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="tiposCount"></span>
         </div>
-        <span class="count-badge" id="tiposCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
@@ -734,21 +897,32 @@
         <button class="btn btn-primary" onclick="openRolModal()">+ Nuevo rol</button>
       </div>
       <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+          
         <div class="filter-row">
-          <input id="srchRol" type="text" placeholder="Buscar rol…" oninput="currentPage['roles']=1;renderRoles()">
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchRol" type="text" placeholder="Buscar rol…" oninput="currentPage['roles']=1;renderRoles()">
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <label style="font-size:12px;color:var(--text3);white-space:nowrap">Mostrar:</label>
-          <select id="itemsPerPageRoles" onchange="updateItemsPerPage('roles');renderRoles()" style="width:70px;padding:6px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-          <span style="font-size:12px;color:var(--text3)">por página</span>
+        <div class="filters-actions">
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageRoles" onchange="updateItemsPerPage('roles');renderRoles()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="rolesCount"></span>
         </div>
-        <span class="count-badge" id="rolesCount"></span>
+        </div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>

@@ -9,99 +9,187 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #0f172a;
-            --surface: #1a2235;
-            --surface2: #243548;
-            --surface3: #2d3e52;
-            --border: #384860;
-            --text: #e2e8f0;
+            --bg: #0b1220;
+            --surface: #171f33;
+            --surface2: #212c45;
+            --surface3: #2b3852;
+            --border: #34415c;
+            --text: #eef2f8;
             --text2: #cbd5e1;
-            --text3: #94a3b8;
+            --text3: #8b98ae;
             --blue: #3b82f6;
+            --blue-soft-bg: rgba(59, 130, 246, 0.14);
+            --blue-soft-text: #93c5fd;
             --green: #10b981;
+            --green-soft-bg: rgba(16, 185, 129, 0.14);
+            --green-soft-text: #6ee7b7;
             --red: #ef4444;
             --amber: #f59e0b;
-            --radius: 8px;
+            --amber-soft-bg: rgba(245, 158, 11, 0.14);
+            --amber-soft-text: #fcd34d;
+            --radius: 14px;
         }
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
+            background:
+                radial-gradient(900px 420px at 50% -12%, rgba(59, 130, 246, 0.14), transparent 60%),
+                var(--bg);
             color: var(--text);
             line-height: 1.6;
+            letter-spacing: -0.005em;
         }
         .container {
-            max-width: 800px;
+            max-width: 760px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 40px 20px 56px;
         }
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
         .logo {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, var(--blue), #0ea5e9);
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin-bottom: 20px;
+        }
+        .logo::before {
+            content: '';
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            border-radius: 9px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.24), rgba(14, 165, 233, 0.12));
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }
+        .logo-label {
+            background: linear-gradient(135deg, #93c5fd, var(--blue));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .header h1 {
-            font-size: 24px;
-            margin: 16px 0 8px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+            margin: 0 0 8px;
         }
         .header p {
             color: var(--text3);
             font-size: 14px;
         }
         .card {
-            background: var(--surface);
+            background: linear-gradient(180deg, var(--surface) 0%, #141b2c 100%);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 24px;
+            padding: 26px;
             margin-bottom: 20px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
         }
         .card-title {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text3);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 16px;
+            letter-spacing: 0.07em;
+            margin-bottom: 18px;
         }
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: 12px;
             margin-bottom: 20px;
         }
         .info-item {
+            display: grid;
+            grid-template-columns: 32px 1fr;
+            align-items: start;
+            gap: 12px;
             background: var(--surface2);
-            padding: 12px;
-            border-radius: 6px;
+            border: 1px solid var(--border);
+            padding: 13px 14px;
+            border-radius: 12px;
+        }
+        .info-icon {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            border-radius: 9px;
+            background: var(--blue-soft-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .info-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--blue-soft-text);
         }
         .info-label {
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             color: var(--text3);
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
         .info-value {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--text);
+            word-break: break-word;
+        }
+        .notes-block-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text3);
+            margin-bottom: 8px;
+        }
+        .notes-block {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            color: var(--text2);
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 50px;
         }
         .signature-section {
-            margin: 24px 0;
+            margin: 4px 0 24px;
         }
         .signature-label {
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 12px;
         }
-        .signature-container {
-            border: 2px dashed var(--border);
+        .signature-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 4px;
+        }
+        .signature-tabs .btn {
+            flex: 1;
             border-radius: 8px;
+        }
+        .signature-container {
+            border: 1.5px dashed var(--border);
+            border-radius: 12px;
             background: var(--surface2);
             height: 200px;
             position: relative;
@@ -117,37 +205,60 @@
         }
         .button-group {
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 12px;
             margin-bottom: 20px;
         }
         .btn {
             padding: 10px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 9px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            transition: all 0.2s;
+            letter-spacing: -0.005em;
+            transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease, color 0.18s ease;
             font-family: inherit;
         }
         .btn-ghost {
-            background: var(--surface2);
-            color: var(--text);
-            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text2);
+            border: 1px solid transparent;
         }
         .btn-ghost:hover {
             background: var(--surface3);
+            color: var(--text);
         }
         .btn-primary {
             background: var(--blue);
             color: white;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
         }
         .btn-primary:hover {
             background: #2563eb;
+            box-shadow: 0 10px 26px rgba(59, 130, 246, 0.38);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
         }
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text3);
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 999px;
         }
         .image-section {
             margin: 20px 0;
@@ -172,12 +283,12 @@
         }
         .file-input-label {
             background: var(--surface2);
-            border: 2px dashed var(--border);
-            border-radius: 8px;
+            border: 1.5px dashed var(--border);
+            border-radius: 12px;
             padding: 20px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.18s ease, border-color 0.18s ease;
         }
         .file-input-label:hover {
             background: var(--surface3);
@@ -186,7 +297,7 @@
         .file-input-label.has-file {
             border-style: solid;
             border-color: var(--green);
-            background: rgba(16, 185, 129, 0.1);
+            background: var(--green-soft-bg);
         }
         .file-input-label p {
             margin: 0;
@@ -202,7 +313,7 @@
             width: 100%;
             height: 150px;
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 10px;
             background: var(--surface2);
             display: flex;
             align-items: center;
@@ -227,6 +338,32 @@
         .firma-upload-container .image-preview {
             width: 100%;
         }
+        .consent-card {
+            display: none;
+            background: var(--blue-soft-bg);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+            margin-bottom: 20px;
+        }
+        .consent-card label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1.55;
+            color: var(--text2);
+        }
+        .consent-card input[type="checkbox"] {
+            margin-top: 2px;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: var(--blue);
+        }
         .loading {
             display: none;
             text-align: center;
@@ -245,8 +382,8 @@
             to { transform: rotate(360deg); }
         }
         .alert {
-            padding: 12px;
-            border-radius: 6px;
+            padding: 12px 16px;
+            border-radius: 11px;
             margin-bottom: 20px;
             font-size: 13px;
             display: none;
@@ -258,19 +395,19 @@
             display: block;
         }
         .alert.success {
-            background: rgba(16, 185, 129, 0.1);
-            color: #86efac;
+            background: var(--green-soft-bg);
+            color: var(--green-soft-text);
             border: 1px solid rgba(16, 185, 129, 0.2);
             display: block;
         }
         .alert.info {
-            background: rgba(59, 130, 246, 0.1);
-            color: #93c5fd;
+            background: var(--blue-soft-bg);
+            color: var(--blue-soft-text);
             border: 1px solid rgba(59, 130, 246, 0.2);
             display: block;
         }
         @media (max-width: 640px) {
-            .container { padding: 16px; }
+            .container { padding: 28px 16px 40px; }
             .image-grid { grid-template-columns: 1fr; }
             .info-grid { grid-template-columns: 1fr; }
             .signature-container { height: 150px; }
@@ -280,7 +417,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">ActivosEQ</div>
+            <div class="logo"><span class="logo-label">ActivosEQ</span></div>
             <h1>Firma de Préstamo</h1>
             <p>Completa el formulario para recibir el equipo</p>
         </div>
@@ -291,29 +428,44 @@
             <div class="card-title" id="infoCardTitle">Información del préstamo</div>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Código del Equipo</div>
-                    <div class="info-value" id="infCodigoEquipo">—</div>
+                    <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+                    <div>
+                        <div class="info-label">Código del Equipo</div>
+                        <div class="info-value" id="infCodigoEquipo">—</div>
+                    </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Equipo</div>
-                    <div class="info-value" id="infEquipo">—</div>
+                    <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+                    <div>
+                        <div class="info-label">Equipo</div>
+                        <div class="info-value" id="infEquipo">—</div>
+                    </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Responsable</div>
-                    <div class="info-value" id="infResponsable">—</div>
+                    <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+                    <div>
+                        <div class="info-label">Responsable</div>
+                        <div class="info-value" id="infResponsable">—</div>
+                    </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label" id="fechaLabel">Fecha de Préstamo</div>
-                    <div class="info-value" id="infFecha">—</div>
+                    <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
+                    <div>
+                        <div class="info-label" id="fechaLabel">Fecha de Préstamo</div>
+                        <div class="info-value" id="infFecha">—</div>
+                    </div>
                 </div>
                 <div class="info-item" id="devolItem" style="display: grid;">
-                    <div class="info-label">Devolución Esperada</div>
-                    <div class="info-value" id="infDevol">—</div>
+                    <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v8h8"/></svg></div>
+                    <div>
+                        <div class="info-label">Devolución Esperada</div>
+                        <div class="info-value" id="infDevol">—</div>
+                    </div>
                 </div>
             </div>
             <div>
-                <div class="info-label">📋 Observaciones Importantes</div>
-                <div style="background: var(--surface2); padding: 12px; border-radius: 6px; color: var(--text2); font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; min-height: 50px; border-left: 3px solid var(--blue);">
+                <div class="notes-block-label">📋 Observaciones Importantes</div>
+                <div class="notes-block">
                     <div id="infNotas">Sin observaciones</div>
                 </div>
             </div>
@@ -322,9 +474,9 @@
         <div class="card">
             <div class="signature-section">
                 <div class="signature-label">Firma digital *</div>
-                <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border)">
-                    <button id="tabDibujar" class="btn btn-ghost" onclick="cambiarModofirma('dibujar')" style="flex:1;border-bottom:3px solid var(--blue);border-radius:0">✏️ Dibujar firma</button>
-                    <button id="tabSubir" class="btn btn-ghost" onclick="cambiarModofirma('subir')" style="flex:1;border-bottom:none;border-radius:0;color:var(--text3)">📤 Subir imagen</button>
+                <div class="signature-tabs">
+                    <button id="tabDibujar" class="btn btn-ghost" onclick="cambiarModofirma('dibujar')" style="border-bottom:3px solid var(--blue);border-radius:0">✏️ Dibujar firma</button>
+                    <button id="tabSubir" class="btn btn-ghost" onclick="cambiarModofirma('subir')" style="border-bottom:none;border-radius:0;color:var(--text3)">📤 Subir imagen</button>
                 </div>
 
                 <!-- Modo DIBUJAR -->
@@ -334,8 +486,8 @@
                         <canvas id="signaturePad" class="signature-canvas"></canvas>
                     </div>
                     <div class="button-group">
-                        <button class="btn btn-ghost" onclick="clearSignature()">🗑️ Limpiar</button>
-                        <span id="sigStatus" style="color: var(--text3); font-size: 12px; align-self: center;">
+                        <button class="btn btn-ghost" onclick="clearSignature()" style="background:var(--surface2);border:1px solid var(--border)">🗑️ Limpiar</button>
+                        <span id="sigStatus" class="status-pill">
                             Sin firmar
                         </span>
                     </div>
@@ -386,17 +538,17 @@
             </div>
 
             <!-- Checkbox para Préstamos -->
-            <div id="checkboxPrestamo" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 16px; margin-top: 24px; margin-bottom: 20px; display: none;">
-                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 14px; line-height: 1.5;">
-                    <input type="checkbox" id="aceptarTerminos" style="margin-top: 2px; cursor: pointer; accent-color: var(--blue);">
+            <div id="checkboxPrestamo" class="consent-card">
+                <label>
+                    <input type="checkbox" id="aceptarTerminos">
                     <span>Al marcar esta casilla, declaro que acepto los <strong>Términos y Condiciones de la Política LA-PL-008</strong> y asumo la <strong>Responsabilidad Patrimonial</strong> sobre el activo, autorizando el descuento en caso de daño o pérdida.</span>
                 </label>
             </div>
 
             <!-- Checkbox para Asignaciones -->
-            <div id="checkboxAsignacion" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 16px; margin-top: 24px; margin-bottom: 20px; display: none;">
-                <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 14px; line-height: 1.5;">
-                    <input type="checkbox" id="aceptarPoliticaAsignacion" style="margin-top: 2px; cursor: pointer; accent-color: var(--blue);">
+            <div id="checkboxAsignacion" class="consent-card">
+                <label>
+                    <input type="checkbox" id="aceptarPoliticaAsignacion">
                     <span>He leído y acepto la <strong>Política de Préstamos y Salida de Equipos</strong>. Me constituyo como <strong>custodio del activo</strong> y acepto la <strong>Responsabilidad Patrimonial</strong> sobre el mismo. Me comprometo a reportar cualquier novedad de forma inmediata y acepto que la omisión de dicho reporte me hará responsable económico de cualquier desperfecto detectado al momento de la devolución.</span>
                 </label>
             </div>
