@@ -753,6 +753,26 @@ async function cambiarResponsable(eqId){
    Lo comparten la tabla y la exportación a PDF para que ambas vean
    exactamente el mismo conjunto: si divergieran, el PDF no coincidiría con
    lo que el usuario tiene en pantalla. */
+/* Persiste los filtros de equipos entre recargas de página (sessionStorage,
+   no localStorage: se limpia solo al cerrar la pestaña). Evita que el
+   usuario tenga que re-filtrar desde cero tras un refresh accidental. */
+const EQ_FILTER_IDS=['srchEq','ftTipo','ftEst','ftEqDisp','ftSerial','ftDueno'];
+let eqFiltersRestored=false;
+function saveEqFilters(){
+  const estado={};
+  EQ_FILTER_IDS.forEach(id=>{const el=$(id);if(el)estado[id]=el.value;});
+  sessionStorage.setItem('eqFilters',JSON.stringify(estado));
+}
+function restoreEqFilters(){
+  try{
+    const estado=JSON.parse(sessionStorage.getItem('eqFilters')||'{}');
+    EQ_FILTER_IDS.forEach(id=>{
+      const el=$(id);
+      if(el&&estado[id]!==undefined)el.value=estado[id];
+    });
+  }catch(e){/* datos corruptos en sessionStorage, se ignora */}
+}
+
 function getFilteredEq(){
   const q=($('srchEq')?.value||'');
   const tipo=$('ftTipo')?.value||'';
@@ -760,6 +780,7 @@ function getFilteredEq(){
   const disp=$('ftEqDisp')?.value||'';
   const ordenSerial=$('ftSerial')?.value||'';
   const dueno=$('ftDueno')?.value||'';
+  saveEqFilters();
 
   let rows=searchMultiField(EQ,q,SEARCH_FIELDS.eq);
 
@@ -767,7 +788,7 @@ function getFilteredEq(){
     (!tipo||(e.tipo_nombre||e.tipo)===tipo)&&
     (!est||e.estado===est)&&
     (!disp||e.disponibilidad===disp)&&
-    (!dueno||e.usuario_id==dueno));
+    (!dueno||(dueno==='__sin__'?!e.usuario_id:e.usuario_id==dueno)));
 
   rows=applyAdvancedFilters('eq',rows);
 
@@ -889,7 +910,7 @@ function renderEq(){
   
   // Actualizar filtro de dueño
   const ftDueno = $('ftDueno');
-  if(ftDueno && ftDueno.children.length <= 1){
+  if(ftDueno && ftDueno.children.length <= 2){
     USR.forEach(u => {
       const opt = document.createElement('option');
       opt.value = u.id;
@@ -897,7 +918,9 @@ function renderEq(){
       ftDueno.appendChild(opt);
     });
   }
-  
+
+  if(!eqFiltersRestored){restoreEqFilters();eqFiltersRestored=true;}
+
   const rows=getFilteredEq();
 
   $('eqCount').textContent=`${rows.length} de ${EQ.length} equipo(s)`;
@@ -1613,6 +1636,7 @@ function clearEqFilters(){
   $('ftSerial').value='';
   $('ftDueno').value='';
   currentPage['eq']=1;
+  sessionStorage.removeItem('eqFilters');
   renderEq();
 }
 
