@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 from flask_compress import Compress
 import hashlib
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
@@ -99,6 +100,19 @@ def _server_error(e):
     import traceback
     print(f"[ERROR] {type(e).__name__}: {e}\n{traceback.format_exc()}", flush=True)
     return jsonify({'error': 'Error interno del servidor'}), 500
+
+
+def _parse_extra_img_urls(raw):
+    """Parsea el JSON de URLs de fotos adicionales de evidencia (lista de strings)."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [url for url in parsed if isinstance(url, str) and url.strip()]
 
 
 def _respuesta_borrado(result, entidad: str):
@@ -1710,8 +1724,9 @@ def save_signature_complete(id):
         tipo_firma = request.form.get('tipo', 'inicial')
         img1_url = request.form.get('img1_url')
         img2_url = request.form.get('img2_url')
+        extra_img_urls = _parse_extra_img_urls(request.form.get('extra_img_urls'))
         terminos_aceptados = request.form.get('terminos_aceptados', 'false').lower() == 'true'
-        
+
         if not firma_file or not img1_url or not img2_url:
             return jsonify({'error': 'Missing required data'}), 400
         
@@ -1744,6 +1759,8 @@ def save_signature_complete(id):
                 'terminos_aceptados': terminos_aceptados,
                 'fecha_aceptacion_terminos': datetime.now().isoformat()
             }
+            if extra_img_urls:
+                update_data['imagenes_extra_urls'] = extra_img_urls
         else:
             update_data = {
                 'firma_devolucion_url': firma_url,
@@ -1752,6 +1769,8 @@ def save_signature_complete(id):
                 'estado': 'devuelto',
                 'fecha_devolucion_real': datetime.now().isoformat()
             }
+            if extra_img_urls:
+                update_data['imagenes_extra_devolucion_urls'] = extra_img_urls
         
         result = repo.update_prestamo(id, update_data)
 
@@ -2027,6 +2046,7 @@ def save_masivo_signature(id):
         firma_file = request.files.get('firma')
         img1_url = request.form.get('img1_url')
         img2_url = request.form.get('img2_url')
+        extra_img_urls = _parse_extra_img_urls(request.form.get('extra_img_urls'))
         tipo_firma = request.form.get('tipo', 'inicial')
         terminos_aceptados = request.form.get('terminos_aceptados', 'false').lower() == 'true'
         if not firma_file:
@@ -2052,6 +2072,8 @@ def save_masivo_signature(id):
                 update_data['imagen1_devolucion_url'] = img1_url
             if img2_url:
                 update_data['imagen2_devolucion_url'] = img2_url
+            if extra_img_urls:
+                update_data['imagenes_extra_devolucion_urls'] = extra_img_urls
             result = repo.update_prestamo_masivo(id, update_data)
             if isinstance(result, dict) and result.get('error'):
                 return jsonify({'error': str(result.get('error'))}), 500
@@ -2067,6 +2089,8 @@ def save_masivo_signature(id):
                 update_data['imagen1_url'] = img1_url
             if img2_url:
                 update_data['imagen2_url'] = img2_url
+            if extra_img_urls:
+                update_data['imagenes_extra_urls'] = extra_img_urls
             result = repo.update_prestamo_masivo(id, update_data)
             if isinstance(result, dict) and result.get('error'):
                 return jsonify({'error': str(result.get('error'))}), 500

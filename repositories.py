@@ -205,7 +205,7 @@ def get_all_prestamos() -> list:
 
 def get_prestamo_fotos(prestamo_id: int) -> dict:
     """Devuelve solo las URLs de fotos y fechas de un préstamo. Query mínima sin joins."""
-    fields = 'firma_url,imagen1_url,imagen2_url,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url,fecha_firma,fecha_devolucion_real'
+    fields = 'firma_url,imagen1_url,imagen2_url,imagenes_extra_urls,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url,imagenes_extra_devolucion_urls,fecha_firma,fecha_devolucion_real'
     result = supabase_request('GET', 'prestamos', f'?id=eq.{prestamo_id}&select={fields}')
     if isinstance(result, list) and result:
         return result[0]
@@ -288,7 +288,7 @@ def delete_prestamo(prestamo_id: int):
 # ── Préstamos Masivos ──────────────────────────────────────────────────────────
 
 def get_all_prestamos_masivos() -> list:
-    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,imagen1_url,imagen2_url,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url&order=creado_en.desc')
+    masivos = supabase_request('GET', 'prestamos_masivos', '?select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,imagen1_url,imagen2_url,imagenes_extra_urls,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url,imagenes_extra_devolucion_urls&order=creado_en.desc')
     if not isinstance(masivos, list):
         return []
     items = supabase_request('GET', 'prestamos_masivos_items', '?select=prestamo_masivo_id,equipo_id')
@@ -308,7 +308,7 @@ def get_all_prestamos_masivos() -> list:
 
 
 def get_prestamo_masivo_by_id(prestamo_masivo_id: int) -> dict | None:
-    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url')
+    result = supabase_request('GET', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}&select=id,usuario_id,fecha_prestamo,fecha_devolucion_esperada,fecha_devolucion_real,estado,notas,creado_en,firma_url,fecha_firma,terminos_aceptados,imagen1_url,imagen2_url,imagenes_extra_urls,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url,imagenes_extra_devolucion_urls')
     return result[0] if isinstance(result, list) and result else None
 
 

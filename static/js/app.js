@@ -3984,6 +3984,15 @@ async function exportarPrestamoMasivoPDF(id){
   }
 }
 
+function renderExtraFotosGrid(urls,labelPrefix,heightPx){
+  if(!Array.isArray(urls)||urls.length===0) return '';
+  const h=heightPx||150;
+  return urls.map((url,i)=>`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${url}','📷 ${labelPrefix} ${i+1}')">
+        <img src="${url}" style="width:100%;height:${h}px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">${labelPrefix} ${i+1}</div>
+      </div>`).join('');
+}
+
 function viewLoanMasivoDocuments(id){
   const masivo=LOANS_MASIVOS.find(m=>m.id===id);
   if(!masivo){toast('Préstamo masivo no encontrado','err');return;}
@@ -4000,19 +4009,20 @@ function viewLoanMasivoDocuments(id){
   }
 
   if(masivo.imagen1_url||masivo.imagen2_url){
-    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos de Recepción</div><div class="img-grid">`;
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Evidencia Fotográfica</div><div class="img-grid">`;
     if(masivo.imagen1_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen1_url}','📷 Foto 1 — Recepción')">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen1_url}','📷 Foto 1')">
         <img src="${masivo.imagen1_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Recepción</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1</div>
       </div>`;
     }
     if(masivo.imagen2_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen2_url}','📷 Foto 2 — Verificación')">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen2_url}','📷 Foto 2')">
         <img src="${masivo.imagen2_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Verificación</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2</div>
       </div>`;
     }
+    html+=renderExtraFotosGrid(masivo.imagenes_extra_urls,'Foto adicional');
     html+=`</div></div>`;
   }
 
@@ -4026,19 +4036,20 @@ function viewLoanMasivoDocuments(id){
   }
 
   if(masivo.imagen1_devolucion_url||masivo.imagen2_devolucion_url){
-    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos de Devolución</div><div class="img-grid">`;
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Evidencia Fotográfica (Devolución)</div><div class="img-grid">`;
     if(masivo.imagen1_devolucion_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen1_devolucion_url}','📷 Foto 1 — Estado devolución')">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen1_devolucion_url}','📷 Foto 1')">
         <img src="${masivo.imagen1_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Estado devolución</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1</div>
       </div>`;
     }
     if(masivo.imagen2_devolucion_url){
-      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen2_devolucion_url}','📷 Foto 2 — Confirmación')">
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2);cursor:pointer" onclick="openImageLightbox('${masivo.imagen2_devolucion_url}','📷 Foto 2')">
         <img src="${masivo.imagen2_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Confirmación</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2</div>
       </div>`;
     }
+    html+=renderExtraFotosGrid(masivo.imagenes_extra_devolucion_urls,'Foto adicional');
     html+=`</div></div>`;
   }
 
@@ -4297,22 +4308,23 @@ function viewLoanDocuments(id){
   
   // Mostrar imágenes iniciales
   if(loan.imagen1_url||loan.imagen2_url){
-    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos (Recepción del Equipo)</div><div class="img-grid">`;
-    
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Evidencia Fotográfica</div><div class="img-grid">`;
+
     if(loan.imagen1_url){
       html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
         <img src="${loan.imagen1_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Recepción</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1</div>
       </div>`;
     }
-    
+
     if(loan.imagen2_url){
       html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
         <img src="${loan.imagen2_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Verificación</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2</div>
       </div>`;
     }
-    
+
+    html+=renderExtraFotosGrid(loan.imagenes_extra_urls,'Foto adicional');
     html+=`</div></div>`;
   }
   
@@ -4332,22 +4344,23 @@ function viewLoanDocuments(id){
   
   // Mostrar imágenes de devolución
   if(loan.imagen1_devolucion_url||loan.imagen2_devolucion_url){
-    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Fotos (Devolución del Equipo)</div><div class="img-grid">`;
-    
+    html+=`<div style="margin-bottom:20px"><div class="card-title">📷 Evidencia Fotográfica (Devolución)</div><div class="img-grid">`;
+
     if(loan.imagen1_devolucion_url){
       html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
         <img src="${loan.imagen1_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1: Estado devolución</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 1</div>
       </div>`;
     }
-    
+
     if(loan.imagen2_devolucion_url){
       html+=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)">
         <img src="${loan.imagen2_devolucion_url}" style="width:100%;height:150px;object-fit:cover" onerror="this.style.display='none';" onload="this.style.display='block'">
-        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2: Confirmación</div>
+        <div style="padding:8px;background:var(--surface2);font-size:11px;color:var(--text3)">Foto 2</div>
       </div>`;
     }
-    
+
+    html+=renderExtraFotosGrid(loan.imagenes_extra_devolucion_urls,'Foto adicional');
     html+=`</div></div>`;
   }
   
@@ -4376,19 +4389,21 @@ function _buildLoanTimeline(loan, fotos={}){
 
 function _renderLoanFotos(fotos){
   let h='';
-  const {firma_url,imagen1_url,imagen2_url,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url}=fotos;
+  const {firma_url,imagen1_url,imagen2_url,imagenes_extra_urls,firma_devolucion_url,imagen1_devolucion_url,imagen2_devolucion_url,imagenes_extra_devolucion_urls}=fotos;
   if(firma_url||imagen1_url||imagen2_url){
-    h+=`<div class="card" style="margin-bottom:16px"><div class="card-title">📄 Firma Inicial + Fotos</div><div class="img-grid-3">`;
+    h+=`<div class="card" style="margin-bottom:16px"><div class="card-title">📄 Firma Inicial + Evidencia Fotográfica</div><div class="img-grid-3">`;
     if(firma_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${firma_url}','✍️ Firma Inicial')"><img src="${firma_url}" style="width:100%;height:80px;object-fit:cover;background:var(--surface2)"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">✍️ Firma</div></div>`;
-    if(imagen1_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen1_url}','📷 Foto 1 — Recepción')"><img src="${imagen1_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1</div></div>`;
-    if(imagen2_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen2_url}','📷 Foto 2 — Verificación')"><img src="${imagen2_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2</div></div>`;
+    if(imagen1_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen1_url}','📷 Foto 1')"><img src="${imagen1_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1</div></div>`;
+    if(imagen2_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen2_url}','📷 Foto 2')"><img src="${imagen2_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2</div></div>`;
+    h+=renderExtraFotosGrid(imagenes_extra_urls,'Foto',80);
     h+=`</div></div>`;
   }
   if(firma_devolucion_url||imagen1_devolucion_url||imagen2_devolucion_url){
-    h+=`<div class="card"><div class="card-title">📄 Firma Devolución + Fotos</div><div class="img-grid-3">`;
+    h+=`<div class="card"><div class="card-title">📄 Firma Devolución + Evidencia Fotográfica</div><div class="img-grid-3">`;
     if(firma_devolucion_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${firma_devolucion_url}','✍️ Firma Devolución')"><img src="${firma_devolucion_url}" style="width:100%;height:80px;object-fit:cover;background:var(--surface2)"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">✍️ Firma Dev.</div></div>`;
     if(imagen1_devolucion_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen1_devolucion_url}','📷 Foto 1 — Devolución')"><img src="${imagen1_devolucion_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 1 Dev.</div></div>`;
     if(imagen2_devolucion_url) h+=`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer" onclick="openImageLightbox('${imagen2_devolucion_url}','📷 Foto 2 — Devolución')"><img src="${imagen2_devolucion_url}" style="width:100%;height:80px;object-fit:cover"><div style="padding:8px;background:var(--surface2);text-align:center;font-weight:600">📷 Foto 2 Dev.</div></div>`;
+    h+=renderExtraFotosGrid(imagenes_extra_devolucion_urls,'Foto Dev.',80);
     h+=`</div></div>`;
   }
   if(!h) h=`<div style="padding:20px;text-align:center;color:var(--text3)"><p>Sin documentos registrados aún</p></div>`;

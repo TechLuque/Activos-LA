@@ -508,11 +508,11 @@
             </div>
 
             <div class="image-section">
-                <div class="signature-label" style="margin-top: 20px;">Imágenes del equipo *</div>
-                <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Sube 2 fotos: antes y después de recibir el equipo</p>
-                <div class="image-grid">
+                <div class="signature-label" style="margin-top: 20px;">Evidencia fotográfica *</div>
+                <p style="color: var(--text3); font-size: 12px; margin-bottom: 12px;">Sube al menos 2 fotos del equipo. Puedes añadir más si lo necesitas.</p>
+                <div class="image-grid" id="imageGrid">
                     <div class="image-input">
-                        <div class="image-label">Foto 1: Estado inicial</div>
+                        <div class="image-label">Foto 1</div>
                         <input type="file" id="lImg1" class="file-input" accept="image/*" onchange="previewImage(1)">
                         <label for="lImg1" class="file-input-label" id="label1">
                             <p>📷 Selecciona imagen</p>
@@ -524,7 +524,7 @@
                     </div>
 
                     <div class="image-input">
-                        <div class="image-label">Foto 2: Verificación</div>
+                        <div class="image-label">Foto 2</div>
                         <input type="file" id="lImg2" class="file-input" accept="image/*" onchange="previewImage(2)">
                         <label for="lImg2" class="file-input-label" id="label2">
                             <p>📷 Selecciona imagen</p>
@@ -535,6 +535,7 @@
                         </div>
                     </div>
                 </div>
+                <button type="button" class="btn btn-ghost" style="background:var(--surface2);border:1px solid var(--border);width:100%" onclick="agregarFotoExtra()">➕ Añadir otra foto</button>
             </div>
 
             <!-- Checkbox para Préstamos -->
@@ -913,6 +914,83 @@
             reader.readAsDataURL(file);
         }
 
+        let extraFotoCounter = 0;
+        const extraFotoIndices = [];
+
+        function agregarFotoExtra() {
+            extraFotoCounter++;
+            const idx = extraFotoCounter;
+            extraFotoIndices.push(idx);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-input';
+            wrapper.id = `extraWrap${idx}`;
+            wrapper.innerHTML = `
+                <div class="image-label" style="display:flex;align-items:center;justify-content:space-between">
+                    <span>Foto adicional</span>
+                    <button type="button" onclick="eliminarFotoExtra(${idx})" style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;padding:0">✖ Quitar</button>
+                </div>
+                <input type="file" id="extraImg${idx}" class="file-input" accept="image/*" onchange="previewExtraImage(${idx})">
+                <label for="extraImg${idx}" class="file-input-label" id="extraLabel${idx}">
+                    <p>📷 Selecciona imagen</p>
+                    <div class="size">JPG, PNG (máx 5MB)</div>
+                </label>
+                <div class="image-preview" id="extraPreview${idx}">
+                    <p style="color: var(--text3); font-size: 12px;">Sin imagen</p>
+                </div>
+            `;
+            $('imageGrid').appendChild(wrapper);
+        }
+
+        function eliminarFotoExtra(idx) {
+            const wrapper = $(`extraWrap${idx}`);
+            if (wrapper) wrapper.remove();
+            const pos = extraFotoIndices.indexOf(idx);
+            if (pos !== -1) extraFotoIndices.splice(pos, 1);
+        }
+
+        function previewExtraImage(idx) {
+            const inputId = `extraImg${idx}`;
+            const labelId = `extraLabel${idx}`;
+            const previewId = `extraPreview${idx}`;
+            const file = $(inputId).files[0];
+            const preview = $(previewId);
+            const label = $(labelId);
+
+            if (!file) {
+                preview.innerHTML = '<p style="color: var(--text3); font-size: 12px;">Sin imagen</p>';
+                label.classList.remove('has-file');
+                return;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                showAlert('Por favor selecciona una imagen válida', 'error');
+                $(inputId).value = '';
+                preview.innerHTML = '<p style="color: var(--red); font-size: 12px;">Archivo inválido</p>';
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showAlert('La imagen es muy grande (máx 5MB)', 'error');
+                $(inputId).value = '';
+                preview.innerHTML = '<p style="color: var(--red); font-size: 12px;">Archivo muy grande</p>';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Imagen">`;
+                label.classList.add('has-file');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function getExtraFotoFiles() {
+            return extraFotoIndices
+                .map(idx => $(`extraImg${idx}`) ? $(`extraImg${idx}`).files[0] : null)
+                .filter(Boolean);
+        }
+
         function dataURLtoBlob(dataurl) {
             const arr = dataurl.split(',');
             const mime = arr[0].match(/:(.*?);/)[1];
@@ -978,20 +1056,26 @@
             // Para ASIGNACIONES: no se requieren imágenes, solo firma
             let img1File = null;
             let img2File = null;
-            
+            let extraFotoFiles = [];
+
             // Para PRÉSTAMOS: validar imágenes
             if (tipoDocumento === 'prestamo') {
                 img1File = $('lImg1').files[0];
                 img2File = $('lImg2').files[0];
-                
+
                 if (!img1File) {
-                    showAlert('Se requiere la Foto 1 (Estado inicial)', 'error');
+                    showAlert('Se requiere la Foto 1', 'error');
                     return;
                 }
                 if (!img2File) {
-                    showAlert('Se requiere la Foto 2 (Verificación)', 'error');
+                    showAlert('Se requiere la Foto 2', 'error');
                     return;
                 }
+                extraFotoFiles = getExtraFotoFiles();
+            } else if (tipoDocumento === 'masivo') {
+                img1File = $('lImg1').files[0] || null;
+                img2File = $('lImg2').files[0] || null;
+                extraFotoFiles = getExtraFotoFiles();
             }
             
             // Validar firma: puede ser dibujada O subida como imagen
@@ -1107,7 +1191,34 @@
                     data2 = await res2.json();
                     if (data2.error) throw new Error(data2.error);
                 }
-                
+
+                // 2️⃣.5 ENVIAR FOTOS EXTRA (evidencia adicional, cantidad variable)
+                const extraImgUrls = [];
+                for (let i = 0; i < extraFotoFiles.length; i++) {
+                    showAlert(`📤 Foto adicional ${i + 1}/${extraFotoFiles.length}...`, 'info');
+                    const extraCompressed = await compressImage(extraFotoFiles[i], 1200, 1200, 0.82);
+                    const formExtra = new FormData();
+                    formExtra.append('imagen', extraCompressed);
+                    formExtra.append('numero', i + 3);
+                    formExtra.append('tipo', tipoFirma);
+
+                    const uploadEndpoint = tipoDocumento === 'masivo' ? `/api/prestamos/masivos/${loanId}/upload-image` : `/api/prestamos/${loanId}/upload-image`;
+
+                    const resExtra = await fetch(uploadEndpoint, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formExtra
+                    });
+
+                    if (resExtra.status === 413) {
+                        throw new Error(`Foto adicional ${i + 1} demasiado grande`);
+                    }
+                    if (!resExtra.ok) throw new Error(`Foto adicional ${i + 1} HTTP ${resExtra.status}`);
+                    const dataExtra = await resExtra.json();
+                    if (dataExtra.error) throw new Error(dataExtra.error);
+                    extraImgUrls.push(dataExtra.url);
+                }
+
                 // 3️⃣ ENVIAR FIRMA
                 showAlert(`📤 Firma (${sigKB}KB)...`, 'info');
                 const form3 = new FormData();
@@ -1130,7 +1241,10 @@
                 if (data2 && data2.url) {
                     form3.append('img2_url', data2.url);
                 }
-                
+                if (extraImgUrls.length > 0) {
+                    form3.append('extra_img_urls', JSON.stringify(extraImgUrls));
+                }
+
                 // Use correct endpoint based on document type
                 const signatureEndpoint = tipoDocumento === 'asignacion'
                   ? `/api/asignaciones-equipos/${loanId}/save-signature-public`
@@ -1177,7 +1291,8 @@
                 
                 // ✅ ÉXITO - Mostrar mensaje
                 let titulo, desc, photoList, successMsg;
-                
+                const extraFotosLi = extraImgUrls.map((_, i) => `<li>✅ <strong>Foto adicional ${i + 1}</strong> - Guardada</li>`).join('');
+
                 if (tipoDocumento === 'asignacion') {
                     if (tipoFirma === 'desasignacion') {
                         titulo = 'Desasignación Confirmada';
@@ -1196,14 +1311,16 @@
                         desc = 'Devolución de equipos registrada exitosamente';
                         photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
                                     ${img1File ? `<li>✅ <strong>Foto 1 (Estado devolución)</strong> (${img1File.name}) - Guardada</li>` : ''}
-                                    ${img2File ? `<li>✅ <strong>Foto 2 (Confirmación)</strong> (${img2File.name}) - Guardada</li>` : ''}`;
+                                    ${img2File ? `<li>✅ <strong>Foto 2 (Confirmación)</strong> (${img2File.name}) - Guardada</li>` : ''}
+                                    ${extraFotosLi}`;
                         successMsg = 'Los equipos han sido devueltos y registrados en el sistema.';
                     } else {
                         titulo = 'Préstamo Masivo Firmado';
                         desc = 'Firma digital registrada exitosamente';
                         photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
                                     ${img1File ? `<li>✅ <strong>Foto 1</strong> (${img1File.name}) - Guardada</li>` : ''}
-                                    ${img2File ? `<li>✅ <strong>Foto 2</strong> (${img2File.name}) - Guardada</li>` : ''}`;
+                                    ${img2File ? `<li>✅ <strong>Foto 2</strong> (${img2File.name}) - Guardada</li>` : ''}
+                                    ${extraFotosLi}`;
                         successMsg = 'El préstamo masivo ha sido firmado y registrado en el sistema.';
                     }
                 } else {
@@ -1213,7 +1330,8 @@
                     const foto2Desc = tipoFirma === 'devolucion' ? 'Foto 2 (Confirmación)' : 'Foto 2 (Verificación)';
                     photoList = `<li>✅ <strong>Firma digital</strong> - Capturada y guardada</li>
                                 <li>✅ <strong>${foto1Desc}</strong> (${img1File.name}) - Guardada</li>
-                                <li>✅ <strong>${foto2Desc}</strong> (${img2File.name}) - Guardada</li>`;
+                                <li>✅ <strong>${foto2Desc}</strong> (${img2File.name}) - Guardada</li>
+                                ${extraFotosLi}`;
                     successMsg = tipoFirma === 'devolucion' ? 'Equipo devuelto exitosamente.' : 'El préstamo ha sido completado y registrado en el sistema.';
                 }
                 
