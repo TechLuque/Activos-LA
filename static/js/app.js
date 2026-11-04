@@ -1709,8 +1709,8 @@ function renderMant(){
       <td data-label="Estado"><span class="bs ${bsClass(m.estado)}">${bsLabel(m.estado)}</span></td>
       <td data-label="Próx. Revisión" class="mono" style="color:${overdue?'var(--red)':'var(--text3)'}">${fmtDate(m.proxima_revision)}${overdue?' ⚠':''}</td>
       <td data-label="Acciones"><div class="act-cell">
-        <button class="btn btn-ghost btn-icon btn-sm" onclick="editMant(${m.id})">✏️</button>
-        <button class="btn btn-danger btn-icon btn-sm" onclick="delMant(${m.id})">🗑️</button>
+        <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editMant(${m.id})">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delMant(${m.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
   
@@ -1927,7 +1927,7 @@ async function refreshHV(){
           ${m.proxima_revision?`<span style="color:${m.proxima_revision<TODAY?'var(--red)':'var(--teal)'}">🔄 Próx: ${fmtDate(m.proxima_revision)}</span>`:''}
         </div>
       </div>
-      <button class="btn btn-danger btn-icon btn-sm" onclick="delMantFromHV(${m.id})">🗑️</button>
+      <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delMantFromHV(${m.id})">🗑️</button>
     </div>`).join('')+'</div>'}
   // Timeline: eventos HV + préstamos individuales + préstamos masivos mezclados por fecha
   const tlDiv=$('hvTimeline');
@@ -1948,7 +1948,7 @@ async function refreshHV(){
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             <span class="bs ${bsClass(h.tipo)} bs-xs">${bsLabel(h.tipo)}</span>
             <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editHV(${h.id})">✏️</button>
-            <button class="btn btn-danger btn-icon btn-sm" onclick="delHV(${h.id})">🗑️</button>
+            <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delHV(${h.id})">🗑️</button>
           </div>
         </div>
         <div class="hv-meta">
@@ -2168,8 +2168,8 @@ function renderUsr(){
       <td data-label="Teléfono" class="mono">${u.telefono||'—'}</td>
       <td data-label="Estado"><span class="bs ${bsClass(u.estado)}">${bsLabel(u.estado)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
-        <button class="btn btn-ghost btn-icon btn-sm" onclick="editUsr(${u.id})">✏️</button>
-        <button class="btn btn-danger btn-icon btn-sm" onclick="delUsr(${u.id})">🗑️</button>
+        <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="editUsr(${u.id})">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delUsr(${u.id})">🗑️</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -2562,7 +2562,7 @@ function renderLicenses(){
       <td data-label="Estado"><span class="bs ${bsClass(l.estado)}">${bsLabel(l.estado)}</span></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-warning btn-sm" onclick="openLicenseModal(${l.id})">✏️ Editar</button>
-        <button class="btn btn-danger btn-icon btn-sm" onclick="delLicense(${l.id})">🗑️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delLicense(${l.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
   
@@ -2741,7 +2741,7 @@ function renderAplicativos(){
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-secondary btn-sm" onclick="showPagosDetalle(${a.id})">📋 Pagos</button>
         <button class="btn btn-warning btn-sm" onclick="openAplicativoModal(${a.id})">✏️ Editar</button>
-        <button class="btn btn-danger btn-icon btn-sm" onclick="delAplicativo(${a.id})">🗑️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delAplicativo(${a.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
   
@@ -2814,7 +2814,7 @@ function renderAplicativoPagos(){
         <div style="font-size:12px;color:var(--text3)">Pago #${idx+1}</div>
         <div style="font-size:13px;font-weight:600">${fmtDate(p.fecha_pago)} → ${fmtDate(p.fecha_caducidad)}</div>
       </div>
-      <button class="btn btn-danger btn-icon btn-sm" onclick="delPago(${p.id})">🗑️</button>
+      <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delPago(${p.id})">🗑️</button>
     </div>`).join('')}
   </div>`;
 }
@@ -2838,7 +2838,7 @@ async function showPagosDetalle(app_id){
         <td data-label="Caducidad" class="mono">${fmtDate(p.fecha_caducidad)}</td>
         <td data-label="Monto" class="mono">${p.monto?fmt(p.monto):'—'}</td>
         <td data-label="Método">${p.metodo_pago||'—'}</td>
-        <td data-label="Acciones"><button class="btn btn-danger btn-icon btn-sm" onclick="delPago(${p.id});location.reload()">🗑️</button></td>
+        <td data-label="Acciones"><button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delPago(${p.id});location.reload()">🗑️</button></td>
       </tr>`).join('');
     }
     
@@ -3037,7 +3037,7 @@ function renderCelulares(){
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-secondary btn-sm" onclick="showSimsDelCelular(${c.id})" title="Ver todas las SIM">📋 SIM</button>
         <button class="btn btn-warning btn-sm" onclick="openCelularModal(${c.id})">✏️ Editar</button>
-        <button class="btn btn-danger btn-icon btn-sm" onclick="delCelular(${c.id})">🗑️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delCelular(${c.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
   
@@ -3179,7 +3179,7 @@ async function showSimsDelCelular(celular_id){
         <td data-label="App">${s.app==='whatsapp_business'?'WhatsApp Biz':'WhatsApp'}</td>
         <td data-label="Acciones"><div class="act-cell">
           <button class="btn btn-warning btn-sm" onclick="openSimcardModal(${s.id})">✏️ Editar</button>
-          <button class="btn btn-danger btn-icon btn-sm" onclick="delSimcard(${s.id})">🗑️</button>
+          <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delSimcard(${s.id})">🗑️</button>
         </div></td>
       </tr>`;
     });
@@ -3314,7 +3314,7 @@ function renderSimcards(){
       <td data-label="Bloqueos"><button class="btn btn-secondary btn-sm" onclick="showBloqueoDetalle(${s.id})">📋</button></td>
       <td data-label="Acciones"><div class="act-cell">
         <button class="btn btn-warning btn-sm" onclick="openSimcardModal(${s.id})">✏️ Editar</button>
-        <button class="btn btn-danger btn-icon btn-sm" onclick="delSimcard(${s.id})">🗑️</button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delSimcard(${s.id})">🗑️</button>
       </div></td>
     </tr>`;}).join('');
   
@@ -3416,7 +3416,7 @@ async function showBloqueoDetalle(sim_id){
         <td data-label="Fecha Bloqueo" class="mono">${fmtDate(b.fecha_bloqueo)}</td>
         <td data-label="Razón">${b.razon||'—'}</td>
         <td data-label="Notas" style="font-size:12px;color:var(--text3)">${b.notas||'—'}</td>
-        <td data-label="Acciones"><button class="btn btn-danger btn-icon btn-sm" onclick="delBloqueo(${b.id})">🗑️</button></td>
+        <td data-label="Acciones"><button class="btn btn-danger btn-icon btn-sm" title="Eliminar" onclick="delBloqueo(${b.id})">🗑️</button></td>
       </tr>`).join('');
     }
     

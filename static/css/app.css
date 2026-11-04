@@ -14,7 +14,7 @@
 
   --text:     #f0f2ff;
   --text2:    #8b92a8;
-  --text3:    #555d72;
+  --text3:    #828ba3;
 
   --blue:     #4f8ef7;
   --blue-d:   #3b7de8;
@@ -67,7 +67,7 @@
 
   --text:     #0f1729;
   --text2:    #55607a;
-  --text3:    #8a93aa;
+  --text3:    #6b7390;
 
   --blue:     #2f6fed;
   --blue-d:   #2559c9;
@@ -326,6 +326,7 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 
 /* ═══════════════ BUTTONS ══════════════ */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:var(--font);white-space:nowrap}
+.btn:focus-visible,.nav-btn:focus-visible,.kpi-mini:focus-visible,.stat-card:focus-visible,.m-close:focus-visible,.hamburger:focus-visible,.scan-btn:focus-visible,.alert-item:focus-visible,.cal-event:focus-visible,.user-pill:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .btn-primary{background:var(--blue);color:white}
 .btn-primary:hover{background:var(--blue-d);box-shadow:0 4px 16px var(--blue-glow)}
 .btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
