@@ -848,3 +848,22 @@ def create_documento_generado(data: dict) -> dict:
 def get_documentos_by_usuario(usuario_id: int) -> list:
     result = supabase_request('GET', 'documentos_generados', f'?usuario_id=eq.{usuario_id}&order=generado_en.desc')
     return result if isinstance(result, list) else []
+
+# ── Entregas de libro ─────────────────────────────────────────────────────────
+
+def get_all_entregas_libro() -> list:
+    result = supabase_request('GET', 'entregas_libro', '?order=created_at.desc')
+    return result if isinstance(result, list) else []
+
+
+def create_entrega_libro(data: dict) -> dict:
+    return supabase_request('POST', 'entregas_libro', '', data)
+
+
+def get_entrega_libro(entrega_id: int) -> dict | None:
+    result = supabase_request('GET', 'entregas_libro', f'?id=eq.{entrega_id}')
+    return result[0] if isinstance(result, list) and result else None
+
+
+def delete_entrega_libro(entrega_id: int):
+    return supabase_request('DELETE', 'entregas_libro', f'?id=eq.{entrega_id}')

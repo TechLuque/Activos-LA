@@ -79,6 +79,9 @@
       <button class="nav-btn" onclick="nav('usuarios')">
         <div class="nav-icon">👥</div> Responsables
       </button>
+      <button class="nav-btn" onclick="nav('entregalibro')">
+        <div class="nav-icon">📖</div> Entrega Libro
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Configuración</div>
@@ -633,6 +636,46 @@
       </div>
     </section>
 
+    <!-- ════ ENTREGA LIBRO ════ -->
+    <section class="page" id="page-entregalibro">
+      <div class="pg-header">
+        <div class="pg-heading"><h2>Entrega de Libro</h2><p>Registro de persona con firma y foto de evidencia</p></div>
+        <button class="btn btn-primary" onclick="openEntregaModal()">+ Nuevo registro</button>
+      </div>
+      <div class="tbl-toolbar">
+        <button class="filters-card-head" onclick="toggleFiltersPanel(this)" aria-expanded="true">
+          <span class="filters-card-head-label">🔽 Filtros</span>
+          <span class="filters-toggle-icon">▾</span>
+        </button>
+        <div class="filters-body"><div class="filters-body-inner">
+        <div class="filter-row">
+          <div class="filter-field"><label>🔍 Buscar</label>
+            <input id="srchEntrega" type="text" placeholder="Buscar nombre, identificación, correo…" oninput="currentPage['entrega']=1;renderEntregas()">
+          </div>
+        </div>
+        <div class="filters-actions">
+          <div class="per-page-group">
+            <label>Mostrar:</label>
+            <select id="itemsPerPageEntrega" onchange="updateItemsPerPage('entrega');renderEntregas()" class="per-page-select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <span>por página</span>
+          </div>
+          <span class="count-badge" id="entregaCount"></span>
+        </div>
+        </div></div>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nombre</th><th>Identificación</th><th>Correo</th><th>Teléfono</th><th>Firma</th><th>Foto</th><th>Fecha</th><th>Acciones</th>
+        </tr></thead><tbody id="entregaTbody"></tbody></table>
+      </div>
+    </section>
+
     <!-- ════ ASIGNACIONES DE EQUIPOS ════ -->
     <section class="page" id="page-asignaciones">
       <div class="pg-header">
@@ -1066,6 +1109,47 @@
       <div class="form-actions" style="margin-top:20px">
         <button class="btn btn-ghost" onclick="close('ovAssignLicense')">Cancelar</button>
         <button id="confirmAssignLicenseBtn" class="btn btn-primary" onclick="confirmAssignLicense()">Asignar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ENTREGA LIBRO: NUEVO REGISTRO -->
+<div class="overlay" id="ovEntrega" style="z-index:250">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Nuevo registro de entrega</h3><p>Datos de la persona, firma y foto de evidencia</p></div>
+      <button class="m-close" onclick="close('ovEntrega')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Nombres *</label><input id="entregaNombres" placeholder="Nombres"></div>
+        <div class="fg"><label>Apellidos *</label><input id="entregaApellidos" placeholder="Apellidos"></div>
+        <div class="fg"><label>Correo *</label><input id="entregaCorreo" type="email" placeholder="correo@ejemplo.com"></div>
+        <div class="fg"><label>Teléfono *</label><input id="entregaTelefono" placeholder="Teléfono"></div>
+        <div class="fg"><label>Identificación *</label><input id="entregaIdentificacion" placeholder="Número de identificación"></div>
+      </div>
+
+      <hr class="section-sep">
+      <label style="display:block;margin-bottom:8px;font-weight:500">Firma digital *</label>
+      <div class="signature-container">
+        <canvas id="entregaSignaturePad" class="signature-canvas"></canvas>
+      </div>
+      <div class="row-flex" style="margin-top:8px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="clearEntregaFirma()">🗑️ Limpiar firma</button>
+        <span id="entregaSigStatus" style="font-size:12px;color:var(--text3)">Sin firmar</span>
+      </div>
+
+      <hr class="section-sep">
+      <label style="display:block;margin-bottom:8px;font-weight:500">Foto de evidencia *</label>
+      <input type="file" id="entregaFoto" accept="image/*" capture="environment" onchange="previewEntregaFoto()">
+      <div class="img-preview" id="entregaFotoPreview" style="margin-top:8px">
+        <span class="img-status">Sin foto</span>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="close('ovEntrega')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEntrega()">Guardar registro</button>
       </div>
     </div>
   </div>

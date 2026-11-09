@@ -1020,6 +1020,72 @@ def delete_tipo_equipo(id):
     except Exception as e:
         return _server_error(e)
 
+# ========== ENTREGA LIBRO ==========
+@app.route('/api/entregas-libro', methods=['GET'])
+@require_api_login
+def get_entregas_libro():
+    try:
+        return jsonify(repo.get_all_entregas_libro())
+    except Exception as e:
+        return _server_error(e)
+
+@app.route('/api/entregas-libro', methods=['POST'])
+@require_api_login
+def create_entrega_libro():
+    try:
+        nombres = request.form.get('nombres', '').strip()
+        apellidos = request.form.get('apellidos', '').strip()
+        correo = request.form.get('correo', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        identificacion = request.form.get('identificacion', '').strip()
+        firma_file = request.files.get('firma')
+        foto_file = request.files.get('foto')
+
+        if not all([nombres, apellidos, correo, telefono, identificacion]):
+            return jsonify({'error': 'Todos los campos son requeridos'}), 400
+        if not firma_file or not foto_file:
+            return jsonify({'error': 'La firma y la foto son requeridas'}), 400
+
+        firma_content = firma_file.read()
+        foto_content = foto_file.read()
+        if not firma_content or not foto_content:
+            return jsonify({'error': 'La firma o la foto están vacías'}), 400
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        carpeta = f"entregas_libro/{identificacion}_{timestamp}"
+        firma_url = supabase_storage_upload(firma_content, f"{carpeta}/firma.jpg")
+        foto_url = supabase_storage_upload(foto_content, f"{carpeta}/foto.jpg")
+        if not firma_url or not foto_url:
+            return jsonify({'error': 'Error al subir la firma o la foto'}), 500
+
+        result = repo.create_entrega_libro({
+            'nombres': nombres,
+            'apellidos': apellidos,
+            'correo': correo,
+            'telefono': telefono,
+            'identificacion': identificacion,
+            'firma_url': firma_url,
+            'foto_url': foto_url,
+            'registrado_por': session.get('user_id')
+        })
+        if isinstance(result, dict) and result.get('error'):
+            return jsonify({'error': str(result.get('error'))}), 500
+        created = result[0] if isinstance(result, list) and result else result
+        return jsonify(created), 201
+    except Exception as e:
+        return _server_error(e)
+
+@app.route('/api/entregas-libro/<int:id>', methods=['DELETE'])
+@require_api_login
+def delete_entrega_libro(id):
+    try:
+        if not repo.get_entrega_libro(id):
+            return jsonify({'error': 'Registro no encontrado'}), 404
+        result = repo.delete_entrega_libro(id)
+        return _respuesta_borrado(result, 'el registro')
+    except Exception as e:
+        return _server_error(e)
+
 @app.route('/api/equipos/<int:id>', methods=['GET'])
 @require_api_login
 def get_equipo(id):

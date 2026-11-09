@@ -34,7 +34,8 @@ function db(key,fn){clearTimeout(_dbt[key]);_dbt[key]=setTimeout(fn,200);}
    la misma promesa. */
 const LIBS={
   qrcode:{url:'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',global:'Html5Qrcode'},
-  barcode:{url:'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js',global:'JsBarcode'}
+  barcode:{url:'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js',global:'JsBarcode'},
+  signpad:{url:'https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js',global:'SignaturePad'}
 };
 const _libs={};
 function loadLib(name){
@@ -158,7 +159,8 @@ const SEARCH_FIELDS={
   simcard:['numero','operador','celular.imei'],
   asignaciones:['equipo.nombre','equipo.serial','usuario.nombre','usuario.departamento'],
   tipos:['nombre','descripcion'],
-  roles:['nombre','descripcion']
+  roles:['nombre','descripcion'],
+  entrega:['nombres','apellidos','correo','telefono','identificacion']
 };
 
 // Función para obtener valor anidado (ej: 'equipo.nombre')
@@ -233,7 +235,7 @@ function getActiveFilters(viewType){
    NAVIGATION
 ════════════════════════════════════════════════════ */
 const PAGE_TITLES={dashboard:'Panel de control',equipos:'Equipos',mantenimientos:'Mantenimientos',
-  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',documentos:'Documentos',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles',etiquetas:'Etiquetas de Activos'};
+  usuarios:'Responsables',prestamos:'Préstamos',licencias:'Licencias',aplicativos:'Aplicativos',celulares:'Celulares',simcards:'SIM Cards',calendario:'Calendario',documentos:'Documentos',reportes:'Reportes','admin-tipos':'Tipos de Equipos','admin-roles':'Roles',etiquetas:'Etiquetas de Activos',entregalibro:'Entrega de Libro'};
 
 function toggleFiltersPanel(headEl){
   const panel=headEl.closest('.tbl-toolbar');
@@ -275,6 +277,7 @@ function nav(page){
   if(page==='admin-tipos')_safe(renderTipos,'tipos');
   if(page==='admin-roles'){_safe(loadRoles,'loadRoles');_safe(renderRoles,'roles');}
   if(page==='etiquetas')_safe(renderEtiquetas,'etiquetas');
+  if(page==='entregalibro')_safe(loadEntregas,'entregalibro');
 }
 
 /* ════════════════════════════════════════════════════
@@ -1285,9 +1288,9 @@ async function delEq(id){
 /* ════════════════════════════════════════════════════
    PAGINACIÓN
 ════════════════════════════════════════════════════ */
-let currentPage={eq:1,usu:1,loan:1,asignaciones:1,mant:1,license:1,aplicativo:1,celular:1,simcard:1,tipos:1,roles:1};
+let currentPage={eq:1,usu:1,loan:1,asignaciones:1,mant:1,license:1,aplicativo:1,celular:1,simcard:1,tipos:1,roles:1,entrega:1};
 let isSubmitting=false;
-const ITEMS_PER_PAGE={eq:10,usu:15,loan:15,asignaciones:10,mant:10,license:15,aplicativo:15,celular:10,simcard:10,tipos:10,roles:10};
+const ITEMS_PER_PAGE={eq:10,usu:15,loan:15,asignaciones:10,mant:10,license:15,aplicativo:15,celular:10,simcard:10,tipos:10,roles:10,entrega:10};
 
 function updateItemsPerPage(entityType){
   try{
@@ -1342,6 +1345,7 @@ function goToPage(page,entityType){
   else if(entityType==='aplicativo')renderAplicativos();
   else if(entityType==='tipos')renderTipos();
   else if(entityType==='roles')renderRoles();
+  else if(entityType==='entrega')renderEntregas();
 }
 
 function paginateArray(arr,entityType){
@@ -1480,6 +1484,209 @@ async function deleteTipo(id,nombre){
     toast(`Tipo "${nombre}" eliminado`,'info');
   }else{
     toast('Error al eliminar el tipo','err');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   ENTREGA DE LIBRO
+════════════════════════════════════════════════════ */
+let ENTREGAS=[];
+let _entregaSignPad=null;
+let _entregaFotoBlob=null;
+let _entregasLoaded=false;
+
+async function loadEntregas(){
+  if(!_entregasLoaded){
+    ENTREGAS=await api('/api/entregas-libro');
+    if(!Array.isArray(ENTREGAS))ENTREGAS=[];
+    _entregasLoaded=true;
+  }
+  renderEntregas();
+}
+
+function renderEntregas(){
+  const srch=$('srchEntrega').value||'';
+  const filtered=searchMultiField(ENTREGAS,srch,SEARCH_FIELDS.entrega);
+
+  $('entregaCount').textContent=`${filtered.length} registro${filtered.length!==1?'s':''}`;
+
+  const {data:pageData,totalPages,currentPage:cp}=paginateArray(filtered,'entrega');
+
+  const tbody=$('entregaTbody');
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">📖</div><h3>Sin registros</h3></div></td></tr>';
+    const wrapper=tbody.parentElement.parentElement;
+    wrapper.querySelector('[data-pagination="entrega"]')?.remove();
+    return;
+  }
+
+  tbody.innerHTML=pageData.map(e=>`
+    <tr>
+      <td>${e.nombres} ${e.apellidos}</td>
+      <td>${e.identificacion}</td>
+      <td>${e.correo}</td>
+      <td>${e.telefono}</td>
+      <td>${e.firma_url?`<a href="${e.firma_url}" target="_blank" rel="noopener">Ver firma</a>`:'—'}</td>
+      <td>${e.foto_url?`<a href="${e.foto_url}" target="_blank" rel="noopener">Ver foto</a>`:'—'}</td>
+      <td>${e.created_at?new Date(e.created_at).toLocaleDateString('es-CO'):'—'}</td>
+      <td style="text-align:center">
+        <button class="btn btn-sm btn-ghost" onclick="deleteEntrega(${e.id})" title="Eliminar">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+
+  if(totalPages>1){
+    const wrapper=tbody.parentElement.parentElement;
+    let paginationContainer=wrapper.querySelector('[data-pagination="entrega"]');
+    if(!paginationContainer){
+      paginationContainer=document.createElement('div');
+      paginationContainer.setAttribute('data-pagination','entrega');
+      paginationContainer.className='pagination-wrap';
+      wrapper.appendChild(paginationContainer);
+    }
+    paginationContainer.innerHTML=createPaginationControls(cp,totalPages,'entrega');
+  }else{
+    const wrapper=tbody.parentElement.parentElement;
+    wrapper.querySelector('[data-pagination="entrega"]')?.remove();
+  }
+}
+
+async function openEntregaModal(){
+  $('entregaNombres').value='';
+  $('entregaApellidos').value='';
+  $('entregaCorreo').value='';
+  $('entregaTelefono').value='';
+  $('entregaIdentificacion').value='';
+  $('entregaFoto').value='';
+  _entregaFotoBlob=null;
+  $('entregaFotoPreview').innerHTML='<span class="img-status">Sin foto</span>';
+  open('ovEntrega');
+  await loadLib('signpad');
+  _initEntregaSignPad();
+}
+
+function _initEntregaSignPad(){
+  const canvas=$('entregaSignaturePad');
+  if(!canvas)return;
+  setTimeout(()=>{
+    if(_entregaSignPad){_entregaSignPad.off();_entregaSignPad=null;}
+    const container=canvas.parentElement;
+    canvas.width=Math.max(container.offsetWidth-4,300);
+    canvas.height=180;
+    if(typeof SignaturePad==='undefined')return;
+    _entregaSignPad=new SignaturePad(canvas,{
+      penColor:'rgb(59,130,246)',backgroundColor:'rgba(0,0,0,0)',
+      minWidth:0.5,maxWidth:2.5,throttle:16,minDistance:5,dotSize:0
+    });
+    canvas.style.touchAction='none';
+    const updateStatus=()=>{
+      const st=$('entregaSigStatus');
+      if(_entregaSignPad&&!_entregaSignPad.isEmpty()){st.textContent='✅ Firmado';st.style.color='var(--green)';}
+      else{st.textContent='Sin firmar';st.style.color='var(--text3)';}
+    };
+    canvas.addEventListener('pointerdown',updateStatus);
+    canvas.addEventListener('pointerup',updateStatus);
+    canvas.addEventListener('pointermove',updateStatus);
+    updateStatus();
+  },150);
+}
+
+function clearEntregaFirma(){
+  _entregaSignPad?.clear();
+  const st=$('entregaSigStatus');
+  st.textContent='Sin firmar';
+  st.style.color='var(--text3)';
+}
+
+function dataURLtoBlob(dataurl){
+  const arr=dataurl.split(',');
+  const mime=arr[0].match(/:(.*?);/)[1];
+  const bstr=atob(arr[1]);
+  let n=bstr.length;
+  const u8arr=new Uint8Array(n);
+  while(n--)u8arr[n]=bstr.charCodeAt(n);
+  return new Blob([u8arr],{type:mime});
+}
+
+async function compressImage(file,maxWidth=1200,maxHeight=1200,quality=0.82){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let width=img.width,height=img.height;
+        if(width>height){if(width>maxWidth){height=Math.round((height*maxWidth)/width);width=maxWidth;}}
+        else{if(height>maxHeight){width=Math.round((width*maxHeight)/height);height=maxHeight;}}
+        const canvas=document.createElement('canvas');
+        canvas.width=width;canvas.height=height;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#FFFFFF';
+        ctx.fillRect(0,0,width,height);
+        ctx.drawImage(img,0,0,width,height);
+        canvas.toBlob(resolve,'image/jpeg',quality);
+      };
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function previewEntregaFoto(){
+  const file=$('entregaFoto').files[0];
+  const preview=$('entregaFotoPreview');
+  if(!file){_entregaFotoBlob=null;preview.innerHTML='<span class="img-status">Sin foto</span>';return;}
+  if(!file.type.startsWith('image/')){toast('Selecciona una imagen válida','err');$('entregaFoto').value='';return;}
+  _entregaFotoBlob=await compressImage(file);
+  const url=URL.createObjectURL(_entregaFotoBlob);
+  preview.innerHTML=`<img src="${url}" alt="Foto evidencia">`;
+}
+
+async function saveEntrega(){
+  const nombres=$('entregaNombres').value.trim();
+  const apellidos=$('entregaApellidos').value.trim();
+  const correo=$('entregaCorreo').value.trim();
+  const telefono=$('entregaTelefono').value.trim();
+  const identificacion=$('entregaIdentificacion').value.trim();
+
+  if(!nombres||!apellidos||!correo||!telefono||!identificacion){toast('Completa todos los campos','err');return;}
+  if(!_entregaSignPad||_entregaSignPad.isEmpty()){toast('⚠️ Dibuja la firma antes de guardar','err');return;}
+  if(!_entregaFotoBlob){toast('⚠️ Sube o toma una foto de evidencia','err');return;}
+
+  const firmaDataURL=_entregaSignPad.canvas.toDataURL('image/jpeg',0.85);
+  const firmaBlob=dataURLtoBlob(firmaDataURL);
+
+  const fd=new FormData();
+  fd.append('nombres',nombres);
+  fd.append('apellidos',apellidos);
+  fd.append('correo',correo);
+  fd.append('telefono',telefono);
+  fd.append('identificacion',identificacion);
+  fd.append('firma',firmaBlob,'firma.jpg');
+  fd.append('foto',_entregaFotoBlob,'foto.jpg');
+
+  try{
+    const res=await fetch('/api/entregas-libro',{method:'POST',credentials:'include',body:fd});
+    const data=await res.json();
+    if(!res.ok||data.error){toast(data.error||'Error al guardar el registro','err');return;}
+    ENTREGAS.unshift(data);
+    renderEntregas();
+    close('ovEntrega');
+    toast('Registro guardado correctamente ✅','ok');
+  }catch(e){
+    toast('Error al guardar: '+e.message,'err');
+  }
+}
+
+async function deleteEntrega(id){
+  if(!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.'))return;
+  const res=await api(`/api/entregas-libro/${id}`,'DELETE');
+  if(res.ok){
+    ENTREGAS=ENTREGAS.filter(e=>e.id!==id);
+    renderEntregas();
+    toast('Registro eliminado','info');
+  }else{
+    toast(res.error||'Error al eliminar el registro','err');
   }
 }
 
