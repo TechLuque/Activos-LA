@@ -340,6 +340,13 @@ def create_prestamo_masivo_items(items: list) -> dict:
     return supabase_request('POST', 'prestamos_masivos_items', '', items)
 
 
+def delete_prestamo_masivo_item(prestamo_masivo_id: int, equipo_id: int):
+    return supabase_request(
+        'DELETE', 'prestamos_masivos_items',
+        f'?prestamo_masivo_id=eq.{prestamo_masivo_id}&equipo_id=eq.{equipo_id}'
+    )
+
+
 def update_prestamo_masivo(prestamo_masivo_id: int, data: dict) -> dict:
     return supabase_request('PATCH', 'prestamos_masivos', f'?id=eq.{prestamo_masivo_id}', data)
 

@@ -4125,6 +4125,22 @@ function viewLoanMasivoItems(id){
   if(!masivo){return;}
   $('lmItemsSub').textContent=`${masivo.usuario_nombre} · ${fmtDate(masivo.fecha_prestamo)}`;
 
+  const editable=masivo.estado!=='devuelto';
+  const addBox=$('lmItemsAddBox');
+  if(addBox){
+    addBox.style.display=editable?'':'none';
+    if(editable){
+      const conPrestamo=new Set(LOANS.filter(l=>l.estado==='firmado'||l.estado==='activo').map(l=>l.equipo_id));
+      const enOtroMasivo=new Set((LOANS_MASIVOS||[]).filter(m=>m.id!==id&&m.estado!=='devuelto').flatMap(m=>m.equipo_ids||[]));
+      const yaEnEste=new Set(masivo.equipo_ids||[]);
+      window.equiposMasivoEditDisponibles=EQ.filter(e=>
+        !conPrestamo.has(e.id)&&!enOtroMasivo.has(e.id)&&!yaEnEste.has(e.id)&&e.disponibilidad!=='Retirado'
+      );
+    }
+    $('lmItemsAddSearch').value='';
+    $('lmItemsAddList').style.display='none';
+  }
+
   // Usar equipo_ids ya en memoria + EQ para evitar API call extra
   const equipoIds=masivo.equipo_ids||[];
   if(!equipoIds.length){
@@ -4132,16 +4148,18 @@ function viewLoanMasivoItems(id){
     document.getElementById('ovLoanMasivoItems').classList.add('open');
     return;
   }
+  const puedeQuitar=editable&&equipoIds.length>1;
   const rows=equipoIds.map((eqId,i)=>{
     const eq=EQ.find(e=>e.id===eqId)||{};
-    const detailBtn=eq.id?`<button class="btn btn-ghost btn-icon btn-sm" title="Ver hoja de vida" onclick="document.getElementById('ovLoanMasivoItems').classList.remove('open');openHV(${eq.id})">📋</button>`:'—';
+    const detailBtn=eq.id?`<button class="btn btn-ghost btn-icon btn-sm" title="Ver hoja de vida" onclick="document.getElementById('ovLoanMasivoItems').classList.remove('open');openHV(${eq.id})">📋</button>`:'';
+    const removeBtn=editable?`<button class="btn btn-danger btn-icon btn-sm" title="${puedeQuitar?'Quitar del préstamo':'El préstamo debe conservar al menos 1 equipo'}" ${puedeQuitar?'':'disabled'} onclick="removeEquipoFromMasivo(${id},${eqId})">🗑️</button>`:'';
     return`<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 4px;color:var(--text3)">${i+1}</td>
       <td style="padding:8px 4px;font-weight:600">${eq.nombre||'Equipo '+eqId}</td>
       <td style="padding:8px 4px;color:var(--text3)">${eq.tipo_nombre||eq.tipo||'—'}</td>
       <td style="padding:8px 4px;color:var(--text3)">${eq.marca||'—'}</td>
       <td style="padding:8px 4px;color:var(--text3);font-family:monospace">${eq.serial||'—'}</td>
-      <td style="padding:8px 4px;text-align:center">${detailBtn}</td>
+      <td style="padding:8px 4px;text-align:center;white-space:nowrap">${detailBtn}${removeBtn}</td>
     </tr>`;
   }).join('');
   $('lmItemsContent').innerHTML=`
@@ -4152,7 +4170,7 @@ function viewLoanMasivoItems(id){
         <th style="padding:8px 4px;text-align:left">Tipo</th>
         <th style="padding:8px 4px;text-align:left">Marca</th>
         <th style="padding:8px 4px;text-align:left">Serial</th>
-        <th style="padding:8px 4px;text-align:center">Detalle</th>
+        <th style="padding:8px 4px;text-align:center">Acciones</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -4160,6 +4178,58 @@ function viewLoanMasivoItems(id){
   const firmaBtn=$('lmItemsFirmaBtn');
   if(firmaBtn) firmaBtn.style.display=masivo.estado==='devuelto'?'none':'';
   document.getElementById('ovLoanMasivoItems').classList.add('open');
+}
+
+function filterEquiposMasivoEdit(){
+  const q=($('lmItemsAddSearch').value||'').trim().toLowerCase();
+  const list=$('lmItemsAddList');
+  if(!q){list.style.display='none';return;}
+  const base=window.equiposMasivoEditDisponibles||[];
+  const filtered=base.filter(e=>
+    (e.nombre||'').toLowerCase().includes(q)||
+    (e.serial||'').toLowerCase().includes(q)||
+    (e.marca||'').toLowerCase().includes(q)||
+    (e.tipo_nombre||e.tipo||'').toLowerCase().includes(q)
+  );
+  list.style.display='block';
+  if(!filtered.length){
+    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">No hay equipos disponibles</div>';
+  }else{
+    list.innerHTML=filtered.slice(0,30).map(e=>`
+      <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border)"
+           onmouseover="this.style.background='var(--surface3)'"
+           onmouseout="this.style.background='transparent'"
+           onclick="addEquipoToMasivo(${_currentMasivoId},${e.id})">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${e.nombre}</div>
+        <div style="font-size:11px;color:var(--text3)">${e.tipo_nombre||e.tipo||''} ${e.serial?'· Serial: '+e.serial:''}</div>
+      </div>
+    `).join('');
+  }
+}
+
+document.addEventListener('click',function(e){
+  if(e.target.id!=='lmItemsAddSearch'&&!e.target.closest('#lmItemsAddList')){
+    const l=$('lmItemsAddList');
+    if(l) l.style.display='none';
+  }
+});
+
+async function addEquipoToMasivo(masivoId,equipoId){
+  const res=await api(`/api/prestamos/masivos/${masivoId}/items`,'POST',{equipo_ids:[equipoId]});
+  if(res.error){toast(res.error,'err');return;}
+  await _refreshLoansMasivos();
+  toast('Equipo agregado al préstamo ✅','ok');
+  viewLoanMasivoItems(masivoId);
+}
+
+async function removeEquipoFromMasivo(masivoId,equipoId){
+  const eq=EQ.find(e=>e.id===equipoId);
+  if(!confirm(`¿Quitar "${eq?eq.nombre:'este equipo'}" del préstamo masivo?`))return;
+  const res=await api(`/api/prestamos/masivos/${masivoId}/items/${equipoId}`,'DELETE');
+  if(res.error){toast(res.error,'err');return;}
+  await _refreshLoansMasivos();
+  toast('Equipo quitado del préstamo','ok');
+  viewLoanMasivoItems(masivoId);
 }
 
 async function exportarPrestamoMasivoPDF(id){

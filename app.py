@@ -2012,6 +2012,76 @@ def get_prestamo_masivo_items(id):
         return _server_error(e)
 
 
+@app.route('/api/prestamos/masivos/<int:id>/items', methods=['POST'])
+@require_api_login
+def add_prestamo_masivo_items(id):
+    """Agrega equipos a un préstamo masivo existente (no permitido si ya fue devuelto)."""
+    try:
+        masivo = repo.get_prestamo_masivo_by_id(id)
+        if masivo is None:
+            return jsonify({'error': 'Préstamo masivo no encontrado'}), 404
+        if masivo.get('estado') == 'devuelto':
+            return jsonify({'error': 'No se pueden agregar equipos a un préstamo ya devuelto'}), 400
+
+        d = request.json
+        equipo_ids = d.get('equipo_ids', [])
+        if not equipo_ids:
+            return jsonify({'error': 'Se requiere al menos 1 equipo'}), 400
+
+        ya_en_masivo = {item['equipo_id'] for item in repo.get_prestamo_masivo_items(id)}
+        equipo_ids = [eq_id for eq_id in equipo_ids if eq_id not in ya_en_masivo]
+        if not equipo_ids:
+            return jsonify({'error': 'Los equipos seleccionados ya están en este préstamo'}), 400
+
+        prestamos_activos_ids = {
+            p['equipo_id'] for p in repo.get_all_prestamos()
+            if p.get('estado') != 'devuelto'
+        }
+        masivos_activos_ids = repo.get_active_masivo_equipo_ids()
+        equipos_map = {e['id']: e for e in repo.get_all_equipos()}
+
+        errors = []
+        for eq_id in equipo_ids:
+            eq = equipos_map.get(eq_id)
+            if not eq:
+                errors.append(f'Equipo ID {eq_id} no encontrado')
+            elif eq.get('disponibilidad') == 'Retirado':
+                errors.append(f'Equipo "{eq["nombre"]}" está retirado')
+            elif eq_id in prestamos_activos_ids:
+                errors.append(f'Equipo "{eq["nombre"]}" ya tiene un préstamo activo')
+            elif eq_id in masivos_activos_ids:
+                errors.append(f'Equipo "{eq["nombre"]}" ya está en otro préstamo masivo activo')
+        if errors:
+            return jsonify({'error': ' | '.join(errors)}), 400
+
+        repo.create_prestamo_masivo_items(
+            [{'prestamo_masivo_id': id, 'equipo_id': eq_id} for eq_id in equipo_ids])
+        return jsonify({'ok': True}), 201
+    except Exception as e:
+        return _server_error(e)
+
+
+@app.route('/api/prestamos/masivos/<int:id>/items/<int:equipo_id>', methods=['DELETE'])
+@require_api_login
+def remove_prestamo_masivo_item(id, equipo_id):
+    """Quita un equipo de un préstamo masivo existente (no permitido si ya fue devuelto)."""
+    try:
+        masivo = repo.get_prestamo_masivo_by_id(id)
+        if masivo is None:
+            return jsonify({'error': 'Préstamo masivo no encontrado'}), 404
+        if masivo.get('estado') == 'devuelto':
+            return jsonify({'error': 'No se pueden quitar equipos de un préstamo ya devuelto'}), 400
+
+        items = repo.get_prestamo_masivo_items(id)
+        if len(items) <= 1:
+            return jsonify({'error': 'El préstamo debe conservar al menos 1 equipo. Elimina el préstamo completo si ya no aplica.'}), 400
+
+        repo.delete_prestamo_masivo_item(id, equipo_id)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return _server_error(e)
+
+
 @app.route('/api/prestamos/masivos/<int:id>/devolver', methods=['PUT'])
 @require_api_login
 def devolver_prestamo_masivo(id):
