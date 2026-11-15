@@ -475,21 +475,26 @@ def require_api_login(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Rutas de API que el área "finanzas" puede usar. Todo lo demás bajo /api/
-# queda bloqueado por defecto (allowlist, no blocklist), para que rutas
-# nuevas no queden abiertas por accidente.
-FINANZAS_RUTAS_PERMITIDAS = ('/api/user', '/api/init', '/api/init/secondary', '/api/usuarios', '/api/tipos_documento')
+# Rutas de API permitidas por área de acceso restringida. Todo lo demás bajo
+# /api/ queda bloqueado por defecto (allowlist, no blocklist), para que rutas
+# nuevas no queden abiertas por accidente. Áreas que no aparecen aquí (ej.
+# 'admin') no tienen restricción.
+AREA_RUTAS_PERMITIDAS = {
+    'finanzas': ('/api/user', '/api/init', '/api/init/secondary', '/api/usuarios', '/api/tipos_documento'),
+    'entregalibro': ('/api/user', '/api/init', '/api/init/secondary', '/api/entregas-libro'),
+}
 
-def _finanzas_puede_acceder(path, method):
-    if path == '/api/prestamos/masivos' and method == 'GET':
+def _area_puede_acceder(area, path, method):
+    if area == 'finanzas' and path == '/api/prestamos/masivos' and method == 'GET':
         return True
-    return path.startswith(FINANZAS_RUTAS_PERMITIDAS)
+    return path.startswith(AREA_RUTAS_PERMITIDAS[area])
 
 @app.before_request
-def restringir_area_finanzas():
-    """El área finanzas solo puede acceder a Documentos y Responsables (usuarios)."""
-    if session.get('area_acceso') == 'finanzas' and request.path.startswith('/api/'):
-        if not _finanzas_puede_acceder(request.path, request.method):
+def restringir_area_acceso():
+    """Áreas restringidas (ej. 'finanzas', 'entregalibro') solo pueden usar su allowlist de rutas."""
+    area = session.get('area_acceso')
+    if area in AREA_RUTAS_PERMITIDAS and request.path.startswith('/api/'):
+        if not _area_puede_acceder(area, request.path, request.method):
             return jsonify({'error': 'No autorizado para esta sección'}), 403
 
 @app.route('/login', methods=['GET'])
@@ -616,6 +621,9 @@ def get_init_data():
                     'equipos': [], 'prestamos': [], 'tipos': [],
                     'usuarios': f_usuarios.result(), 'roles': f_roles.result()
                 })
+        if session.get('area_acceso') == 'entregalibro':
+            # Objetos perdidos solo ve su propio módulo: no necesita nada de esto.
+            return jsonify({'equipos': [], 'prestamos': [], 'tipos': [], 'usuarios': [], 'roles': []})
         tasks = {
             'equipos':   repo.get_all_equipos,
             'usuarios':  repo.get_all_usuarios,
@@ -639,7 +647,7 @@ def get_secondary_data():
     serverless cada petición concurrente puede caer en una instancia fría distinta.
     """
     try:
-        if session.get('area_acceso') == 'finanzas':
+        if session.get('area_acceso') in ('finanzas', 'entregalibro'):
             return jsonify({
                 'mantenimientos': [], 'licencias': [], 'aplicativos': [],
                 'celulares': [], 'simcards': [], 'asignaciones': [], 'masivos': []

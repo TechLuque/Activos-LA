@@ -287,8 +287,7 @@ function nav(page){
 /* ════════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════════ */
-function _aplicarRestriccionFinanzas(){
-  const permitidas=['documentos','usuarios'];
+function _aplicarRestriccionArea(permitidas){
   document.querySelectorAll('.nav-btn').forEach(b=>{
     const p=b.getAttribute('onclick')?.match(/nav\('([\w-]+)'\)/)?.[1];
     if(p&&!permitidas.includes(p))b.style.display='none';
@@ -299,19 +298,34 @@ function _aplicarRestriccionFinanzas(){
   });
 }
 
+// Cuenta exclusiva del área 'entregalibro': solo ve este módulo, renombrado a "Objetos perdidos"
+function _aplicarRestriccionEntregaLibro(){
+  _aplicarRestriccionArea(['entregalibro']);
+  const navBtn=document.querySelector(`.nav-btn[onclick="nav('entregalibro')"]`);
+  if(navBtn) navBtn.innerHTML='<div class="nav-icon">🧳</div> Objetos perdidos';
+  const heading=document.querySelector('#page-entregalibro .pg-heading h2');
+  if(heading) heading.textContent='Objetos perdidos';
+  const subtitulo=document.querySelector('#page-entregalibro .pg-heading p');
+  if(subtitulo) subtitulo.textContent='Registro de objetos perdidos con firma y foto de evidencia';
+  PAGE_TITLES.entregalibro='Objetos perdidos';
+}
+
 async function init(){
   applyThemeIcon();
   const [user]=await Promise.all([api('/api/user').catch(()=>null),loadAll()]);
   const esFinanzas=user&&user.area_acceso==='finanzas';
+  const esEntregaLibro=user&&user.area_acceso==='entregalibro';
   if(user&&!user.error){
     $('uName').textContent=user.nombre||'Administrador';
     $('userEmail').textContent=user.email||'email@example.com';
     $('pgDate').textContent=`Hola, ${user.nombre||'Administrador'} · ${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}`;
   }
-  if(esFinanzas)_aplicarRestriccionFinanzas();
+  if(esFinanzas)_aplicarRestriccionArea(['documentos','usuarios']);
+  if(esEntregaLibro)_aplicarRestriccionEntregaLibro();
   renderDashboard();
   const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
   if(esFinanzas) nav('documentos');
+  else if(esEntregaLibro) nav('entregalibro');
   else if(activePage&&activePage!=='dashboard') nav(activePage);
   const eqMatch=window.location.pathname.match(/\/equipo\/(\d+)/);
   if(eqMatch){
