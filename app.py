@@ -2192,8 +2192,8 @@ def save_masivo_signature(id):
         extra_img_urls = _parse_extra_img_urls(request.form.get('extra_img_urls'))
         tipo_firma = request.form.get('tipo', 'inicial')
         terminos_aceptados = request.form.get('terminos_aceptados', 'false').lower() == 'true'
-        if not firma_file:
-            return jsonify({'error': 'Missing signature'}), 400
+        if not firma_file or not img1_url or not img2_url:
+            return jsonify({'error': 'Missing required data'}), 400
         firma_content = firma_file.read()
         if not firma_content:
             return jsonify({'error': 'Signature is empty'}), 400

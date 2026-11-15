@@ -1092,8 +1092,17 @@
                 }
                 extraFotoFiles = getExtraFotoFiles();
             } else if (tipoDocumento === 'masivo') {
-                img1File = $('lImg1').files[0] || null;
-                img2File = $('lImg2').files[0] || null;
+                img1File = $('lImg1').files[0];
+                img2File = $('lImg2').files[0];
+
+                if (!img1File) {
+                    showAlert('Se requiere la Foto 1', 'error');
+                    return;
+                }
+                if (!img2File) {
+                    showAlert('Se requiere la Foto 2', 'error');
+                    return;
+                }
                 extraFotoFiles = getExtraFotoFiles();
             }
             
