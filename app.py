@@ -2147,6 +2147,13 @@ def get_prestamo_masivo_publico(id):
         items = repo.get_prestamo_masivo_items(id)
         masivo['num_equipos'] = len(items)
         masivo['equipo_nombre'] = f"{len(items)} equipo(s)"
+        equipos_map = {e['id']: e for e in repo.get_equipos_by_ids([it['equipo_id'] for it in items])}
+        masivo['items'] = [{
+            'equipo_id': it['equipo_id'],
+            'equipo_nombre': equipos_map.get(it['equipo_id'], {}).get('nombre', 'Equipo desconocido'),
+            'equipo_serial': equipos_map.get(it['equipo_id'], {}).get('serial', 'N/A'),
+            'equipo_tipo': equipos_map.get(it['equipo_id'], {}).get('tipo_nombre', 'N/A'),
+        } for it in items]
         return jsonify(masivo)
     except Exception as e:
         return _server_error(e)

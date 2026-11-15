@@ -463,6 +463,10 @@
                     </div>
                 </div>
             </div>
+            <div id="equiposListBlock" style="display:none;margin-bottom:16px">
+                <div class="notes-block-label">📦 Equipos incluidos</div>
+                <div class="notes-block" id="infEquiposList" style="white-space:normal"></div>
+            </div>
             <div>
                 <div class="notes-block-label">📋 Observaciones Importantes</div>
                 <div class="notes-block">
@@ -698,7 +702,22 @@
                 $('infResponsable').textContent = responsable;
                 $('infFecha').textContent = fecha;
                 $('infDevol').textContent = devol;
-                
+
+                // Listado de equipos incluidos — solo aplica a préstamos masivos
+                const $equiposBlock = $('equiposListBlock');
+                if (tipoDocumento === 'masivo' && Array.isArray(loanData.items) && loanData.items.length) {
+                    $('infEquiposList').innerHTML = loanData.items.map(it =>
+                        `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
+                            <strong>${it.equipo_nombre || 'Equipo desconocido'}</strong>
+                            ${it.equipo_serial && it.equipo_serial !== 'N/A' ? ` · Serial: ${it.equipo_serial}` : ''}
+                            ${it.equipo_tipo && it.equipo_tipo !== 'N/A' ? ` · ${it.equipo_tipo}` : ''}
+                        </div>`
+                    ).join('');
+                    $equiposBlock.style.display = 'block';
+                } else {
+                    $equiposBlock.style.display = 'none';
+                }
+
                 // Mostrar notas con formato preservado
                 const notasEl = $('infNotas');
                 if (notas && notas !== 'Sin observaciones') {
