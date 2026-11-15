@@ -126,7 +126,10 @@ const daysLeft=d=>{if(!d)return null;const diff=Math.ceil((new Date(d)-new Date(
 const TIPO_ICON={Computador:'💻',Teclado:'⌨️',Mouse:'🖱️',Monitor:'🖥️',UPS:'🔋',Impresora:'🖨️',Tablet:'📱','Teléfono':'☎️',Tripode:'📷',Silla:'🪑','Pantalla led':'📺',Servidor:'🗄️',Router:'📡',Switch:'🔀',Otro:'📦'};
 const AV_COLORS=['#4f8ef7','#2dd4bf','#a78bfa','#fbbf24','#f87171','#34d399','#fb923c'];
 
-function bsClass(s){
+// Nota: 'activo' se reutiliza para dos cosas: estado de equipos/usuarios (Activo)
+// y estado de préstamos masivos sin firmar (Pendiente firma) — mismo código, significado distinto según el contexto.
+function bsClass(s,ctx){
+  if(ctx==='loan'&&s==='activo') return 'bs-solicitado';
   const m={bueno:'bs-bueno',regular:'bs-regular','dañado':'bs-dañado',en_reparacion:'bs-en_reparacion',
     activo:'bs-activo',inactivo:'bs-inactivo',bloqueado:'bs-bloqueado',reserva:'bs-reserva',desactivado:'bs-desactivado',devuelto:'bs-devuelto',
     completado:'bs-completado',en_proceso:'bs-en_proceso',pendiente:'bs-pendiente',
@@ -134,7 +137,8 @@ function bsClass(s){
     solicitado:'bs-solicitado',firmado:'bs-firmado',vencido:'bs-vencido','por_vencer':'bs-amber'};
   return m[s]||'';
 }
-function bsLabel(s){
+function bsLabel(s,ctx){
+  if(ctx==='loan'&&s==='activo') return 'Pendiente firma';
   const m={bueno:'Bueno',regular:'Regular','dañado':'Dañado',en_reparacion:'En reparación',
     activo:'Activo',inactivo:'Inactivo',bloqueado:'Bloqueado',reserva:'Reserva',desactivado:'Desactivado',devuelto:'Devuelto',
     completado:'Completado',en_proceso:'En proceso',pendiente:'Pendiente',
@@ -3746,21 +3750,30 @@ async function delBloqueo(bloqueo_id){
 /* ════════════════════════════════════════════════════
    PRÉSTAMOS
 ════════════════════════════════════════════════════ */
+// Individual: sin_firmar=solicitado · Masivo: sin_firmar=activo (mismo estado, dos códigos distintos en BD)
+function loanMatchesEstado(p,est,tipo){
+  if(!est) return true;
+  if(est==='sin_firmar') return tipo==='individual'?p.estado==='solicitado':p.estado==='activo';
+  return p.estado===est;
+}
+
 function renderLoan(){
   const q=($('srchLoan')?.value||'');
   const est=$('ftLoanEst')?.value||'';
   const dpto=$('ftLoanDpto')?.value||'';
   const vencido=$('ftLoanVencido')?.value||'';
+  const fecha=$('ftLoanFecha')?.value||'';
 
   // ── Individuales: lógica original intacta ──────────────────────
   let individualRows=searchMultiField(LOANS,q,SEARCH_FIELDS.loan);
   individualRows=individualRows.filter(p=>{
-    if(est&&p.estado!==est) return false;
+    if(!loanMatchesEstado(p,est,'individual')) return false;
     if(dpto&&p.departamento!==dpto) return false;
+    if(fecha&&p.fecha_prestamo!==fecha) return false;
     if(vencido){
       const dl=daysLeft(p.fecha_devolucion_esperada);
-      const isOverdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
-      const isNear=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
+      const isOverdue=p.estado==='firmado'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+      const isNear=p.estado==='firmado'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
       if(vencido==='vencido'&&!isOverdue) return false;
       if(vencido==='proximo'&&!isNear) return false;
     }
@@ -3775,12 +3788,13 @@ function renderLoan(){
       const hay=(p.usuario_nombre+' '+(p.departamento||'')+' masivo').toLowerCase();
       if(!hay.includes(q.toLowerCase())) return false;
     }
-    if(est&&p.estado!==est) return false;
+    if(!loanMatchesEstado(p,est,'masivo')) return false;
     if(dpto&&p.departamento!==dpto) return false;
+    if(fecha&&p.fecha_prestamo!==fecha) return false;
     if(vencido){
       const dl=daysLeft(p.fecha_devolucion_esperada);
-      const isOverdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
-      const isNear=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
+      const isOverdue=p.estado==='firmado'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+      const isNear=p.estado==='firmado'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
       if(vencido==='vencido'&&!isOverdue) return false;
       if(vencido==='proximo'&&!isNear) return false;
     }
@@ -3806,9 +3820,9 @@ function renderLoan(){
   }
 
   tb.innerHTML=pageData.map(p=>{
-    const overdue=p.estado==='activo'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
+    const overdue=p.estado==='firmado'&&!p.fecha_devolucion_real&&p.fecha_devolucion_esperada&&p.fecha_devolucion_esperada<TODAY;
     const dl=daysLeft(p.fecha_devolucion_esperada);
-    const near=p.estado==='activo'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
+    const near=p.estado==='firmado'&&!p.fecha_devolucion_real&&dl!==null&&dl>=0&&dl<=7;
     const rowBg=overdue?'background:rgba(248,113,113,.04)':near?'background:rgba(251,191,36,.04)':'';
 
     if(p._tipo==='masivo'){
@@ -3828,7 +3842,7 @@ function renderLoan(){
           ${near&&!overdue?`<div style="font-size:10px;color:var(--amber);font-weight:700">En ${dl} día(s)</div>`:''}
         </td>
         <td data-label="Devuelto" class="mono">${fmtDate(p.fecha_devolucion_real)}</td>
-        <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado)}">${overdue?'Vencido':bsLabel(p.estado)}</span></td>
+        <td data-label="Estado"><span class="bs ${overdue?'bs-vencido':bsClass(p.estado,'loan')}">${overdue?'Vencido':bsLabel(p.estado,'loan')}</span></td>
         <td data-label="Términos"><span style="font-weight:600;color:${p.terminos_aceptados?'var(--green)':'var(--text3)'}">${p.terminos_aceptados?'✅ Aceptó':'⏳ Pendiente'}</span>${p.firma_url?'<br><span style="font-size:10px;color:var(--teal)">✍ Firmado</span>':''}</td>
         <td data-label="Notas" style="max-width:140px;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.notas||'—'}</td>
         <td data-label="Acciones"><div class="act-cell">
@@ -3889,6 +3903,7 @@ function clearLoanFilters(){
   $('ftLoanEst').value='';
   $('ftLoanDpto').value='';
   $('ftLoanVencido').value='';
+  $('ftLoanFecha').value='';
   currentPage['loan']=1;
   renderLoan();
 }
@@ -4753,7 +4768,7 @@ function _computeCalEvents(){
   for(const p of LOANS){
     let lbl='Para devolver';
     if(p.estado==='devuelto')lbl='Devuelto';
-    else if(p.estado==='firmado')lbl='Pendiente firma';
+    else if(p.estado==='solicitado')lbl='Pendiente firma';
     if(p.fecha_devolucion_esperada){
       events.push({date:p.fecha_devolucion_esperada,type:'prestamo',title:p.equipo_nombre||'Equipo desconocido',sub:`${lbl} · ${p.equipo_tipo||''}`,detail:`Responsable: ${p.usuario_nombre||'—'}`,id:p.id,estado:p.estado,notas:p.notas||''});
     }else if(p.fecha_prestamo){

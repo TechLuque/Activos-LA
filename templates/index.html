@@ -776,11 +776,13 @@
           <div class="filter-field"><label>🔘 Estado</label>
             <select id="ftLoanEst" onchange="currentPage['loan']=1;renderLoan()">
               <option value="">Todos los estados</option>
-              <option value="solicitado">Solicitado</option>
+              <option value="sin_firmar">Sin firmar</option>
               <option value="firmado">Firmado</option>
-              <option value="activo">Activo</option>
               <option value="devuelto">Devuelto</option>
             </select>
+          </div>
+          <div class="filter-field"><label>📅 Fecha préstamo</label>
+            <input id="ftLoanFecha" type="date" onchange="currentPage['loan']=1;renderLoan()" title="Fecha de préstamo">
           </div>
           <div class="filter-field"><label>🏢 Departamento</label>
             <select id="ftLoanDpto" onchange="currentPage['loan']=1;renderLoan()">
